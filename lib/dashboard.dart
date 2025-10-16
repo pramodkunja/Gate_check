@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:gatecheck/const_color.dart';
+import 'package:gatecheck/gatecheck_signin.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
@@ -240,7 +240,13 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
               if (value == "profile") {
                 // Navigate to profile page if needed
               } else if (value == "signout") {
-                // Handle sign out
+                // Navigate back to sign-in and clear stack
+                Navigator.of(context).pushAndRemoveUntil(
+                  MaterialPageRoute(
+                    builder: (context) => const GateCheckSignIn(),
+                  ),
+                  (route) => false,
+                );
               }
             },
             itemBuilder: (context) => [

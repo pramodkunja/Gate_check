@@ -4,6 +4,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:gatecheck/forgot_password.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:gatecheck/dashboard.dart';
 
 class SignInScreen extends StatefulWidget {
   final String? email;
@@ -64,6 +65,12 @@ class _SignInScreenState extends State<SignInScreen> {
           backgroundColor: Color(0xFF6A1B9A),
         ),
       );
+      // Navigate to dashboard after a short delay so the SnackBar is visible
+      Future.delayed(const Duration(milliseconds: 700), () {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (context) => const DashboardScreen()),
+        );
+      });
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
