@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:gatecheck/gatecheck_signin.dart';
+import 'package:gatecheck/navigation_drawer.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
@@ -16,7 +17,7 @@ class DashboardScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: Colors.grey[100],
       appBar: CustomAppBar(userName: userName, firstLetter: firstLetter),
-      drawer: const Drawer(),
+      drawer: const Navigation(),
       body: LayoutBuilder(
         builder: (context, constraints) {
           return SingleChildScrollView(

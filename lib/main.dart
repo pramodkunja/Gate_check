@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gatecheck/dashboard.dart';
 import 'package:gatecheck/gatecheck_signin.dart';
 
 void main() {
@@ -13,7 +14,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Gate Check',
-      home: const GateCheckSignIn(),
+      home: const DashboardScreen(),
     );
   }
 }
