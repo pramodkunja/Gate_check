@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gatecheck/Roles_screens/roles_management.dart';
 
 class Navigation extends StatefulWidget {
   const Navigation({super.key});
@@ -337,6 +338,13 @@ class _NavigationState extends State<Navigation> {
       selectedRoute = route;
     });
     Navigator.pop(context);
+
+    if (route == 'Roles') {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const RolesManagementScreen()),
+      );
+    }
     // Add your navigation logic here
     // Example: Navigator.pushNamed(context, '/$route');
   }

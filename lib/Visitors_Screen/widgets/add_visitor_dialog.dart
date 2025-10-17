@@ -128,9 +128,7 @@ class _AddVisitorDialogState extends State<AddVisitorDialog> {
   Widget build(BuildContext context) {
     return Dialog(
       insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Container(
         constraints: const BoxConstraints(maxWidth: 600),
         child: Column(
@@ -140,10 +138,7 @@ class _AddVisitorDialogState extends State<AddVisitorDialog> {
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
                 border: Border(
-                  bottom: BorderSide(
-                    color: AppColors.border,
-                    width: 1,
-                  ),
+                  bottom: BorderSide(color: AppColors.border, width: 1),
                 ),
               ),
               child: Row(
@@ -235,7 +230,11 @@ class _AddVisitorDialogState extends State<AddVisitorDialog> {
                             child: _buildDropdown(
                               label: 'Pass Type',
                               value: selectedPassType,
-                              items: const ['One Time', 'Recurring', 'Permanent'],
+                              items: const [
+                                'One Time',
+                                'Recurring',
+                                'Permanent',
+                              ],
                               onChanged: (value) {
                                 setState(() {
                                   selectedPassType = value!;
@@ -249,7 +248,12 @@ class _AddVisitorDialogState extends State<AddVisitorDialog> {
                             child: _buildDropdown(
                               label: 'Category',
                               value: selectedCategory,
-                              items: const ['Select category', 'Vendor', 'Walk-In', 'Contractor'],
+                              items: const [
+                                'Select category',
+                                'Vendor',
+                                'Walk-In',
+                                'Contractor',
+                              ],
                               onChanged: (value) {
                                 setState(() {
                                   selectedCategory = value!;
@@ -263,13 +267,9 @@ class _AddVisitorDialogState extends State<AddVisitorDialog> {
                       const SizedBox(height: 16),
                       Row(
                         children: [
-                          Expanded(
-                            child: _buildDatePicker(),
-                          ),
+                          Expanded(child: _buildDatePicker()),
                           const SizedBox(width: 12),
-                          Expanded(
-                            child: _buildTimePicker(),
-                          ),
+                          Expanded(child: _buildTimePicker()),
                         ],
                       ),
                       const SizedBox(height: 16),
@@ -368,10 +368,7 @@ class _AddVisitorDialogState extends State<AddVisitorDialog> {
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
                 border: Border(
-                  top: BorderSide(
-                    color: AppColors.border,
-                    width: 1,
-                  ),
+                  top: BorderSide(color: AppColors.border, width: 1),
                 ),
               ),
               child: Row(
@@ -564,10 +561,7 @@ class _AddVisitorDialogState extends State<AddVisitorDialog> {
           items: items.map((String item) {
             return DropdownMenuItem<String>(
               value: item,
-              child: Text(
-                item,
-                style: GoogleFonts.inter(fontSize: 13),
-              ),
+              child: Text(item, style: GoogleFonts.inter(fontSize: 13)),
             );
           }).toList(),
           onChanged: onChanged,
@@ -592,10 +586,7 @@ class _AddVisitorDialogState extends State<AddVisitorDialog> {
             ),
             Text(
               ' *',
-              style: GoogleFonts.inter(
-                fontSize: 13,
-                color: AppColors.rejected,
-              ),
+              style: GoogleFonts.inter(fontSize: 13, color: AppColors.rejected),
             ),
           ],
         ),
@@ -623,11 +614,7 @@ class _AddVisitorDialogState extends State<AddVisitorDialog> {
                     ),
                   ),
                 ),
-                Icon(
-                  Icons.calendar_today,
-                  size: 16,
-                  color: AppColors.iconGray,
-                ),
+                Icon(Icons.calendar_today, size: 16, color: AppColors.iconGray),
               ],
             ),
           ),
@@ -652,10 +639,7 @@ class _AddVisitorDialogState extends State<AddVisitorDialog> {
             ),
             Text(
               ' *',
-              style: GoogleFonts.inter(
-                fontSize: 13,
-                color: AppColors.rejected,
-              ),
+              style: GoogleFonts.inter(fontSize: 13, color: AppColors.rejected),
             ),
           ],
         ),
@@ -683,11 +667,7 @@ class _AddVisitorDialogState extends State<AddVisitorDialog> {
                     ),
                   ),
                 ),
-                Icon(
-                  Icons.access_time,
-                  size: 16,
-                  color: AppColors.iconGray,
-                ),
+                Icon(Icons.access_time, size: 16, color: AppColors.iconGray),
               ],
             ),
           ),
