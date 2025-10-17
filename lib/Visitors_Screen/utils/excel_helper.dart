@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
-import '../utils/colors.dart';
+import 'colors.dart';
 
 class ExcelHelper {
   static Future<void> importExcel(BuildContext context) async {

@@ -4,7 +4,7 @@ import 'package:intl/intl.dart';
 import '../models/visitor_model.dart';
 import '../utils/colors.dart';
 import 'action_menu.dart';
-import 'package:gatecheck/entry_otp.dart';
+import 'package:gatecheck/Visitors_Screen/entry_otp.dart';
 import 'reschedule_dialog.dart';
 
 class VisitorCard extends StatelessWidget {

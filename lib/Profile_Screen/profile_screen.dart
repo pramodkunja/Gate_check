@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:gatecheck/Profile_Screen/widgets/change_password.dart';
 import 'package:gatecheck/Profile_Screen/widgets/profile_information.dart';
-import 'package:gatecheck/dashboard.dart';
-import 'package:gatecheck/navigation_drawer.dart';
+import 'package:gatecheck/Dashboard_Screens/custom_appbar.dart';
+import 'package:gatecheck/Dashboard_Screens/navigation_drawer.dart';
 import 'widgets/profile_header.dart';
 import 'widgets/security_section.dart';
 

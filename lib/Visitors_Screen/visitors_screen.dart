@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:gatecheck/dashboard.dart';
-import 'package:gatecheck/navigation_drawer.dart';
+import 'package:gatecheck/Dashboard_Screens/custom_appbar.dart';
+import 'package:gatecheck/Dashboard_Screens/navigation_drawer.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../models/visitor_model.dart';
-import '../utils/colors.dart';
-import '../widgets/visitor_card.dart';
-import '../widgets/add_visitor_dialog.dart';
-import '../widgets/filter_dropdown.dart';
-import '../widgets/excel_dropdown.dart';
+import 'models/visitor_model.dart';
+import 'utils/colors.dart';
+import 'widgets/visitor_card.dart';
+import 'widgets/add_visitor_dialog.dart';
+import 'widgets/filter_dropdown.dart';
+import 'widgets/excel_dropdown.dart';
 
 class RegularVisitorsScreen extends StatefulWidget {
   const RegularVisitorsScreen({super.key});

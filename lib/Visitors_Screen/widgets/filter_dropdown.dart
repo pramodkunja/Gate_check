@@ -22,14 +22,6 @@ class FilterDropdown extends StatefulWidget {
 }
 
 class _FilterDropdownState extends State<FilterDropdown> {
-  bool _isOpen = false;
-
-  void _toggleDropdown() {
-    setState(() {
-      _isOpen = !_isOpen;
-    });
-  }
-
   void _showFilterDialog() {
     showDialog(
       context: context,
@@ -69,31 +61,18 @@ class _FilterDropdownState extends State<FilterDropdown> {
           if (activeFilters > 0) ...[
             const SizedBox(width: 8),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              width: 8,
+              height: 8,
               decoration: BoxDecoration(
                 color: AppColors.primary,
-                borderRadius: BorderRadius.circular(12),
+                shape: BoxShape.circle,
               ),
-              // child: Text(
-              //   'Active',
-              //   style: GoogleFonts.inter(
-              //     fontSize: 12,
-              //     fontWeight: FontWeight.w600,
-              //     color: Colors.white,
-              //   ),
-              // ),
             ),
           ],
-          const SizedBox(width: 4),
-          Icon(
-            Icons.keyboard_arrow_down,
-            size: 20,
-            color: const Color(0xFF6B7280),
-          ),
         ],
       ),
       style: OutlinedButton.styleFrom(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
         side: const BorderSide(color: Color(0xFFD1D5DB), width: 1.5),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         backgroundColor: Colors.white,
@@ -132,12 +111,7 @@ class _FilterDialogState extends State<_FilterDialog> {
     _tempCategory = widget.selectedCategory;
   }
 
-  void _clearAllFilters() {
-    setState(() {
-      _tempStatus = 'All Status';
-      _tempPassType = 'All Types';
-      _tempCategory = 'All Categories';
-    });
+  void _applyFilters() {
     widget.onFilterChanged(_tempStatus, _tempPassType, _tempCategory);
     Navigator.pop(context);
   }
@@ -145,110 +119,103 @@ class _FilterDialogState extends State<_FilterDialog> {
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
-    final dialogWidth = screenWidth > 600 ? 400.0 : screenWidth - 32;
+    final dialogWidth = screenWidth > 600 ? 400.0 : screenWidth * 0.85;
 
     return Dialog(
       backgroundColor: Colors.transparent,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 16),
+      insetPadding: EdgeInsets.symmetric(horizontal: screenWidth * 0.05),
       child: Container(
         width: dialogWidth,
         constraints: BoxConstraints(
           maxWidth: 400,
-          maxHeight: MediaQuery.of(context).size.height * 0.8,
+          maxHeight: MediaQuery.of(context).size.height * 0.7,
         ),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.1),
-              blurRadius: 16,
+              blurRadius: 20,
               offset: const Offset(0, 4),
             ),
           ],
         ),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 24),
-              _buildFilterSection(
-                'Status',
-                AppConstants.statusList,
-                _tempStatus,
-                (value) {
-                  setState(() {
-                    _tempStatus = value;
-                  });
-                  widget.onFilterChanged(
-                    _tempStatus,
-                    _tempPassType,
-                    _tempCategory,
-                  );
-                },
-              ),
-              const SizedBox(height: 20),
-              _buildFilterSection(
-                'Pass Type',
-                AppConstants.passTypes,
-                _tempPassType,
-                (value) {
-                  setState(() {
-                    _tempPassType = value;
-                  });
-                  widget.onFilterChanged(
-                    _tempStatus,
-                    _tempPassType,
-                    _tempCategory,
-                  );
-                },
-              ),
-              const SizedBox(height: 20),
-              _buildFilterSection(
-                'Category',
-                AppConstants.categories,
-                _tempCategory,
-                (value) {
-                  setState(() {
-                    _tempCategory = value;
-                  });
-                  widget.onFilterChanged(
-                    _tempStatus,
-                    _tempPassType,
-                    _tempCategory,
-                  );
-                },
-              ),
-              const SizedBox(height: 24),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton(
-                    onPressed: _clearAllFilters,
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      side: BorderSide(color: AppColors.primary, width: 1.5),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      backgroundColor: const Color(0xFFF3F4FF),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Scrollable content
+            Flexible(
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 24),
+                    _buildFilterSection(
+                      'Status',
+                      AppConstants.statusList,
+                      _tempStatus,
+                      (value) {
+                        setState(() {
+                          _tempStatus = value;
+                        });
+                      },
                     ),
-                    child: Text(
-                      'Clear All Filters',
-                      style: GoogleFonts.inter(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.primary,
-                      ),
+                    const SizedBox(height: 20),
+                    _buildFilterSection(
+                      'Pass Type',
+                      AppConstants.passTypes,
+                      _tempPassType,
+                      (value) {
+                        setState(() {
+                          _tempPassType = value;
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 20),
+                    _buildFilterSection(
+                      'Category',
+                      AppConstants.categories,
+                      _tempCategory,
+                      (value) {
+                        setState(() {
+                          _tempCategory = value;
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 24),
+                  ],
+                ),
+              ),
+            ),
+            // Apply Filters button (fixed at bottom)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+              child: SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _applyFilters,
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    backgroundColor: AppColors.primary,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    elevation: 0,
+                  ),
+                  child: Text(
+                    'Apply Filters',
+                    style: GoogleFonts.inter(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
                     ),
                   ),
                 ),
               ),
-              const SizedBox(height: 24),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -308,7 +275,7 @@ class _FilterDialogState extends State<_FilterDialog> {
                   ),
                   const Icon(
                     Icons.keyboard_arrow_down,
-                    color: Color(0xFF374151),
+                    color: Color(0xFF6B7280),
                     size: 24,
                   ),
                 ],
@@ -332,9 +299,10 @@ class _FilterDialogState extends State<_FilterDialog> {
       barrierDismissible: true,
       barrierColor: Colors.black.withOpacity(0.3),
       builder: (BuildContext context) {
+        final screenWidth = MediaQuery.of(context).size.width;
         return Dialog(
           backgroundColor: Colors.transparent,
-          insetPadding: const EdgeInsets.symmetric(horizontal: 24),
+          insetPadding: EdgeInsets.symmetric(horizontal: screenWidth * 0.08),
           child: Container(
             constraints: BoxConstraints(
               maxHeight: MediaQuery.of(context).size.height * 0.5,
@@ -403,7 +371,7 @@ class _FilterDialogState extends State<_FilterDialog> {
                           ),
                           decoration: BoxDecoration(
                             color: isSelected
-                                ? const Color(0xFF3B82F6)
+                                ? AppColors.primary
                                 : Colors.transparent,
                             borderRadius: BorderRadius.circular(6),
                           ),
