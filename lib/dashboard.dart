@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:gatecheck/Profile_Screen/profile_screen.dart';
 import 'package:gatecheck/gatecheck_signin.dart';
 import 'package:gatecheck/navigation_drawer.dart';
+import 'package:gatecheck/visitors_screen.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
@@ -16,7 +18,10 @@ class DashboardScreen extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: Colors.grey[100],
-      appBar: CustomAppBar(userName: userName, firstLetter: firstLetter),
+      appBar: CustomAppBar(
+        userName: userName,
+        firstLetter: firstLetter,
+      ),
       drawer: const Navigation(),
       body: LayoutBuilder(
         builder: (context, constraints) {
@@ -84,12 +89,12 @@ class DashboardScreen extends StatelessWidget {
                               label: "Add New Visitor",
                               iconColor: Colors.purple,
                               onTap: () {
-                                // Navigator.push(
-                                //   context,
-                                //   MaterialPageRoute(
-                                //     builder: (context) => const GateCheck(),
-                                //   ),
-                                // );
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => const RegularVisitorsScreen(),
+                                  ),
+                                );
                               },
                             ),
                             const SizedBox(height: 10),
@@ -215,6 +220,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
     super.key,
     required this.userName,
     required this.firstLetter,
+    
   });
 
   @override
@@ -222,11 +228,13 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   final String userName;
   final String firstLetter;
+  
 
   @override
   Widget build(BuildContext context) {
     return AppBar(
       backgroundColor: Colors.white,
+      centerTitle: true,
       elevation: 0,
       iconTheme: const IconThemeData(color: Colors.black),
       actions: [
@@ -272,8 +280,16 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                   ],
                 ),
               ),
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: "profile",
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const ProfileScreen(),
+                    ),
+                  );
+                },
                 child: Row(
                   children: [
                     Icon(Icons.person_outline, size: 18),

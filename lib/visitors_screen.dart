@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:gatecheck/dashboard.dart';
+import 'package:gatecheck/navigation_drawer.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../models/visitor_model.dart';
 import '../utils/colors.dart';
@@ -80,18 +82,22 @@ class _RegularVisitorsScreenState extends State<RegularVisitorsScreen> {
   void _applyFilters() {
     setState(() {
       filteredVisitors = visitors.where((visitor) {
-        bool matchesSearch = searchQuery.isEmpty ||
+        bool matchesSearch =
+            searchQuery.isEmpty ||
             visitor.name.toLowerCase().contains(searchQuery.toLowerCase()) ||
             visitor.id.contains(searchQuery) ||
             visitor.phone.contains(searchQuery);
 
-        bool matchesStatus = selectedStatus == 'All Status' ||
+        bool matchesStatus =
+            selectedStatus == 'All Status' ||
             visitor.status.displayName == selectedStatus;
 
-        bool matchesPassType = selectedPassType == 'All Types' ||
+        bool matchesPassType =
+            selectedPassType == 'All Types' ||
             visitor.passType == selectedPassType;
 
-        bool matchesCategory = selectedCategory == 'All Categories' ||
+        bool matchesCategory =
+            selectedCategory == 'All Categories' ||
             visitor.category == selectedCategory;
 
         return matchesSearch &&
@@ -121,38 +127,62 @@ class _RegularVisitorsScreenState extends State<RegularVisitorsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    String userName = "Veni"; // you’ll replace with API data later
+    String firstLetter = userName.isNotEmpty ? userName[0].toUpperCase() : "?";
+
     return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.menu, color: AppColors.textPrimary),
-          onPressed: () {},
-        ),
-        title: Text(
-          'Regular Visitors',
-          style: GoogleFonts.inter(
-            color: AppColors.textPrimary,
-            fontWeight: FontWeight.w600,
-            fontSize: 20,
-          ),
-        ),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 16),
-            child: CircleAvatar(
-              backgroundColor: AppColors.primaryLight,
-              child: Icon(
-                Icons.person,
-                color: AppColors.primary,
-              ),
-            ),
-          ),
-        ],
-      ),
+      // backgroundColor: AppColors.background,
+      drawer: const Navigation(),
+      appBar: CustomAppBar(userName: userName, firstLetter: firstLetter),
+      // appBar: AppBar(
+      //   backgroundColor: Colors.white,
+      //   elevation: 0,
+      //   leading: IconButton(
+      //     icon: const Icon(Icons.menu, color: AppColors.textPrimary),
+      //     onPressed: () {},
+      //   ),
+      //   centerTitle: true,
+      //   title: Text(
+      //     'Regular Visitors',
+      //     style: GoogleFonts.inter(
+      //       color: AppColors.textPrimary,
+      //       fontWeight: FontWeight.w600,
+      //       fontSize: 20,
+      //     ),
+      //   ),
+      //   actions: [
+      //     Padding(
+      //       padding: const EdgeInsets.only(right: 16),
+      //       child: CircleAvatar(
+      //         backgroundColor: AppColors.primaryLight,
+      //         child: Icon(
+      //           Icons.person,
+      //           color: AppColors.primary,
+      //         ),
+      //       ),
+      //     ),
+      //   ],
+      // ),
       body: Column(
         children: [
+          Padding(
+            padding: const EdgeInsets.all(10),
+            child: Row(
+              children: [
+                Icon(Icons.group_rounded, size: 30, color: AppColors.primary),
+
+                const SizedBox(width: 8),
+                Text(
+                  "Regular Visitors",
+                  style: GoogleFonts.inter(
+                    color: AppColors.textPrimary,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 20,
+                  ),
+                ),
+              ],
+            ),
+          ),
           Container(
             color: Colors.white,
             padding: const EdgeInsets.all(16),
@@ -196,9 +226,8 @@ class _RegularVisitorsScreenState extends State<RegularVisitorsScreen> {
                         onPressed: () {
                           showDialog(
                             context: context,
-                            builder: (context) => AddVisitorDialog(
-                              onAdd: _addVisitor,
-                            ),
+                            builder: (context) =>
+                                AddVisitorDialog(onAdd: _addVisitor),
                           );
                         },
                         icon: const Icon(Icons.add, size: 20),
@@ -227,13 +256,13 @@ class _RegularVisitorsScreenState extends State<RegularVisitorsScreen> {
                       selectedCategory: selectedCategory,
                       onFilterChanged:
                           (String status, String passType, String category) {
-                        setState(() {
-                          selectedStatus = status;
-                          selectedPassType = passType;
-                          selectedCategory = category;
-                          _applyFilters();
-                        });
-                      },
+                            setState(() {
+                              selectedStatus = status;
+                              selectedPassType = passType;
+                              selectedCategory = category;
+                              _applyFilters();
+                            });
+                          },
                     ),
                     const SizedBox(width: 12),
                     const ExcelDropdown(),
