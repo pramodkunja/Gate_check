@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:gatecheck/Roles_screens/permissions_management.dart';
+import 'package:gatecheck/Roles_screens/role_permission_management.dart';
 import 'package:gatecheck/Roles_screens/roles_management.dart';
 
 class Navigation extends StatefulWidget {
@@ -343,6 +345,22 @@ class _NavigationState extends State<Navigation> {
       Navigator.push(
         context,
         MaterialPageRoute(builder: (context) => const RolesManagementScreen()),
+      );
+    }
+
+    if (route == 'Roles & Permissions') {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const RolePermissionsScreen()),
+      );
+    }
+
+    if (route == 'Permissions') {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const PermissionManagementScreen(),
+        ),
       );
     }
     // Add your navigation logic here
