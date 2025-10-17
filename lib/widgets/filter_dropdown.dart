@@ -22,10 +22,104 @@ class FilterDropdown extends StatefulWidget {
 }
 
 class _FilterDropdownState extends State<FilterDropdown> {
-  final LayerLink _layerLink = LayerLink();
-  OverlayEntry? _overlayEntry;
   bool _isOpen = false;
 
+  void _toggleDropdown() {
+    setState(() {
+      _isOpen = !_isOpen;
+    });
+  }
+
+  void _showFilterDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      barrierColor: Colors.black.withOpacity(0.3),
+      builder: (context) => _FilterDialog(
+        selectedStatus: widget.selectedStatus,
+        selectedPassType: widget.selectedPassType,
+        selectedCategory: widget.selectedCategory,
+        onFilterChanged: widget.onFilterChanged,
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Count active filters
+    int activeFilters = 0;
+    if (widget.selectedStatus != 'All Status') activeFilters++;
+    if (widget.selectedPassType != 'All Types') activeFilters++;
+    if (widget.selectedCategory != 'All Categories') activeFilters++;
+
+    return OutlinedButton.icon(
+      onPressed: _showFilterDialog,
+      icon: Icon(Icons.filter_list, size: 18, color: const Color(0xFF6B7280)),
+      label: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            'Filter',
+            style: GoogleFonts.inter(
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+              color: const Color(0xFF374151),
+            ),
+          ),
+          if (activeFilters > 0) ...[
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              decoration: BoxDecoration(
+                color: AppColors.primary,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              // child: Text(
+              //   'Active',
+              //   style: GoogleFonts.inter(
+              //     fontSize: 12,
+              //     fontWeight: FontWeight.w600,
+              //     color: Colors.white,
+              //   ),
+              // ),
+            ),
+          ],
+          const SizedBox(width: 4),
+          Icon(
+            Icons.keyboard_arrow_down,
+            size: 20,
+            color: const Color(0xFF6B7280),
+          ),
+        ],
+      ),
+      style: OutlinedButton.styleFrom(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+        side: const BorderSide(color: Color(0xFFD1D5DB), width: 1.5),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        backgroundColor: Colors.white,
+      ),
+    );
+  }
+}
+
+class _FilterDialog extends StatefulWidget {
+  final String selectedStatus;
+  final String selectedPassType;
+  final String selectedCategory;
+  final Function(String, String, String) onFilterChanged;
+
+  const _FilterDialog({
+    required this.selectedStatus,
+    required this.selectedPassType,
+    required this.selectedCategory,
+    required this.onFilterChanged,
+  });
+
+  @override
+  State<_FilterDialog> createState() => _FilterDialogState();
+}
+
+class _FilterDialogState extends State<_FilterDialog> {
   late String _tempStatus;
   late String _tempPassType;
   late String _tempCategory;
@@ -38,232 +132,303 @@ class _FilterDropdownState extends State<FilterDropdown> {
     _tempCategory = widget.selectedCategory;
   }
 
-  void _toggleDropdown() {
-    if (_isOpen) {
-      _closeDropdown();
-    } else {
-      _openDropdown();
-    }
-  }
-
-  void _openDropdown() {
-    _overlayEntry = _createOverlayEntry();
-    Overlay.of(context).insert(_overlayEntry!);
+  void _clearAllFilters() {
     setState(() {
-      _isOpen = true;
+      _tempStatus = 'All Status';
+      _tempPassType = 'All Types';
+      _tempCategory = 'All Categories';
     });
-  }
-
-  void _closeDropdown() {
-    _overlayEntry?.remove();
-    _overlayEntry = null;
-    setState(() {
-      _isOpen = false;
-    });
-  }
-
-  void _applyFilters() {
     widget.onFilterChanged(_tempStatus, _tempPassType, _tempCategory);
-    _closeDropdown();
+    Navigator.pop(context);
   }
 
-  OverlayEntry _createOverlayEntry() {
-    RenderBox renderBox = context.findRenderObject() as RenderBox;
-    var size = renderBox.size;
-    var offset = renderBox.localToGlobal(Offset.zero);
+  @override
+  Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final dialogWidth = screenWidth > 600 ? 400.0 : screenWidth - 32;
 
-    return OverlayEntry(
-      builder: (context) => GestureDetector(
-        onTap: _closeDropdown,
-        behavior: HitTestBehavior.translucent,
-        child: Stack(
-          children: [
-            Positioned(
-              left: offset.dx,
-              top: offset.dy + size.height + 8,
-              child: Material(
-                elevation: 8,
-                borderRadius: BorderRadius.circular(12),
-                child: Container(
-                  width: 280,
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        blurRadius: 20,
-                        offset: const Offset(0, 4),
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Container(
+        width: dialogWidth,
+        constraints: BoxConstraints(
+          maxWidth: 400,
+          maxHeight: MediaQuery.of(context).size.height * 0.8,
+        ),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 16,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 24),
+              _buildFilterSection(
+                'Status',
+                AppConstants.statusList,
+                _tempStatus,
+                (value) {
+                  setState(() {
+                    _tempStatus = value;
+                  });
+                  widget.onFilterChanged(
+                    _tempStatus,
+                    _tempPassType,
+                    _tempCategory,
+                  );
+                },
+              ),
+              const SizedBox(height: 20),
+              _buildFilterSection(
+                'Pass Type',
+                AppConstants.passTypes,
+                _tempPassType,
+                (value) {
+                  setState(() {
+                    _tempPassType = value;
+                  });
+                  widget.onFilterChanged(
+                    _tempStatus,
+                    _tempPassType,
+                    _tempCategory,
+                  );
+                },
+              ),
+              const SizedBox(height: 20),
+              _buildFilterSection(
+                'Category',
+                AppConstants.categories,
+                _tempCategory,
+                (value) {
+                  setState(() {
+                    _tempCategory = value;
+                  });
+                  widget.onFilterChanged(
+                    _tempStatus,
+                    _tempPassType,
+                    _tempCategory,
+                  );
+                },
+              ),
+              const SizedBox(height: 24),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton(
+                    onPressed: _clearAllFilters,
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      side: BorderSide(color: AppColors.primary, width: 1.5),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
                       ),
-                    ],
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildFilterSection(
-                        'Status',
-                        AppConstants.statusList,
-                        _tempStatus,
-                        (value) {
-                          setState(() {
-                            _tempStatus = value;
-                          });
-                          _overlayEntry?.markNeedsBuild();
-                        },
+                      backgroundColor: const Color(0xFFF3F4FF),
+                    ),
+                    child: Text(
+                      'Clear All Filters',
+                      style: GoogleFonts.inter(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.primary,
                       ),
-                      const SizedBox(height: 16),
-                      _buildFilterSection(
-                        'Pass Type',
-                        AppConstants.passTypes,
-                        _tempPassType,
-                        (value) {
-                          setState(() {
-                            _tempPassType = value;
-                          });
-                          _overlayEntry?.markNeedsBuild();
-                        },
-                      ),
-                      const SizedBox(height: 16),
-                      _buildFilterSection(
-                        'Category',
-                        AppConstants.categories,
-                        _tempCategory,
-                        (value) {
-                          setState(() {
-                            _tempCategory = value;
-                          });
-                          _overlayEntry?.markNeedsBuild();
-                        },
-                      ),
-                      const SizedBox(height: 16),
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          onPressed: _applyFilters,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.primary,
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            elevation: 0,
-                          ),
-                          child: Text(
-                            'Apply Filters',
-                            style: GoogleFonts.inter(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
                 ),
               ),
-            ),
-          ],
+              const SizedBox(height: 24),
+            ],
+          ),
         ),
       ),
     );
   }
 
   Widget _buildFilterSection(
-    String title,
-    List<String> options,
+    String label,
+    List<String> items,
     String selectedValue,
     Function(String) onChanged,
   ) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          title,
-          style: GoogleFonts.inter(
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-            color: AppColors.textSecondary,
-          ),
-        ),
-        const SizedBox(height: 8),
-        DropdownButtonFormField<String>(
-          value: selectedValue,
-          decoration: InputDecoration(
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 12,
-              vertical: 8,
-            ),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide(color: AppColors.border),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide(color: AppColors.border),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide(color: AppColors.primary),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: GoogleFonts.inter(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: const Color(0xFF374151),
             ),
           ),
-          items: options.map((String option) {
-            return DropdownMenuItem<String>(
-              value: option,
-              child: Text(
-                option,
-                style: GoogleFonts.inter(fontSize: 13),
+          const SizedBox(height: 8),
+          GestureDetector(
+            onTap: () {
+              _showCustomDropdown(
+                context,
+                label,
+                items,
+                selectedValue,
+                onChanged,
+              );
+            },
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              decoration: BoxDecoration(
+                border: Border.all(color: const Color(0xFFD1D5DB), width: 1.5),
+                borderRadius: BorderRadius.circular(8),
+                color: Colors.white,
               ),
-            );
-          }).toList(),
-          onChanged: (value) {
-            if (value != null) {
-              onChanged(value);
-            }
-          },
-        ),
-      ],
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return CompositedTransformTarget(
-      link: _layerLink,
-      child: OutlinedButton.icon(
-        onPressed: _toggleDropdown,
-        icon: Icon(
-          Icons.filter_list,
-          size: 18,
-          color: _isOpen ? AppColors.primary : AppColors.textPrimary,
-        ),
-        label: Text(
-          'Filter',
-          style: GoogleFonts.inter(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            color: _isOpen ? AppColors.primary : AppColors.textPrimary,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Text(
+                      selectedValue,
+                      style: GoogleFonts.inter(
+                        fontSize: 15,
+                        color: const Color(0xFF111827),
+                        fontWeight: FontWeight.w500,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const Icon(
+                    Icons.keyboard_arrow_down,
+                    color: Color(0xFF374151),
+                    size: 24,
+                  ),
+                ],
+              ),
+            ),
           ),
-        ),
-        style: OutlinedButton.styleFrom(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          side: BorderSide(
-            color: _isOpen ? AppColors.primary : AppColors.border,
-          ),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          backgroundColor: _isOpen ? AppColors.primaryLight : Colors.white,
-        ),
+        ],
       ),
     );
   }
 
-  @override
-  void dispose() {
-    _closeDropdown();
-    super.dispose();
+  void _showCustomDropdown(
+    BuildContext context,
+    String label,
+    List<String> items,
+    String selectedValue,
+    Function(String) onChanged,
+  ) {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      barrierColor: Colors.black.withOpacity(0.3),
+      builder: (BuildContext context) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Container(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.5,
+              maxWidth: 400,
+            ),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFE5E7EB)),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Header
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    border: Border(
+                      bottom: BorderSide(color: const Color(0xFFE5E7EB)),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        label,
+                        style: GoogleFonts.inter(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xFF111827),
+                        ),
+                      ),
+                      GestureDetector(
+                        onTap: () => Navigator.pop(context),
+                        child: const Icon(
+                          Icons.close,
+                          size: 24,
+                          color: Color(0xFF6B7280),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                // Items
+                Flexible(
+                  child: ListView.builder(
+                    shrinkWrap: true,
+                    itemCount: items.length,
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    itemBuilder: (context, index) {
+                      final item = items[index];
+                      final isSelected = item == selectedValue;
+                      return InkWell(
+                        onTap: () {
+                          onChanged(item);
+                          Navigator.pop(context);
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 14,
+                          ),
+                          margin: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? const Color(0xFF3B82F6)
+                                : Colors.transparent,
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            item,
+                            style: GoogleFonts.inter(
+                              fontSize: 15,
+                              color: isSelected
+                                  ? Colors.white
+                                  : const Color(0xFF111827),
+                              fontWeight: isSelected
+                                  ? FontWeight.w600
+                                  : FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 }
