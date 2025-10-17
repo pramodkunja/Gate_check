@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:gatecheck/gatecheck_signin.dart';
 import 'package:gatecheck/navigation_drawer.dart';
+import 'package:gatecheck/visitors_screen.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
@@ -84,12 +85,12 @@ class DashboardScreen extends StatelessWidget {
                               label: "Add New Visitor",
                               iconColor: Colors.purple,
                               onTap: () {
-                                // Navigator.push(
-                                //   context,
-                                //   MaterialPageRoute(
-                                //     builder: (context) => const GateCheck(),
-                                //   ),
-                                // );
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => const RegularVisitorsScreen(),
+                                  ),
+                                );
                               },
                             ),
                             const SizedBox(height: 10),

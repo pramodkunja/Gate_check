@@ -15,11 +15,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Gate Check',
-<<<<<<< HEAD
       home: const DashboardScreen(),
-=======
-      home: const RegularVisitorsScreen(),
->>>>>>> f5f77260724d8d3674fa83933e85fd1335d9c1c8
     );
   }
 }
