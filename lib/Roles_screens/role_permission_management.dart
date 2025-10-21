@@ -3,6 +3,8 @@
 // Drop this file into your Flutter project's `lib/` folder and set as home in MaterialApp to preview.
 
 import 'package:flutter/material.dart';
+import 'package:gatecheck/Dashboard_Screens/custom_appbar.dart';
+import 'package:gatecheck/Dashboard_Screens/navigation_drawer.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class RolePermissionsScreen extends StatefulWidget {
@@ -107,41 +109,8 @@ class _RolePermissionsScreenState extends State<RolePermissionsScreen> {
     final textDark = const Color(0xFF1F1F1F);
 
     return Scaffold(
-      appBar: AppBar(
-        elevation: 0.5,
-        backgroundColor: Colors.white,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black87),
-          onPressed: () => Navigator.maybePop(context),
-        ),
-        title: const SizedBox.shrink(),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.symmetric(
-              vertical: 8.0,
-              horizontal: 12.0,
-            ),
-            child: ElevatedButton(
-              onPressed: _navigateToAssign,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: primaryPurple,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(24),
-                ),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 10,
-                ),
-                elevation: 0,
-              ),
-              child: Text(
-                'Assign Permissions',
-                style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
-              ),
-            ),
-          ),
-        ],
-      ),
+      appBar: CustomAppBar(userName: 'Admin', firstLetter: 'A'),
+      drawer: Navigation(),
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
@@ -157,11 +126,34 @@ class _RolePermissionsScreenState extends State<RolePermissionsScreen> {
                 children: [
                   // Header
                   Text(
-                    'Role Permissions Management',
+                    'Role Permissions\nManagement',
                     style: GoogleFonts.poppins(
                       fontSize: 20,
                       fontWeight: FontWeight.w700,
                       color: textDark,
+                    ),
+                  ),
+                  ElevatedButton.icon(
+                    onPressed: _navigateToAssign,
+                    icon: const Icon(Icons.add, color: Color(0xFF7E57C2)),
+                    label: Text(
+                      'Assign Permissions',
+                      style: GoogleFonts.poppins(
+                        color: const Color(0xFF7E57C2),
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(30),
+                        side: const BorderSide(color: Color(0xFF7E57C2)),
+                      ),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 10,
+                      ),
+                      elevation: 0,
                     ),
                   ),
                   const SizedBox(height: 6),

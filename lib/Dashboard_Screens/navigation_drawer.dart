@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:gatecheck/Categories/Screens/categories_management_screen.dart';
 import 'package:gatecheck/Roles_screens/permissions_management.dart';
 import 'package:gatecheck/Roles_screens/role_permission_management.dart';
 import 'package:gatecheck/Roles_screens/roles_management.dart';
+import 'package:gatecheck/User_roles-screen/user_role_management.dart';
 
 class Navigation extends StatefulWidget {
   const Navigation({super.key});
@@ -360,6 +362,24 @@ class _NavigationState extends State<Navigation> {
         context,
         MaterialPageRoute(
           builder: (context) => const PermissionManagementScreen(),
+        ),
+      );
+    }
+
+    if (route == 'User Roles') {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const UserRolesManagementScreen(),
+        ),
+      );
+    }
+
+    if (route == 'Categories') {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const CategoriesManagementScreen(),
         ),
       );
     }
