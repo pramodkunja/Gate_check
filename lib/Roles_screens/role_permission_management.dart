@@ -124,37 +124,49 @@ class _RolePermissionsScreenState extends State<RolePermissionsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Header
-                  Text(
-                    'Role Permissions\nManagement',
-                    style: GoogleFonts.poppins(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w700,
-                      color: textDark,
-                    ),
-                  ),
-                  ElevatedButton.icon(
-                    onPressed: _navigateToAssign,
-                    icon: const Icon(Icons.add, color: Color(0xFF7E57C2)),
-                    label: Text(
-                      'Assign Permissions',
-                      style: GoogleFonts.poppins(
-                        color: const Color(0xFF7E57C2),
-                        fontWeight: FontWeight.w500,
+                  // Header Row
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(Icons.link, color: Colors.blue, size: 28),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Role Permissions\nManagement',
+                          style: GoogleFonts.poppins(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w700,
+                            color: textDark,
+                          ),
+                        ),
                       ),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(30),
-                        side: const BorderSide(color: Color(0xFF7E57C2)),
+                      const SizedBox(width: 12),
+                      ElevatedButton.icon(
+                        onPressed: _navigateToAssign,
+                        icon: const Icon(Icons.add, color: Color(0xFF7E57C2)),
+                        label: Text(
+                          'Assign\nPermissions',
+                          style: GoogleFonts.poppins(
+                            color: const Color(0xFF7E57C2),
+                            fontWeight: FontWeight.w500,
+                            fontSize: 13,
+                          ),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(30),
+                            side: const BorderSide(color: Color(0xFF7E57C2)),
+                          ),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 13,
+                          ),
+                          elevation: 0,
+                        ),
                       ),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 10,
-                      ),
-                      elevation: 0,
-                    ),
+                    ],
                   ),
                   const SizedBox(height: 6),
                   Text(

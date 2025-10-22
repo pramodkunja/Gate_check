@@ -152,7 +152,7 @@ class _CategoriesManagementScreenState
     return Scaffold(
       appBar: CustomAppBar(userName: 'Admin', firstLetter: 'A'),
       drawer: Navigation(),
-      backgroundColor: Colors.white,
+     // backgroundColor: Colors.white,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(16),
@@ -186,7 +186,7 @@ class _CategoriesManagementScreenState
                         borderRadius: BorderRadius.circular(30),
                       ),
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
+                        horizontal: 10,
                         vertical: 12,
                       ),
                     ),
@@ -236,7 +236,7 @@ class _CategoriesManagementScreenState
                 ),
               ),
 
-              const SizedBox(height: 20),
+              const SizedBox(height: 25),
               // Search & Filter
               Row(
                 children: [
@@ -344,11 +344,11 @@ class StatsCard extends StatelessWidget {
     return Container(
       width: 160,
       margin: const EdgeInsets.only(right: 12),
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFF9C27B0)),
+        //border: Border.all(color: const Color(0xFF9C27B0)),
         boxShadow: const [
           BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(2, 2)),
         ],
@@ -398,7 +398,7 @@ class CategoryCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: const BorderSide(color: Color(0xFF9C27B0)),
+        //side: const BorderSide(color: Color(0xFF9C27B0)),
       ),
       elevation: 3,
       child: Padding(

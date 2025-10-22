@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:gatecheck/Dashboard_Screens/custom_appbar.dart';
 import 'package:gatecheck/Dashboard_Screens/navigation_drawer.dart';
+import 'package:gatecheck/Reports_screens/reports.dart';
 import 'package:gatecheck/Visitors_Screen/visitors_screen.dart';
 
 class DashboardScreen extends StatelessWidget {
@@ -17,10 +18,7 @@ class DashboardScreen extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: Colors.grey[100],
-      appBar: CustomAppBar(
-        userName: userName,
-        firstLetter: firstLetter,
-      ),
+      appBar: CustomAppBar(userName: userName, firstLetter: firstLetter),
       drawer: const Navigation(),
       body: LayoutBuilder(
         builder: (context, constraints) {
@@ -91,7 +89,8 @@ class DashboardScreen extends StatelessWidget {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (context) => const RegularVisitorsScreen(),
+                                    builder: (context) =>
+                                        const RegularVisitorsScreen(),
                                   ),
                                 );
                               },
@@ -104,12 +103,12 @@ class DashboardScreen extends StatelessWidget {
                               label: "Generate Report",
                               iconColor: Colors.blue,
                               onTap: () {
-                                // Navigator.push(
-                                //   context,
-                                //   MaterialPageRoute(
-                                //     builder: (context) => const Reports(),
-                                //   ),
-                                // );
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => const ReportsScreen(),
+                                  ),
+                                );
                               },
                             ),
                             const SizedBox(height: 10),
@@ -213,4 +212,3 @@ class DashboardScreen extends StatelessWidget {
     );
   }
 }
-
