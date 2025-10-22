@@ -254,7 +254,7 @@ class _UserRolesManagementScreenState extends State<UserRolesManagementScreen> {
     return Scaffold(
       appBar: CustomAppBar(userName: 'Admin', firstLetter: 'A'),
       drawer: Navigation(),
-      backgroundColor: Colors.white,
+      //backgroundColor: Colors.white,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(16),
@@ -313,7 +313,7 @@ class _UserRolesManagementScreenState extends State<UserRolesManagementScreen> {
                                   ),
                                 ),
                                 padding: const EdgeInsets.symmetric(
-                                  horizontal: 16,
+                                  horizontal: 10,
                                   vertical: 10,
                                 ),
                                 elevation: 0,

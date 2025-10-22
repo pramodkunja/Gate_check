@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:gatecheck/Categories/Screens/categories_management_screen.dart';
-import 'package:gatecheck/Organization_Management_Screens/organization_screen.dart';
 import 'package:gatecheck/Roles_screens/permissions_management.dart';
 import 'package:gatecheck/Roles_screens/role_permission_management.dart';
 import 'package:gatecheck/Roles_screens/roles_management.dart';
 import 'package:gatecheck/User_roles-screen/user_role_management.dart';
+import 'package:gatecheck/Visitors_Screen/visitors_screen.dart';
 
 class Navigation extends StatefulWidget {
   const Navigation({super.key});
@@ -54,6 +54,7 @@ class _NavigationState extends State<Navigation> {
                   SizedBox(height: screenHeight * 0.005),
                   Text(
                     'Version 1.0.0',
+                    textAlign: TextAlign.center,
                     style: TextStyle(
                       color: const Color(0xFF94A3B8),
                       fontSize: screenWidth * 0.035,
@@ -343,6 +344,36 @@ class _NavigationState extends State<Navigation> {
       selectedRoute = route;
     });
     Navigator.pop(context);
+
+    if (route == 'Dashboard') {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const DashboardScreen()),
+      );
+    }
+
+    if (route == 'GateCheck') {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const RegularVisitorsScreen()),
+      );
+    }
+
+    if (route == 'Profile') {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const ProfileScreen()),
+      );
+    }
+
+    if (route == 'Organization') {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const OrganizationManagementScreen(),
+        ),
+      );
+    }
 
     if (route == 'Roles') {
       Navigator.push(

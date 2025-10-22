@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:gatecheck/Dashboard_Screens/custom_appbar.dart';
+import 'package:gatecheck/Dashboard_Screens/navigation_drawer.dart';
 import 'package:gatecheck/Roles_screens/add_user_dialog.dart';
 import 'package:gatecheck/Roles_screens/permission_add_user_dialog.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -56,6 +58,8 @@ class _PermissionManagementScreenState
     final isSmallScreen = size.width < 400;
 
     return Scaffold(
+      appBar: CustomAppBar(userName: 'Admin', firstLetter: 'A'),
+      drawer: Navigation(),
       backgroundColor: greyColor,
       body: SafeArea(
         child: Padding(
@@ -70,6 +74,8 @@ class _PermissionManagementScreenState
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      Icon(Icons.security_outlined, color: Colors.blue, size: 28),
+                      const SizedBox(width: 8),
                       Text(
                         'Permission\nManagement',
                         style: GoogleFonts.poppins(
