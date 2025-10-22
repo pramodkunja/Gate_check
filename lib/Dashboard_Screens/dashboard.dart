@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:gatecheck/Dashboard_Screens/custom_appbar.dart';
 import 'package:gatecheck/Dashboard_Screens/navigation_drawer.dart';
+import 'package:gatecheck/Organization_Management_Screens/organization_screen.dart';
+import 'package:gatecheck/Reports_screens/reports.dart';
 import 'package:gatecheck/Visitors_Screen/visitors_screen.dart';
 
 class DashboardScreen extends StatelessWidget {
@@ -121,7 +123,8 @@ class DashboardScreen extends StatelessWidget {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (context) => const OrganizationManagementScreen(),
+                                    builder: (context) =>
+                                        const OrganizationManagementScreen(),
                                   ),
                                 );
                               },

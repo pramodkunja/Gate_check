@@ -40,11 +40,7 @@ class _AddNewRoleDialogState extends State<AddNewRoleDialog> {
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
-            BoxShadow(
-              color: Colors.black12,
-              blurRadius: 10,
-              spreadRadius: 2,
-            ),
+            BoxShadow(color: Colors.black12, blurRadius: 10, spreadRadius: 2),
           ],
         ),
         child: Column(
@@ -99,13 +95,17 @@ class _AddNewRoleDialogState extends State<AddNewRoleDialog> {
                       ),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide:
-                            BorderSide(color: Colors.grey.shade300, width: 1),
+                        borderSide: BorderSide(
+                          color: Colors.grey.shade300,
+                          width: 1,
+                        ),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide:
-                            const BorderSide(color: Colors.purple, width: 1),
+                        borderSide: const BorderSide(
+                          color: Colors.purple,
+                          width: 1,
+                        ),
                       ),
                     ),
                     validator: (value) {
@@ -164,7 +164,9 @@ class _AddNewRoleDialogState extends State<AddNewRoleDialog> {
                       borderRadius: BorderRadius.circular(10),
                     ),
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 10),
+                      horizontal: 16,
+                      vertical: 10,
+                    ),
                   ),
                   icon: const Icon(Icons.save_outlined, color: Colors.purple),
                   label: Text(

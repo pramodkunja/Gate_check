@@ -71,7 +71,11 @@ class _RolesManagementScreenState extends State<RolesManagementScreen> {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Icon(Icons.people_alt_outlined, color: Colors.blue, size: 28),
+                      Icon(
+                        Icons.people_alt_outlined,
+                        color: Colors.blue,
+                        size: 28,
+                      ),
                       const SizedBox(width: 8),
                       Text(
                         'Roles Management',
