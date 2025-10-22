@@ -5,7 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 class PermissionManagementScreen extends StatefulWidget {
-  const PermissionManagementScreen({Key? key}) : super(key: key);
+  const PermissionManagementScreen({super.key});
 
   @override
   State<PermissionManagementScreen> createState() =>

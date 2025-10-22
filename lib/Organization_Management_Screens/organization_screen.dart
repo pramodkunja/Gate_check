@@ -1,6 +1,9 @@
 // screens/organization_management_screen.dart
 import 'package:flutter/material.dart';
+import 'package:gatecheck/Dashboard_Screens/custom_appbar.dart';
+import 'package:gatecheck/Dashboard_Screens/navigation_drawer.dart';
 import 'package:gatecheck/Organization_Management_Screens/models/models.dart';
+import 'package:gatecheck/Organization_Management_Screens/widgets/add_user_dialog.dart';
 import 'package:gatecheck/Organization_Management_Screens/widgets/addorganization_dialog.dart';
 import 'package:gatecheck/Organization_Management_Screens/widgets/organization_card.dart';
 import 'package:gatecheck/Organization_Management_Screens/widgets/user_management.dart';
@@ -9,17 +12,20 @@ class OrganizationManagementScreen extends StatefulWidget {
   const OrganizationManagementScreen({super.key});
 
   @override
-  State<OrganizationManagementScreen> createState() => _OrganizationManagementScreenState();
+  State<OrganizationManagementScreen> createState() =>
+      _OrganizationManagementScreenState();
 }
 
-class _OrganizationManagementScreenState extends State<OrganizationManagementScreen> {
+class _OrganizationManagementScreenState
+    extends State<OrganizationManagementScreen> {
   final List<Organization> _organizations = [
     Organization(
       id: '1',
       name: 'Sria Infotech Pvt Ltd',
       location: 'Hyderabad',
       pinCode: '500081',
-      address: '1ST Floor, 1-121/63, Survey NO 63 Part, Behind Hotel Sitara Grand',
+      address:
+          '1ST Floor, 1-121/63, Survey NO 63 Part, Behind Hotel Sitara Grand',
       users: [
         User(
           id: '1',
@@ -46,7 +52,8 @@ class _OrganizationManagementScreenState extends State<OrganizationManagementScr
       name: 'Patil',
       location: 'Hyderabad',
       pinCode: '500082',
-      address: 'The Safe Legend, 3rd & 4th Floor, 6-3-1239/8/111 Ranuka Enclave, Raj Bhavan Road, Somajiguda',
+      address:
+          'The Safe Legend, 3rd & 4th Floor, 6-3-1239/8/111 Ranuka Enclave, Raj Bhavan Road, Somajiguda',
       users: [
         User(
           id: '3',
@@ -85,9 +92,11 @@ class _OrganizationManagementScreenState extends State<OrganizationManagementScr
         _filteredOrganizations = _organizations;
       } else {
         _filteredOrganizations = _organizations
-            .where((org) =>
-                org.name.toLowerCase().contains(query.toLowerCase()) ||
-                org.location.toLowerCase().contains(query.toLowerCase()))
+            .where(
+              (org) =>
+                  org.name.toLowerCase().contains(query.toLowerCase()) ||
+                  org.location.toLowerCase().contains(query.toLowerCase()),
+            )
             .toList();
       }
     });
@@ -119,22 +128,11 @@ class _OrganizationManagementScreenState extends State<OrganizationManagementScr
 
   @override
   Widget build(BuildContext context) {
+    String userName = "Veni"; // you’ll replace with API data later
+    String firstLetter = userName.isNotEmpty ? userName[0].toUpperCase() : "?";
     return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.menu),
-          onPressed: () {},
-        ),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 16),
-            child: CircleAvatar(
-              backgroundColor: Colors.grey[200],
-              child: const Text('V'),
-            ),
-          ),
-        ],
-      ),
+      appBar: CustomAppBar(userName: userName, firstLetter: firstLetter),
+      drawer: const Navigation(),
       body: SafeArea(
         child: Column(
           children: [
@@ -183,9 +181,8 @@ class _OrganizationManagementScreenState extends State<OrganizationManagementScr
                         onPressed: () {
                           showDialog(
                             context: context,
-                            builder: (context) => AddOrganizationDialog(
-                              onAdd: _addOrganization,
-                            ),
+                            builder: (context) =>
+                                AddOrganizationDialog(onAdd: _addOrganization),
                           );
                         },
                         icon: const Icon(Icons.add),
@@ -291,15 +288,16 @@ class _OrganizationManagementScreenState extends State<OrganizationManagementScr
                             );
                           },
                           onAddUser: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => UserManagementScreen(
-                                  organization: org,
-                                  onUpdate: (updatedOrg) {
-                                    _updateOrganization(updatedOrg);
-                                  },
-                                ),
+                            showDialog(
+                              context: context,
+                              builder: (context) => AddUserDialog(
+                                companyName: org.name,
+                                onAdd: (newUser) {
+                                  setState(() {
+                                    org.users.add(newUser);
+                                  });
+                                  _updateOrganization(org);
+                                },
                               ),
                             );
                           },

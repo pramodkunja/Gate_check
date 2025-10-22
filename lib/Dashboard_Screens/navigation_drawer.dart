@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:gatecheck/Categories/Screens/categories_management_screen.dart';
+import 'package:gatecheck/Organization_Management_Screens/organization_screen.dart';
 import 'package:gatecheck/Roles_screens/permissions_management.dart';
 import 'package:gatecheck/Roles_screens/role_permission_management.dart';
 import 'package:gatecheck/Roles_screens/roles_management.dart';
@@ -380,6 +381,15 @@ class _NavigationState extends State<Navigation> {
         context,
         MaterialPageRoute(
           builder: (context) => const CategoriesManagementScreen(),
+        ),
+      );
+    }
+
+    if (route == 'Organization') {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const OrganizationManagementScreen(),
         ),
       );
     }
