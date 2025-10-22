@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gatecheck/Auth_Screens/gatecheck_signin.dart';
 import 'package:gatecheck/Dashboard_Screens/dashboard.dart';
 // import 'package:gatecheck/gatecheck_signin.dart';
 // import 'package:gatecheck/visitors_screen.dart';
@@ -14,7 +15,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: const DashboardScreen(),
+      home: const GateCheckSignIn(),
     );
   }
 }

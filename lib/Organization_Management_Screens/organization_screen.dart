@@ -153,6 +153,7 @@ class _OrganizationManagementScreenState
                           Icons.business,
                           color: Colors.white,
                           size: 24,
+                          
                         ),
                       ),
                       const SizedBox(width: 12),
