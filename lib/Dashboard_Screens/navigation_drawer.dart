@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:gatecheck/Categories/Screens/categories_management_screen.dart';
+import 'package:gatecheck/Dashboard_Screens/dashboard.dart';
+import 'package:gatecheck/Organization_Management_Screens/organization_screen.dart';
+import 'package:gatecheck/Profile_Screen/profile_screen.dart';
 import 'package:gatecheck/Roles_screens/permissions_management.dart';
 import 'package:gatecheck/Roles_screens/role_permission_management.dart';
 import 'package:gatecheck/Roles_screens/roles_management.dart';
@@ -15,7 +18,7 @@ class Navigation extends StatefulWidget {
 
 class _NavigationState extends State<Navigation> {
   bool isRolesExpanded = false;
-  String selectedRoute = 'Dashboard';
+  String selectedRoute = '';
 
   @override
   Widget build(BuildContext context) {
