@@ -152,7 +152,7 @@ class _CategoriesManagementScreenState
     return Scaffold(
       appBar: CustomAppBar(userName: 'Admin', firstLetter: 'A'),
       drawer: Navigation(),
-     // backgroundColor: Colors.white,
+      // backgroundColor: Colors.white,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(16),
@@ -419,10 +419,13 @@ class CategoryCard extends StatelessWidget {
                   ),
                 ),
                 Chip(
-                  label: Text(category.isActive ? 'Active' : 'Inactive'),
+                  label: Text(
+                    category.isActive ? 'Active' : 'Inactive',
+                    style: TextStyle(color: Colors.white),
+                  ),
                   backgroundColor: category.isActive
-                      ? Colors.green[100]
-                      : Colors.grey[300],
+                      ? Colors.green
+                      : Colors.red,
                 ),
               ],
             ),
