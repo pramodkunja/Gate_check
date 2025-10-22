@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:gatecheck/Dashboard_Screens/custom_appbar.dart';
 import 'package:gatecheck/Dashboard_Screens/navigation_drawer.dart';
+import 'package:gatecheck/Organization_Management_Screens/organization_screen.dart';
 import 'package:gatecheck/Visitors_Screen/visitors_screen.dart';
 
 class DashboardScreen extends StatelessWidget {
@@ -120,12 +121,12 @@ class DashboardScreen extends StatelessWidget {
                               label: "Manage Security",
                               iconColor: Colors.green,
                               onTap: () {
-                                // Navigator.push(
-                                //   context,
-                                //   MaterialPageRoute(
-                                //     builder: (context) => const Organization(),
-                                //   ),
-                                // );
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => const OrganizationManagementScreen(),
+                                  ),
+                                );
                               },
                             ),
                             const SizedBox(height: 10),
