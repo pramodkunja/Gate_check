@@ -19,7 +19,7 @@ class Navigation extends StatefulWidget {
 
 class _NavigationState extends State<Navigation> {
   bool isRolesExpanded = false;
-  String selectedRoute = 'Dashboard';
+  String selectedRoute = '';
 
   @override
   Widget build(BuildContext context) {
