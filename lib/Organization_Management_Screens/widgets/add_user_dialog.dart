@@ -1,5 +1,6 @@
 // dialogs/add_user_dialog.dart
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:gatecheck/Organization_Management_Screens/models/models.dart';
 
 class AddUserDialog extends StatefulWidget {
@@ -68,170 +69,241 @@ class _AddUserDialogState extends State<AddUserDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final screenHeight = MediaQuery.of(context).size.height;
+    final screenWidth = MediaQuery.of(context).size.width;
+
     return Dialog(
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
       ),
+      insetPadding: EdgeInsets.symmetric(
+        horizontal: screenWidth > 600 ? 40 : 16,
+        vertical: 24,
+      ),
       child: Container(
-        constraints: const BoxConstraints(maxWidth: 500),
-        child: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
+        constraints: BoxConstraints(
+          maxWidth: 500,
+          maxHeight: screenHeight * 0.9,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Header
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 20, 16, 16),
+              child: Row(
                 children: [
-                  Row(
-                    children: [
-                      const Expanded(
-                        child: Text(
-                          'Add New User',
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
+                  Expanded(
+                    child: Text(
+                      'Add New User',
+                      style: GoogleFonts.poppins(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
                       ),
-                      IconButton(
-                        icon: const Icon(Icons.close),
-                        onPressed: () => Navigator.pop(context),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 24),
-                  TextFormField(
-                    controller: _nameController,
-                    decoration: const InputDecoration(
-                      labelText: 'User Name *',
-                      hintText: 'Enter user name',
-                      prefixIcon: Icon(Icons.person_outline),
-                    ),
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return 'Please enter user name';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: _emailController,
-                    decoration: const InputDecoration(
-                      labelText: 'Email Address *',
-                      hintText: 'Enter email address',
-                      prefixIcon: Icon(Icons.email_outlined),
-                    ),
-                    keyboardType: TextInputType.emailAddress,
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return 'Please enter email address';
-                      }
-                      if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
-                        return 'Please enter a valid email';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: _mobileController,
-                    decoration: const InputDecoration(
-                      labelText: 'Mobile Number *',
-                      hintText: 'Enter mobile number',
-                      prefixIcon: Icon(Icons.phone_outlined),
-                    ),
-                    keyboardType: TextInputType.phone,
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return 'Please enter mobile number';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    initialValue: widget.companyName,
-                    decoration: const InputDecoration(
-                      labelText: 'Company Name *',
-                      prefixIcon: Icon(Icons.business_outlined),
-                    ),
-                    enabled: false,
-                  ),
-                  const SizedBox(height: 16),
-                  DropdownButtonFormField<String>(
-                    value: _selectedRole,
-                    decoration: const InputDecoration(
-                      labelText: 'Role *',
-                      prefixIcon: Icon(Icons.work_outline),
-                    ),
-                    hint: const Text('Select a role'),
-                    items: _roles.map((role) {
-                      return DropdownMenuItem(
-                        value: role,
-                        child: Text(role),
-                      );
-                    }).toList(),
-                    onChanged: (value) {
-                      setState(() {
-                        _selectedRole = value;
-                      });
-                    },
-                    validator: (value) {
-                      if (value == null) {
-                        return 'Please select a role';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: _aliasController,
-                    decoration: const InputDecoration(
-                      labelText: 'Alias Name',
-                      hintText: 'Enter alias name (optional)',
-                      prefixIcon: Icon(Icons.badge_outlined),
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: _blockController,
-                    decoration: const InputDecoration(
-                      labelText: 'Block/Building',
-                      hintText: 'Enter block or building (optional)',
-                      prefixIcon: Icon(Icons.apartment_outlined),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: _floorController,
-                    decoration: const InputDecoration(
-                      labelText: 'Floor',
-                      hintText: 'Enter floor (optional)',
-                      prefixIcon: Icon(Icons.layers_outlined),
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(context),
-                        child: const Text('Cancel'),
-                      ),
-                      const SizedBox(width: 12),
-                      ElevatedButton.icon(
-                        onPressed: _submit,
-                        icon: const Icon(Icons.add),
-                        label: const Text('Create User'),
-                      ),
-                    ],
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.pop(context),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
                   ),
                 ],
               ),
             ),
-          ),
+            const Divider(height: 1),
+            // Form content
+            Flexible(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(24, 20, 24, 16),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      TextFormField(
+                        controller: _nameController,
+                        style: GoogleFonts.poppins(fontSize: 16),
+                        decoration: InputDecoration(
+                          labelText: 'User Name *',
+                          labelStyle: GoogleFonts.poppins(fontSize: 18),
+                          hintText: 'Enter user name',
+                          hintStyle: GoogleFonts.poppins(fontSize: 16),
+                          prefixIcon: const Icon(Icons.person_outline),
+                          border: const OutlineInputBorder(),
+                        ),
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'Please enter user name';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _emailController,
+                        style: GoogleFonts.poppins(fontSize: 16),
+                        decoration: InputDecoration(
+                          labelText: 'Email Address *',
+                          labelStyle: GoogleFonts.poppins(fontSize: 18),
+                          hintText: 'Enter email address',
+                          hintStyle: GoogleFonts.poppins(fontSize: 16),
+                          prefixIcon: const Icon(Icons.email_outlined),
+                          border: const OutlineInputBorder(),
+                        ),
+                        keyboardType: TextInputType.emailAddress,
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'Please enter email address';
+                          }
+                          if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
+                            return 'Please enter a valid email';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _mobileController,
+                        style: GoogleFonts.poppins(fontSize: 16),
+                        decoration: InputDecoration(
+                          labelText: 'Mobile Number *',
+                          labelStyle: GoogleFonts.poppins(fontSize: 18),
+                          hintText: 'Enter mobile number',
+                          hintStyle: GoogleFonts.poppins(fontSize: 16),
+                          prefixIcon: const Icon(Icons.phone_outlined),
+                          border: const OutlineInputBorder(),
+                        ),
+                        keyboardType: TextInputType.phone,
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'Please enter mobile number';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        initialValue: widget.companyName,
+                        style: GoogleFonts.poppins(fontSize: 16),
+                        decoration: InputDecoration(
+                          labelText: 'Company Name *',
+                          labelStyle: GoogleFonts.poppins(fontSize: 18),
+                          prefixIcon: const Icon(Icons.business_outlined),
+                          border: const OutlineInputBorder(),
+                        ),
+                        enabled: false,
+                      ),
+                      const SizedBox(height: 16),
+                      DropdownButtonFormField<String>(
+                        value: _selectedRole,
+                        style: GoogleFonts.poppins(fontSize: 16, color: Colors.black87),
+                        decoration: InputDecoration(
+                          labelText: 'Role *',
+                          labelStyle: GoogleFonts.poppins(fontSize: 18),
+                          prefixIcon: const Icon(Icons.work_outline),
+                          border: const OutlineInputBorder(),
+                        ),
+                        hint: Text(
+                          'Select a role',
+                          style: GoogleFonts.poppins(fontSize: 16),
+                        ),
+                        items: _roles.map((role) {
+                          return DropdownMenuItem(
+                            value: role,
+                            child: Text(
+                              role,
+                              style: GoogleFonts.poppins(fontSize: 16),
+                            ),
+                          );
+                        }).toList(),
+                        onChanged: (value) {
+                          setState(() {
+                            _selectedRole = value;
+                          });
+                        },
+                        validator: (value) {
+                          if (value == null) {
+                            return 'Please select a role';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _aliasController,
+                        style: GoogleFonts.poppins(fontSize: 16),
+                        decoration: InputDecoration(
+                          labelText: 'Alias Name',
+                          labelStyle: GoogleFonts.poppins(fontSize: 18),
+                          hintText: 'Enter alias name (optional)',
+                          hintStyle: GoogleFonts.poppins(fontSize: 16),
+                          prefixIcon: const Icon(Icons.badge_outlined),
+                          border: const OutlineInputBorder(),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _blockController,
+                        style: GoogleFonts.poppins(fontSize: 16),
+                        decoration: InputDecoration(
+                          labelText: 'Block/Building',
+                          labelStyle: GoogleFonts.poppins(fontSize: 18),
+                          hintText: 'Enter block or building (optional)',
+                          hintStyle: GoogleFonts.poppins(fontSize: 16),
+                          prefixIcon: const Icon(Icons.apartment_outlined),
+                          border: const OutlineInputBorder(),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _floorController,
+                        style: GoogleFonts.poppins(fontSize: 16),
+                        decoration: InputDecoration(
+                          labelText: 'Floor',
+                          labelStyle: GoogleFonts.poppins(fontSize: 18),
+                          hintText: 'Enter floor (optional)',
+                          hintStyle: GoogleFonts.poppins(fontSize: 16),
+                          prefixIcon: const Icon(Icons.layers_outlined),
+                          border: const OutlineInputBorder(),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            // Action buttons
+            const Divider(height: 1),
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: Text(
+                      'Cancel',
+                      style: GoogleFonts.poppins(),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Flexible(
+                    child: ElevatedButton.icon(
+                      onPressed: _submit,
+                      icon: const Icon(Icons.add),
+                      label: Text(
+                        'Create User',
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.poppins(),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );
