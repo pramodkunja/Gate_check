@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:gatecheck/Profile_Screen/profile_screen.dart';
 import 'package:gatecheck/Auth_Screens/gatecheck_signin.dart';
+
 class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   const CustomAppBar({
     super.key,
     required this.userName,
     required this.firstLetter,
-    
   });
 
   @override
@@ -14,7 +15,6 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   final String userName;
   final String firstLetter;
-  
 
   @override
   Widget build(BuildContext context) {
@@ -35,7 +35,6 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
               if (value == "profile") {
                 // Navigate to profile page if needed
               } else if (value == "signout") {
-                // Navigate back to sign-in and clear stack
                 Navigator.of(context).pushAndRemoveUntil(
                   MaterialPageRoute(
                     builder: (context) => const GateCheckSignIn(),
@@ -52,15 +51,19 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                   children: [
                     Text(
                       userName,
-                      style: const TextStyle(
+                      style: GoogleFonts.poppins(
                         fontWeight: FontWeight.bold,
                         fontSize: 14,
+                        color: Colors.black,
                       ),
                     ),
                     const SizedBox(height: 2),
-                    const Text(
+                    Text(
                       "teerdavenig@gmail.com",
-                      style: TextStyle(fontSize: 12, color: Colors.grey),
+                      style: GoogleFonts.poppins(
+                        fontSize: 12,
+                        color: Colors.grey,
+                      ),
                     ),
                     const Divider(),
                   ],
@@ -78,38 +81,47 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                 },
                 child: Row(
                   children: [
-                    Icon(Icons.person_outline, size: 18),
-                    SizedBox(width: 8),
-                    Text("Profile"),
+                    const Icon(Icons.person_outline, size: 18),
+                    const SizedBox(width: 8),
+                    Text(
+                      "Profile",
+                      style: GoogleFonts.poppins(
+                        fontSize: 13,
+                        color: Colors.black87,
+                      ),
+                    ),
                   ],
                 ),
               ),
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: "signout",
                 child: Row(
                   children: [
-                    Icon(Icons.logout, size: 18),
-                    SizedBox(width: 8),
-                    Text("Sign out"),
+                    const Icon(Icons.logout, size: 18),
+                    const SizedBox(width: 8),
+                    Text(
+                      "Sign out",
+                      style: GoogleFonts.poppins(
+                        fontSize: 13,
+                        color: Colors.black87,
+                      ),
+                    ),
                   ],
                 ),
               ),
             ],
             child: Container(
-              padding: const EdgeInsets.all(2), // thickness of the border
+              padding: const EdgeInsets.all(2),
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                border: Border.all(
-                  color: Colors.purple, // border color
-                  width: 1, // border width
-                ),
+                border: Border.all(color: Colors.purple, width: 1),
               ),
               child: CircleAvatar(
                 radius: 18,
                 backgroundColor: Colors.white,
                 child: Text(
                   firstLetter,
-                  style: const TextStyle(
+                  style: GoogleFonts.poppins(
                     color: Colors.purple,
                     fontWeight: FontWeight.bold,
                   ),

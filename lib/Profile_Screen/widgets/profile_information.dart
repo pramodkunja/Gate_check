@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:gatecheck/Profile_Screen/widgets/profile_infoitem.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class ProfileInformationSection extends StatelessWidget {
   final String role;
@@ -56,9 +57,9 @@ class ProfileInformationSection extends StatelessWidget {
         children: [
           Text(
             'Profile Information',
-            style: TextStyle(
-              fontSize: screenWidth * 0.045,
-              fontWeight: FontWeight.bold,
+            style: GoogleFonts.poppins(
+              fontSize: screenWidth * 0.05,
+              fontWeight: FontWeight.w600,
               color: Colors.black87,
             ),
           ),
