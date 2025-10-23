@@ -1,12 +1,13 @@
 // screens/organization_management_screen.dart
 import 'package:flutter/material.dart';
-import 'package:gatecheck/Dashboard_Screens/custom_appbar.dart';
-import 'package:gatecheck/Dashboard_Screens/navigation_drawer.dart';
-import 'package:gatecheck/Organization_Management_Screens/models/models.dart';
-import 'package:gatecheck/Organization_Management_Screens/widgets/add_user_dialog.dart';
-import 'package:gatecheck/Organization_Management_Screens/widgets/addorganization_dialog.dart';
-import 'package:gatecheck/Organization_Management_Screens/widgets/organization_card.dart';
-import 'package:gatecheck/Organization_Management_Screens/widgets/user_management.dart';
+import 'package:gatecheck/Admin_Screens/Dashboard_Screens/custom_appbar.dart';
+import 'package:gatecheck/Admin_Screens/Dashboard_Screens/navigation_drawer.dart';
+import 'package:gatecheck/Admin_Screens/Organization_Management_Screens/models/models.dart';
+import 'package:gatecheck/Admin_Screens/Organization_Management_Screens/widgets/add_user_dialog.dart';
+import 'package:gatecheck/Admin_Screens/Organization_Management_Screens/widgets/addorganization_dialog.dart';
+import 'package:gatecheck/Admin_Screens/Organization_Management_Screens/widgets/organization_card.dart';
+import 'package:gatecheck/Admin_Screens/Organization_Management_Screens/widgets/user_management.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class OrganizationManagementScreen extends StatefulWidget {
   const OrganizationManagementScreen({super.key});

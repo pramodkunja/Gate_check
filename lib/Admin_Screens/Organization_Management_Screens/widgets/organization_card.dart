@@ -1,6 +1,7 @@
 // widgets/organization_card.dart
 import 'package:flutter/material.dart';
-import 'package:gatecheck/Organization_Management_Screens/models/models.dart';
+import 'package:gatecheck/Admin_Screens/Organization_Management_Screens/models/models.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class OrganizationCard extends StatelessWidget {
   final Organization organization;

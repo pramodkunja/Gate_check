@@ -1,9 +1,11 @@
 // screens/user_management_screen.dart
 import 'package:flutter/material.dart';
-import 'package:gatecheck/Organization_Management_Screens/models/models.dart';
-import 'package:gatecheck/Organization_Management_Screens/widgets/add_user_dialog.dart';
-import 'package:gatecheck/Organization_Management_Screens/widgets/edit_user_dialog.dart';
-import 'package:gatecheck/Organization_Management_Screens/widgets/user_detail_dialog.dart';
+import 'package:gatecheck/Admin_Screens/Organization_Management_Screens/models/models.dart';
+import 'package:gatecheck/Admin_Screens/Organization_Management_Screens/widgets/add_user_dialog.dart';
+import 'package:gatecheck/Admin_Screens/Organization_Management_Screens/widgets/edit_user_dialog.dart';
+import 'package:gatecheck/Admin_Screens/Organization_Management_Screens/widgets/user_detail_dialog.dart';
+
+import 'package:google_fonts/google_fonts.dart';
 import '../widgets/user_card.dart';
 
 class UserManagementScreen extends StatefulWidget {
@@ -38,9 +40,11 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
         _filteredUsers = _organization.users;
       } else {
         _filteredUsers = _organization.users
-            .where((user) =>
-                user.name.toLowerCase().contains(query.toLowerCase()) ||
-                user.email.toLowerCase().contains(query.toLowerCase()))
+            .where(
+              (user) =>
+                  user.name.toLowerCase().contains(query.toLowerCase()) ||
+                  user.email.toLowerCase().contains(query.toLowerCase()),
+            )
             .toList();
       }
     });
@@ -85,10 +89,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text(
-          'Back to Organizations',
-          style: GoogleFonts.poppins(),
-        ),
+        title: Text('Back to Organizations', style: GoogleFonts.poppins()),
         backgroundColor: Colors.transparent,
         elevation: 0,
         foregroundColor: Colors.black87,
@@ -130,10 +131,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                         );
                       },
                       icon: const Icon(Icons.add),
-                      label: Text(
-                        'Add User',
-                        style: GoogleFonts.poppins(),
-                      ),
+                      label: Text('Add User', style: GoogleFonts.poppins()),
                       style: ElevatedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         backgroundColor: Colors.purple,
@@ -166,10 +164,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                       color: Colors.purple.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: const Icon(
-                      Icons.business,
-                      color: Colors.purple,
-                    ),
+                    child: const Icon(Icons.business, color: Colors.purple),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -198,7 +193,9 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
             ),
             const SizedBox(height: 16),
             Padding(
-              padding: EdgeInsets.symmetric(horizontal: isSmallScreen ? 12 : 16),
+              padding: EdgeInsets.symmetric(
+                horizontal: isSmallScreen ? 12 : 16,
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -272,7 +269,8 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                     )
                   : ListView.builder(
                       padding: EdgeInsets.symmetric(
-                          horizontal: isSmallScreen ? 12 : 16),
+                        horizontal: isSmallScreen ? 12 : 16,
+                      ),
                       itemCount: _filteredUsers.length,
                       itemBuilder: (context, index) {
                         final user = _filteredUsers[index];
@@ -281,9 +279,8 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                           onView: () {
                             showDialog(
                               context: context,
-                              builder: (context) => UserDetailsDialog(
-                                user: user,
-                              ),
+                              builder: (context) =>
+                                  UserDetailsDialog(user: user),
                             );
                           },
                           onEdit: () {
@@ -312,13 +309,11 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
     final screenSize = MediaQuery.of(context).size;
     final isSmallScreen = screenSize.width < 600;
     final isVerySmallScreen = screenSize.width < 400;
-    
+
     showDialog(
       context: context,
       builder: (context) => Dialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         insetPadding: EdgeInsets.symmetric(
           horizontal: isSmallScreen ? 16 : 40,
           vertical: 24,
@@ -367,7 +362,9 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Container(
-                            padding: EdgeInsets.all(isVerySmallScreen ? 10 : 12),
+                            padding: EdgeInsets.all(
+                              isVerySmallScreen ? 10 : 12,
+                            ),
                             decoration: BoxDecoration(
                               color: Colors.red.withOpacity(0.1),
                               shape: BoxShape.circle,
@@ -411,13 +408,18 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                             height: 1.5,
                           ),
                           children: [
-                            const TextSpan(text: 'Are you sure you want to delete '),
+                            const TextSpan(
+                              text: 'Are you sure you want to delete ',
+                            ),
                             TextSpan(
                               text: user.name,
-                              style: const TextStyle(fontWeight: FontWeight.w600),
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
                             const TextSpan(
-                              text: '? This will permanently remove the user from the organization and cannot be undone.',
+                              text:
+                                  '? This will permanently remove the user from the organization and cannot be undone.',
                             ),
                           ],
                         ),
@@ -463,9 +465,18 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                               ),
                             ),
                             SizedBox(height: isVerySmallScreen ? 6 : 8),
-                            _buildWarningItem('Remove the user from this organization', isVerySmallScreen),
-                            _buildWarningItem('Delete all associated user data', isVerySmallScreen),
-                            _buildWarningItem('Cannot be reversed', isVerySmallScreen),
+                            _buildWarningItem(
+                              'Remove the user from this organization',
+                              isVerySmallScreen,
+                            ),
+                            _buildWarningItem(
+                              'Delete all associated user data',
+                              isVerySmallScreen,
+                            ),
+                            _buildWarningItem(
+                              'Cannot be reversed',
+                              isVerySmallScreen,
+                            ),
                           ],
                         ),
                       ),

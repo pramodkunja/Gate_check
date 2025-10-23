@@ -1,7 +1,8 @@
 // dialogs/add_organization_dialog.dart
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:gatecheck/Organization_Management_Screens/models/models.dart';
+import 'package:gatecheck/Admin_Screens/Organization_Management_Screens/models/models.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class AddOrganizationDialog extends StatefulWidget {
   final Organization? organization;
