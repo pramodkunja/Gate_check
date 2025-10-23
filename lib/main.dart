@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+<<<<<<< HEAD
 import 'package:gatecheck/Auth_Screens/confirm_password.dart';
+=======
+>>>>>>> 45217eb475fb486bca3486cbba1774e231d1501a
 import 'package:gatecheck/Auth_Screens/gatecheck_signin.dart';
-import 'package:gatecheck/Admin_Screens/Dashboard_Screens/dashboard.dart';
+import 'package:gatecheck/Dashboard_Screens/dashboard.dart';
 // import 'package:gatecheck/gatecheck_signin.dart';
 // import 'package:gatecheck/visitors_screen.dart';
 

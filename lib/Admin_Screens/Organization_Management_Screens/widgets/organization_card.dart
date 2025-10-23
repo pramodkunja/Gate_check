@@ -1,6 +1,6 @@
 // widgets/organization_card.dart
 import 'package:flutter/material.dart';
-import 'package:gatecheck/Admin_Screens/Organization_Management_Screens/models/models.dart';
+import 'package:gatecheck/Organization_Management_Screens/models/models.dart';
 
 class OrganizationCard extends StatelessWidget {
   final Organization organization;
@@ -27,7 +27,6 @@ class OrganizationCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            // ignore: deprecated_member_use
             color: Colors.grey.withOpacity(0.1),
             blurRadius: 4,
             offset: const Offset(0, 2),
@@ -60,14 +59,14 @@ class OrganizationCard extends StatelessWidget {
                     children: [
                       Text(
                         organization.name,
-                        style: const TextStyle(
+                        style: GoogleFonts.poppins(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                       Text(
                         '${organization.memberCount} members',
-                        style: TextStyle(
+                        style: GoogleFonts.poppins(
                           fontSize: 14,
                           color: Colors.grey[600],
                         ),
@@ -99,7 +98,7 @@ class OrganizationCard extends StatelessWidget {
                 Expanded(
                   child: Text(
                     organization.location,
-                    style: TextStyle(
+                    style: GoogleFonts.poppins(
                       fontSize: 14,
                       color: Colors.grey[700],
                     ),
@@ -110,7 +109,7 @@ class OrganizationCard extends StatelessWidget {
             const SizedBox(height: 4),
             Text(
               'PIN: ${organization.pinCode}',
-              style: TextStyle(
+              style: GoogleFonts.poppins(
                 fontSize: 14,
                 color: Colors.grey[700],
               ),
@@ -118,7 +117,7 @@ class OrganizationCard extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               organization.address,
-              style: TextStyle(
+              style: GoogleFonts.poppins(
                 fontSize: 13,
                 color: Colors.grey[600],
                 height: 1.4,
@@ -131,7 +130,10 @@ class OrganizationCard extends StatelessWidget {
                   child: OutlinedButton.icon(
                     onPressed: onAddUser,
                     icon: const Icon(Icons.person_add_outlined, size: 20),
-                    label: const Text('Add User'),
+                    label: Text(
+                      'Add User',
+                      style: GoogleFonts.poppins(),
+                    ),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: Colors.purple,
                       side: const BorderSide(color: Colors.purple),
@@ -144,7 +146,10 @@ class OrganizationCard extends StatelessWidget {
                   child: OutlinedButton.icon(
                     onPressed: onViewUsers,
                     icon: const Icon(Icons.visibility_outlined, size: 20),
-                    label: const Text('View Users'),
+                    label: Text(
+                      'View Users',
+                      style: GoogleFonts.poppins(),
+                    ),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: Colors.purple,
                       side: const BorderSide(color: Colors.purple),

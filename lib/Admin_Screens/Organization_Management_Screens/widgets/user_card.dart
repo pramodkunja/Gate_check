@@ -1,6 +1,6 @@
 // widgets/user_card.dart
 import 'package:flutter/material.dart';
-import 'package:gatecheck/Admin_Screens/Organization_Management_Screens/models/models.dart';
+import 'package:gatecheck/Organization_Management_Screens/models/models.dart';
 import 'package:intl/intl.dart';
 
 class UserCard extends StatelessWidget {
@@ -44,7 +44,7 @@ class UserCard extends StatelessWidget {
                   children: [
                     Text(
                       user.name,
-                      style: const TextStyle(
+                      style: GoogleFonts.poppins(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                       ),
@@ -65,7 +65,7 @@ class UserCard extends StatelessWidget {
                 ),
                 child: Text(
                   user.isActive ? 'Active' : 'Inactive',
-                  style: TextStyle(
+                  style: GoogleFonts.poppins(
                     color: user.isActive ? Colors.green : Colors.grey,
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
@@ -77,7 +77,7 @@ class UserCard extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             user.email,
-            style: TextStyle(
+            style: GoogleFonts.poppins(
               fontSize: 14,
               color: Colors.grey[700],
             ),
@@ -85,7 +85,7 @@ class UserCard extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             user.mobileNumber,
-            style: TextStyle(
+            style: GoogleFonts.poppins(
               fontSize: 14,
               color: Colors.grey[700],
             ),
@@ -97,7 +97,7 @@ class UserCard extends StatelessWidget {
                 if (user.block != null) user.block!,
                 if (user.floor != null) user.floor!,
               ].join(', '),
-              style: TextStyle(
+              style: GoogleFonts.poppins(
                 fontSize: 14,
                 color: Colors.grey[700],
               ),
@@ -107,7 +107,7 @@ class UserCard extends StatelessWidget {
             const SizedBox(height: 4),
             Text(
               'Added: ${DateFormat('yyyy-MM-dd').format(user.dateAdded!)}',
-              style: TextStyle(
+              style: GoogleFonts.poppins(
                 fontSize: 13,
                 color: Colors.grey[600],
               ),
