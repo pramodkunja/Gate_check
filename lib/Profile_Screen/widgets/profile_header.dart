@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class ProfileHeader extends StatelessWidget {
   final String name;
@@ -40,10 +41,7 @@ class ProfileHeader extends StatelessWidget {
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
-                colors: [
-                  Color(0xFFB794F6),
-                  Color(0xFF7C3AED),
-                ],
+                colors: [Color(0xFFB794F6), Color(0xFF7C3AED)],
               ),
               borderRadius: BorderRadius.only(
                 topLeft: Radius.circular(12),
@@ -51,11 +49,13 @@ class ProfileHeader extends StatelessWidget {
               ),
             ),
           ),
-          // Avatar
+
+          // Avatar and details
           Transform.translate(
             offset: Offset(0, -screenHeight * 0.045),
             child: Column(
               children: [
+                // Avatar Circle
                 Container(
                   width: screenWidth * 0.2,
                   height: screenWidth * 0.2,
@@ -64,20 +64,14 @@ class ProfileHeader extends StatelessWidget {
                     gradient: const LinearGradient(
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
-                      colors: [
-                        Color(0xFFB794F6),
-                        Color(0xFF7C3AED),
-                      ],
+                      colors: [Color(0xFFB794F6), Color(0xFF7C3AED)],
                     ),
-                    border: Border.all(
-                      color: Colors.white,
-                      width: 4,
-                    ),
+                    border: Border.all(color: Colors.white, width: 4),
                   ),
                   child: Center(
                     child: Text(
                       initial,
-                      style: TextStyle(
+                      style: GoogleFonts.poppins(
                         color: Colors.white,
                         fontSize: screenWidth * 0.08,
                         fontWeight: FontWeight.bold,
@@ -85,27 +79,34 @@ class ProfileHeader extends StatelessWidget {
                     ),
                   ),
                 ),
+
                 SizedBox(height: screenHeight * 0.01),
+
+                // Name
                 Text(
                   name,
-                  style: TextStyle(
+                  style: GoogleFonts.poppins(
                     fontSize: screenWidth * 0.05,
                     fontWeight: FontWeight.bold,
                     color: Colors.black87,
                   ),
                 ),
+
                 SizedBox(height: screenHeight * 0.005),
+
+                // Company Name
                 Padding(
                   padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.04),
                   child: Text(
                     companyName,
-                    style: TextStyle(
+                    style: GoogleFonts.poppins(
                       fontSize: screenWidth * 0.035,
                       color: Colors.grey[600],
                     ),
                     textAlign: TextAlign.center,
                   ),
                 ),
+
                 SizedBox(height: screenHeight * 0.02),
               ],
             ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class ProfileInfoItem extends StatelessWidget {
   final IconData icon;
@@ -24,11 +25,7 @@ class ProfileInfoItem extends StatelessWidget {
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(
-              icon,
-              size: screenWidth * 0.045,
-              color: Colors.grey[600],
-            ),
+            Icon(icon, size: screenWidth * 0.045, color: Colors.grey[600]),
             SizedBox(width: screenWidth * 0.02),
             Expanded(
               child: Column(
@@ -36,7 +33,7 @@ class ProfileInfoItem extends StatelessWidget {
                 children: [
                   Text(
                     label,
-                    style: TextStyle(
+                    style: GoogleFonts.poppins(
                       fontSize: screenWidth * 0.035,
                       color: Colors.grey[700],
                       fontWeight: FontWeight.w500,
@@ -55,7 +52,7 @@ class ProfileInfoItem extends StatelessWidget {
                     ),
                     child: Text(
                       value,
-                      style: TextStyle(
+                      style: GoogleFonts.poppins(
                         fontSize: screenWidth * 0.038,
                         color: Colors.black87,
                         height: 1.3,

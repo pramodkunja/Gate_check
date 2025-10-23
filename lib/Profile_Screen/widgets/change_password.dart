@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class ChangePasswordDialog extends StatefulWidget {
   const ChangePasswordDialog({super.key});
@@ -44,8 +45,11 @@ class _ChangePasswordDialogState extends State<ChangePasswordDialog> {
     if (_formKey.currentState!.validate()) {
       if (_newPasswordController.text != _confirmPasswordController.text) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Passwords do not match'),
+          SnackBar(
+            content: Text(
+              'Passwords do not match',
+              style: GoogleFonts.poppins(),
+            ),
             backgroundColor: Colors.red,
           ),
         );
@@ -57,19 +61,24 @@ class _ChangePasswordDialogState extends State<ChangePasswordDialog> {
           !_hasNumber ||
           !_hasSpecialChar) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Please meet all password requirements'),
+          SnackBar(
+            content: Text(
+              'Please meet all password requirements',
+              style: GoogleFonts.poppins(),
+            ),
             backgroundColor: Colors.red,
           ),
         );
         return;
       }
 
-      // Implement password update logic here
       Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Password updated successfully'),
+        SnackBar(
+          content: Text(
+            'Password updated successfully',
+            style: GoogleFonts.poppins(),
+          ),
           backgroundColor: Colors.green,
         ),
       );
@@ -94,12 +103,12 @@ class _ChangePasswordDialogState extends State<ChangePasswordDialog> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Header - Fixed height
+            // Header
             Container(
               padding: EdgeInsets.all(screenWidth * 0.05),
-              decoration: BoxDecoration(
+              decoration: const BoxDecoration(
                 color: Colors.white,
-                borderRadius: const BorderRadius.only(
+                borderRadius: BorderRadius.only(
                   topLeft: Radius.circular(16),
                   topRight: Radius.circular(16),
                 ),
@@ -110,7 +119,7 @@ class _ChangePasswordDialogState extends State<ChangePasswordDialog> {
                   Expanded(
                     child: Text(
                       'Change Password',
-                      style: TextStyle(
+                      style: GoogleFonts.poppins(
                         fontSize: screenWidth * 0.055,
                         fontWeight: FontWeight.bold,
                         color: Colors.black87,
@@ -136,13 +145,12 @@ class _ChangePasswordDialogState extends State<ChangePasswordDialog> {
                 child: Form(
                   key: _formKey,
                   child: Column(
-                    mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // Current Password
                       Text(
                         'Current Password',
-                        style: TextStyle(
+                        style: GoogleFonts.poppins(
                           fontSize: screenWidth * 0.04,
                           fontWeight: FontWeight.w600,
                           color: Colors.black87,
@@ -152,48 +160,17 @@ class _ChangePasswordDialogState extends State<ChangePasswordDialog> {
                       TextFormField(
                         controller: _currentPasswordController,
                         obscureText: !_currentPasswordVisible,
-                        style: TextStyle(fontSize: screenWidth * 0.038),
-                        decoration: InputDecoration(
-                          hintText: 'Enter current password',
-                          hintStyle: TextStyle(
-                            color: Colors.grey[400],
-                            fontSize: screenWidth * 0.038,
-                          ),
-                          filled: true,
-                          fillColor: Colors.white,
-                          contentPadding: EdgeInsets.symmetric(
-                            horizontal: screenWidth * 0.04,
-                            vertical: screenHeight * 0.018,
-                          ),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide: BorderSide(color: Colors.grey[300]!),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide: BorderSide(color: Colors.grey[300]!),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide: const BorderSide(
-                              color: Color(0xFF7C3AED),
-                            ),
-                          ),
-                          suffixIcon: IconButton(
-                            icon: Icon(
-                              _currentPasswordVisible
-                                  ? Icons.visibility_outlined
-                                  : Icons.visibility_off_outlined,
-                              color: Colors.grey,
-                              size: screenWidth * 0.055,
-                            ),
-                            onPressed: () {
-                              setState(() {
-                                _currentPasswordVisible =
-                                    !_currentPasswordVisible;
-                              });
-                            },
-                          ),
+                        style: GoogleFonts.poppins(
+                          fontSize: screenWidth * 0.038,
+                        ),
+                        decoration: _buildInputDecoration(
+                          'Enter current password',
+                          _currentPasswordVisible,
+                          () => setState(() {
+                            _currentPasswordVisible = !_currentPasswordVisible;
+                          }),
+                          screenWidth,
+                          screenHeight,
                         ),
                         validator: (value) {
                           if (value == null || value.isEmpty) {
@@ -207,7 +184,7 @@ class _ChangePasswordDialogState extends State<ChangePasswordDialog> {
                       // New Password
                       Text(
                         'New Password',
-                        style: TextStyle(
+                        style: GoogleFonts.poppins(
                           fontSize: screenWidth * 0.04,
                           fontWeight: FontWeight.w600,
                           color: Colors.black87,
@@ -217,47 +194,17 @@ class _ChangePasswordDialogState extends State<ChangePasswordDialog> {
                       TextFormField(
                         controller: _newPasswordController,
                         obscureText: !_newPasswordVisible,
-                        style: TextStyle(fontSize: screenWidth * 0.038),
-                        decoration: InputDecoration(
-                          hintText: 'Enter new password',
-                          hintStyle: TextStyle(
-                            color: Colors.grey[400],
-                            fontSize: screenWidth * 0.038,
-                          ),
-                          filled: true,
-                          fillColor: Colors.white,
-                          contentPadding: EdgeInsets.symmetric(
-                            horizontal: screenWidth * 0.04,
-                            vertical: screenHeight * 0.018,
-                          ),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide: BorderSide(color: Colors.grey[300]!),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide: BorderSide(color: Colors.grey[300]!),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide: const BorderSide(
-                              color: Color(0xFF7C3AED),
-                            ),
-                          ),
-                          suffixIcon: IconButton(
-                            icon: Icon(
-                              _newPasswordVisible
-                                  ? Icons.visibility_outlined
-                                  : Icons.visibility_off_outlined,
-                              color: Colors.grey,
-                              size: screenWidth * 0.055,
-                            ),
-                            onPressed: () {
-                              setState(() {
-                                _newPasswordVisible = !_newPasswordVisible;
-                              });
-                            },
-                          ),
+                        style: GoogleFonts.poppins(
+                          fontSize: screenWidth * 0.038,
+                        ),
+                        decoration: _buildInputDecoration(
+                          'Enter new password',
+                          _newPasswordVisible,
+                          () => setState(() {
+                            _newPasswordVisible = !_newPasswordVisible;
+                          }),
+                          screenWidth,
+                          screenHeight,
                         ),
                         validator: (value) {
                           if (value == null || value.isEmpty) {
@@ -271,7 +218,7 @@ class _ChangePasswordDialogState extends State<ChangePasswordDialog> {
                       // Confirm Password
                       Text(
                         'Confirm New Password',
-                        style: TextStyle(
+                        style: GoogleFonts.poppins(
                           fontSize: screenWidth * 0.04,
                           fontWeight: FontWeight.w600,
                           color: Colors.black87,
@@ -281,48 +228,17 @@ class _ChangePasswordDialogState extends State<ChangePasswordDialog> {
                       TextFormField(
                         controller: _confirmPasswordController,
                         obscureText: !_confirmPasswordVisible,
-                        style: TextStyle(fontSize: screenWidth * 0.038),
-                        decoration: InputDecoration(
-                          hintText: 'Confirm new password',
-                          hintStyle: TextStyle(
-                            color: Colors.grey[400],
-                            fontSize: screenWidth * 0.038,
-                          ),
-                          filled: true,
-                          fillColor: Colors.white,
-                          contentPadding: EdgeInsets.symmetric(
-                            horizontal: screenWidth * 0.04,
-                            vertical: screenHeight * 0.018,
-                          ),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide: BorderSide(color: Colors.grey[300]!),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide: BorderSide(color: Colors.grey[300]!),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide: const BorderSide(
-                              color: Color(0xFF7C3AED),
-                            ),
-                          ),
-                          suffixIcon: IconButton(
-                            icon: Icon(
-                              _confirmPasswordVisible
-                                  ? Icons.visibility_outlined
-                                  : Icons.visibility_off_outlined,
-                              color: Colors.grey,
-                              size: screenWidth * 0.055,
-                            ),
-                            onPressed: () {
-                              setState(() {
-                                _confirmPasswordVisible =
-                                    !_confirmPasswordVisible;
-                              });
-                            },
-                          ),
+                        style: GoogleFonts.poppins(
+                          fontSize: screenWidth * 0.038,
+                        ),
+                        decoration: _buildInputDecoration(
+                          'Confirm new password',
+                          _confirmPasswordVisible,
+                          () => setState(() {
+                            _confirmPasswordVisible = !_confirmPasswordVisible;
+                          }),
+                          screenWidth,
+                          screenHeight,
                         ),
                         validator: (value) {
                           if (value == null || value.isEmpty) {
@@ -346,7 +262,7 @@ class _ChangePasswordDialogState extends State<ChangePasswordDialog> {
                           children: [
                             Text(
                               'Password Requirements:',
-                              style: TextStyle(
+                              style: GoogleFonts.poppins(
                                 fontSize: screenWidth * 0.038,
                                 fontWeight: FontWeight.w600,
                                 color: Colors.black87,
@@ -398,7 +314,6 @@ class _ChangePasswordDialogState extends State<ChangePasswordDialog> {
                               ),
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
-                                mainAxisSize: MainAxisSize.min,
                                 children: [
                                   Icon(
                                     Icons.close,
@@ -408,7 +323,7 @@ class _ChangePasswordDialogState extends State<ChangePasswordDialog> {
                                   SizedBox(width: screenWidth * 0.02),
                                   Text(
                                     'Cancel',
-                                    style: TextStyle(
+                                    style: GoogleFonts.poppins(
                                       fontSize: screenWidth * 0.038,
                                       color: Colors.black87,
                                       fontWeight: FontWeight.w600,
@@ -434,7 +349,6 @@ class _ChangePasswordDialogState extends State<ChangePasswordDialog> {
                               ),
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
-                                mainAxisSize: MainAxisSize.min,
                                 children: [
                                   Icon(
                                     Icons.save_outlined,
@@ -442,15 +356,12 @@ class _ChangePasswordDialogState extends State<ChangePasswordDialog> {
                                     size: screenWidth * 0.045,
                                   ),
                                   SizedBox(width: screenWidth * 0.02),
-                                  Flexible(
-                                    child: Text(
-                                      'Update',
-                                      style: TextStyle(
-                                        fontSize: screenWidth * 0.038,
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                      overflow: TextOverflow.ellipsis,
+                                  Text(
+                                    'Update',
+                                    style: GoogleFonts.poppins(
+                                      fontSize: screenWidth * 0.038,
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w600,
                                     ),
                                   ),
                                 ],
@@ -470,13 +381,55 @@ class _ChangePasswordDialogState extends State<ChangePasswordDialog> {
     );
   }
 
+  InputDecoration _buildInputDecoration(
+    String hint,
+    bool visible,
+    VoidCallback toggle,
+    double screenWidth,
+    double screenHeight,
+  ) {
+    return InputDecoration(
+      hintText: hint,
+      hintStyle: GoogleFonts.poppins(
+        color: Colors.grey[400],
+        fontSize: screenWidth * 0.038,
+      ),
+      filled: true,
+      fillColor: Colors.white,
+      contentPadding: EdgeInsets.symmetric(
+        horizontal: screenWidth * 0.04,
+        vertical: screenHeight * 0.018,
+      ),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: BorderSide(color: Colors.grey[300]!),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: BorderSide(color: Colors.grey[300]!),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: const BorderSide(color: Color(0xFF7C3AED)),
+      ),
+      suffixIcon: IconButton(
+        icon: Icon(
+          visible ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+          color: Colors.grey,
+          size: screenWidth * 0.055,
+        ),
+        onPressed: toggle,
+      ),
+    );
+  }
+
   Widget _buildRequirement(String text, bool isMet, double screenWidth) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           '• ',
-          style: TextStyle(
+          style: GoogleFonts.poppins(
             fontSize: screenWidth * 0.035,
             color: isMet ? Colors.green : Colors.grey[600],
             height: 1.3,
@@ -485,7 +438,7 @@ class _ChangePasswordDialogState extends State<ChangePasswordDialog> {
         Expanded(
           child: Text(
             text,
-            style: TextStyle(
+            style: GoogleFonts.poppins(
               fontSize: screenWidth * 0.035,
               color: isMet ? Colors.green : Colors.grey[600],
               fontWeight: isMet ? FontWeight.w500 : FontWeight.normal,
@@ -493,7 +446,6 @@ class _ChangePasswordDialogState extends State<ChangePasswordDialog> {
             ),
           ),
         ),
-        SizedBox(width: screenWidth * 0.02),
         if (isMet)
           Icon(
             Icons.check_circle,

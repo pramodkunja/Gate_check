@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:gatecheck/Profile_Screen/widgets/change_password.dart';
 import 'package:gatecheck/Profile_Screen/widgets/profile_information.dart';
 import 'package:gatecheck/Dashboard_Screens/custom_appbar.dart';
@@ -22,23 +23,43 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   void _handleLogout() {
-    // Implement logout functionality
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Logout'),
-        content: const Text('Are you sure you want to logout?'),
+        title: Text(
+          'Logout',
+          style: GoogleFonts.poppins(
+            fontWeight: FontWeight.bold,
+            color: Colors.black87,
+          ),
+        ),
+        content: Text(
+          'Are you sure you want to logout?',
+          style: GoogleFonts.poppins(color: Colors.black87, fontSize: 14),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            child: Text(
+              'Cancel',
+              style: GoogleFonts.poppins(
+                color: Colors.grey[700],
+                fontWeight: FontWeight.w500,
+              ),
+            ),
           ),
           TextButton(
             onPressed: () {
-              // Add logout logic here
               Navigator.pop(context);
+              // Add logout logic here
             },
-            child: const Text('Logout'),
+            child: Text(
+              'Logout',
+              style: GoogleFonts.poppins(
+                color: Colors.red,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
         ],
       ),
@@ -46,7 +67,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   void _handleRefresh() {
-    // Implement refresh functionality
     setState(() {
       // Reload data
     });
@@ -54,53 +74,32 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    String userName = "Veni"; // you’ll replace with API data later
+    String userName = "Veni"; // Replace with API data later
     String firstLetter = userName.isNotEmpty ? userName[0].toUpperCase() : "?";
 
     return Scaffold(
-      // backgroundColor: Colors.white,
       appBar: CustomAppBar(userName: userName, firstLetter: firstLetter),
       drawer: Navigation(),
-      // appBar: AppBar(
-      //   backgroundColor: Colors.white,
-      //   elevation: 0,
-      //   leading: IconButton(
-      //     icon: const Icon(Icons.menu, color: Colors.black),
-      //     onPressed: () {
-      //       Scaffold.of(context).openDrawer();
-      //     },
-      //   ),
-      //   actions: [
-      //     Padding(
-      //       padding: const EdgeInsets.all(8.0),
-      //       child: CircleAvatar(
-      //         backgroundColor: Colors.grey[200],
-      //         child: const Text(
-      //           'V',
-      //           style: TextStyle(color: Colors.black),
-      //         ),
-      //       ),
-      //     ),
-      //   ],
-      // ),
       body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Header Section
             Padding(
               padding: const EdgeInsets.all(16.0),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Row(
+                  Row(
                     children: [
-                      Icon(Icons.person_outline, color: Colors.black),
-                      SizedBox(width: 8),
+                      const Icon(Icons.person_outline, color: Colors.black),
+                      const SizedBox(width: 8),
                       Text(
                         'Profile',
-                        style: TextStyle(
+                        style: GoogleFonts.poppins(
                           fontSize: 30,
                           fontWeight: FontWeight.bold,
+                          color: Colors.black87,
                         ),
                       ),
                     ],
@@ -108,24 +107,33 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   TextButton.icon(
                     onPressed: _handleRefresh,
                     icon: const Icon(Icons.refresh, color: Colors.purple),
-                    label: const Text(
+                    label: Text(
                       'Refresh',
-                      style: TextStyle(color: Colors.purple),
+                      style: GoogleFonts.poppins(
+                        color: Colors.purple,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ),
                 ],
               ),
             ),
+
+            // Profile Header
             const ProfileHeader(
               name: 'Veni',
               companyName: 'Sria Infotech Pvt Ltd',
               initial: 'V',
             ),
+
+            // Security Section
             SecuritySection(
               aliasName: 'GedeiaG',
               onChangePassword: _handleChangePassword,
               onLogout: _handleLogout,
             ),
+
+            // Profile Information Section
             const ProfileInformationSection(
               role: 'No data found for role',
               companyName: 'Sria Infotech Pvt Ltd',
@@ -141,6 +149,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               location: 'Hyderabad',
               pinCode: '500081',
             ),
+
             const SizedBox(height: 20),
           ],
         ),

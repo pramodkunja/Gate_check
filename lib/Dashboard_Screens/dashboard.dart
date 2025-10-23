@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:gatecheck/Dashboard_Screens/custom_appbar.dart';
 import 'package:gatecheck/Dashboard_Screens/navigation_drawer.dart';
 import 'package:gatecheck/Organization_Management_Screens/organization_screen.dart';
@@ -11,7 +12,7 @@ class DashboardScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // Simulate API fetched user data
-    String userName = "Veni"; // you’ll replace with API data later
+    String userName = "Veni"; // You’ll replace with API data later
     String firstLetter = userName.isNotEmpty ? userName[0].toUpperCase() : "?";
 
     final size = MediaQuery.of(context).size;
@@ -44,16 +45,20 @@ class DashboardScreen extends StatelessWidget {
                         children: [
                           Text(
                             "Welcome back, $userName!",
-                            style: const TextStyle(
+                            style: GoogleFonts.poppins(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
                               color: Colors.purple,
                             ),
                           ),
                           const SizedBox(height: 6),
-                          const Text(
+                          Text(
                             "Here's what's happening with your security system today.",
-                            style: TextStyle(color: Colors.black54),
+                            style: GoogleFonts.poppins(
+                              color: Colors.black54,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w400,
+                            ),
                           ),
                         ],
                       ),
@@ -69,14 +74,14 @@ class DashboardScreen extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             const SizedBox(height: 10),
-                            const Text(
+                            Text(
                               "Quick Actions",
-                              style: TextStyle(
+                              style: GoogleFonts.poppins(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
+                                color: Colors.black,
                               ),
                             ),
-
                             const SizedBox(height: 10),
 
                             // Action Cards
@@ -150,17 +155,21 @@ class DashboardScreen extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: 8),
-                        const Text(
+                        Text(
                           "56",
-                          style: TextStyle(
+                          style: GoogleFonts.poppins(
                             fontSize: 28,
                             fontWeight: FontWeight.bold,
                             color: Colors.black,
                           ),
                         ),
-                        const Text(
+                        Text(
                           "Visitors",
-                          style: TextStyle(color: Colors.black54, fontSize: 14),
+                          style: GoogleFonts.poppins(
+                            color: Colors.black54,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w400,
+                          ),
                         ),
                       ],
                     ),
@@ -202,9 +211,10 @@ class DashboardScreen extends StatelessWidget {
               const SizedBox(width: 8),
               Text(
                 label,
-                style: const TextStyle(
+                style: GoogleFonts.poppins(
                   fontSize: 16,
                   fontWeight: FontWeight.w500,
+                  color: Colors.black,
                 ),
               ),
             ],

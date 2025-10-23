@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:gatecheck/Categories/Screens/categories_management_screen.dart';
 import 'package:gatecheck/Dashboard_Screens/dashboard.dart';
 import 'package:gatecheck/Organization_Management_Screens/organization_screen.dart';
@@ -47,7 +48,7 @@ class _NavigationState extends State<Navigation> {
                 children: [
                   Text(
                     'GATE CHECK',
-                    style: TextStyle(
+                    style: GoogleFonts.poppins(
                       color: Colors.white,
                       fontSize: screenWidth * 0.055,
                       fontWeight: FontWeight.bold,
@@ -58,7 +59,7 @@ class _NavigationState extends State<Navigation> {
                   Text(
                     'Version 1.0.0',
                     textAlign: TextAlign.center,
-                    style: TextStyle(
+                    style: GoogleFonts.poppins(
                       color: const Color(0xFF94A3B8),
                       fontSize: screenWidth * 0.035,
                     ),
@@ -176,7 +177,7 @@ class _NavigationState extends State<Navigation> {
               ),
               child: Text(
                 '© 2025 Gate Check',
-                style: TextStyle(
+                style: GoogleFonts.poppins(
                   color: const Color(0xFF64748B),
                   fontSize: screenWidth * 0.035,
                 ),
@@ -221,7 +222,7 @@ class _NavigationState extends State<Navigation> {
               Expanded(
                 child: Text(
                   title,
-                  style: TextStyle(
+                  style: GoogleFonts.poppins(
                     color: Colors.white,
                     fontSize: screenWidth * 0.042,
                     fontWeight: isSelected
@@ -272,9 +273,10 @@ class _NavigationState extends State<Navigation> {
               Expanded(
                 child: Text(
                   title,
-                  style: TextStyle(
+                  style: GoogleFonts.poppins(
                     color: Colors.white,
                     fontSize: screenWidth * 0.042,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
               ),
@@ -326,7 +328,7 @@ class _NavigationState extends State<Navigation> {
               Expanded(
                 child: Text(
                   title,
-                  style: TextStyle(
+                  style: GoogleFonts.poppins(
                     color: isSelected ? Colors.white : const Color(0xFFCBD5E1),
                     fontSize: screenWidth * 0.038,
                     fontWeight: isSelected
@@ -418,16 +420,5 @@ class _NavigationState extends State<Navigation> {
         ),
       );
     }
-
-    if (route == 'Organization') {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => const OrganizationManagementScreen(),
-        ),
-      );
-    }
-    // Add your navigation logic here
-    // Example: Navigator.pushNamed(context, '/$route');
   }
 }

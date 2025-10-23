@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class SecuritySection extends StatelessWidget {
   final String aliasName;
@@ -37,13 +38,14 @@ class SecuritySection extends StatelessWidget {
         children: [
           Text(
             'Security',
-            style: TextStyle(
+            style: GoogleFonts.poppins(
               fontSize: screenWidth * 0.045,
               fontWeight: FontWeight.bold,
               color: Colors.black87,
             ),
           ),
           SizedBox(height: screenHeight * 0.02),
+
           // Change Password
           InkWell(
             onTap: onChangePassword,
@@ -68,7 +70,7 @@ class SecuritySection extends StatelessWidget {
                       children: [
                         Text(
                           'Change Password',
-                          style: TextStyle(
+                          style: GoogleFonts.poppins(
                             fontSize: screenWidth * 0.04,
                             fontWeight: FontWeight.w600,
                             color: const Color(0xFF7C3AED),
@@ -77,7 +79,7 @@ class SecuritySection extends StatelessWidget {
                         SizedBox(height: screenHeight * 0.002),
                         Text(
                           'Password',
-                          style: TextStyle(
+                          style: GoogleFonts.poppins(
                             fontSize: screenWidth * 0.032,
                             color: Colors.grey[600],
                           ),
@@ -90,6 +92,7 @@ class SecuritySection extends StatelessWidget {
             ),
           ),
           SizedBox(height: screenHeight * 0.015),
+
           // Alias Name
           Container(
             padding: EdgeInsets.all(screenWidth * 0.03),
@@ -111,7 +114,7 @@ class SecuritySection extends StatelessWidget {
                     children: [
                       Text(
                         'Alias Name',
-                        style: TextStyle(
+                        style: GoogleFonts.poppins(
                           fontSize: screenWidth * 0.04,
                           fontWeight: FontWeight.w600,
                           color: Colors.black87,
@@ -120,7 +123,7 @@ class SecuritySection extends StatelessWidget {
                       SizedBox(height: screenHeight * 0.002),
                       Text(
                         aliasName,
-                        style: TextStyle(
+                        style: GoogleFonts.poppins(
                           fontSize: screenWidth * 0.032,
                           color: Colors.grey[600],
                         ),
@@ -132,6 +135,7 @@ class SecuritySection extends StatelessWidget {
             ),
           ),
           SizedBox(height: screenHeight * 0.015),
+
           // Logout
           InkWell(
             onTap: onLogout,
@@ -156,7 +160,7 @@ class SecuritySection extends StatelessWidget {
                       children: [
                         Text(
                           'Logout',
-                          style: TextStyle(
+                          style: GoogleFonts.poppins(
                             fontSize: screenWidth * 0.04,
                             fontWeight: FontWeight.w600,
                             color: Colors.red,
@@ -165,7 +169,7 @@ class SecuritySection extends StatelessWidget {
                         SizedBox(height: screenHeight * 0.002),
                         Text(
                           'Sign out of your account',
-                          style: TextStyle(
+                          style: GoogleFonts.poppins(
                             fontSize: screenWidth * 0.032,
                             color: Colors.grey[600],
                           ),
