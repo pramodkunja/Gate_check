@@ -418,14 +418,27 @@ class CategoryCard extends StatelessWidget {
                     fontSize: 16,
                   ),
                 ),
-                Chip(
-                  label: Text(
-                    category.isActive ? 'Active' : 'Inactive',
-                    style: TextStyle(color: Colors.white),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
                   ),
-                  backgroundColor: category.isActive
-                      ? Colors.green
-                      : Colors.red,
+                  decoration: BoxDecoration(
+                    color: category.isActive
+                        ? Colors.green.withOpacity(0.1)
+                        : Colors.redAccent.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    category.isActive ? 'Active' : 'Inactive',
+                    style: GoogleFonts.poppins(
+                      color: category.isActive
+                          ? Colors.green
+                          : Colors.redAccent,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                 ),
               ],
             ),

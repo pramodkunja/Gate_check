@@ -61,13 +61,13 @@ class UserCard extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: user.isActive
                       ? Colors.green.withOpacity(0.1)
-                      : Colors.grey.withOpacity(0.1),
+                      : Colors.redAccent.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
                   user.isActive ? 'Active' : 'Inactive',
                   style: GoogleFonts.poppins(
-                    color: user.isActive ? Colors.green : Colors.grey,
+                    color: user.isActive ? Colors.green : Colors.redAccent,
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
                   ),
