@@ -4,8 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 class EntryOtpVerificationScreen extends StatefulWidget {
   final String? visitorName;
 
-  const EntryOtpVerificationScreen({Key? key, this.visitorName})
-    : super(key: key);
+  const EntryOtpVerificationScreen({super.key, this.visitorName});
 
   @override
   State<EntryOtpVerificationScreen> createState() =>

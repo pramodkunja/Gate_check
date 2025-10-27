@@ -1,10 +1,14 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:gatecheck/Services/Auth_Services/api_service.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:dio/dio.dart';
 import 'confirm_password.dart';
 
 class OtpVerificationScreen extends StatefulWidget {
-  const OtpVerificationScreen({super.key});
+  final String email;
+  
+  const OtpVerificationScreen({super.key, required this.email});
 
   @override
   State<OtpVerificationScreen> createState() => _OtpVerificationScreenState();
@@ -12,16 +16,14 @@ class OtpVerificationScreen extends StatefulWidget {
 
 class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
   final _formKey = GlobalKey<FormState>();
-
-  // Single input for the full code (design shows a single full-field input)
   final TextEditingController _otpController = TextEditingController();
+  final ApiService _apiService = ApiService();
 
   int _secondsRemaining = 30;
   bool _enableResend = false;
+  bool _isVerifying = false;
+  bool _isResending = false;
   Timer? _timer;
-
-  // Example expected OTP (6 digits to match UI guide)
-  final String _expectedOtp = "123456";
 
   @override
   void initState() {
@@ -54,24 +56,139 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
     });
   }
 
-  void _verifyOtp() {
-    // Validate form first
+  Future<void> _resendCode() async {
+    setState(() => _isResending = true);
+
+    try {
+      final response = await _apiService.forgotPassword(widget.email);
+
+      setState(() => _isResending = false);
+
+      if (response.statusCode == 200) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'New code sent to ${widget.email}',
+                style: GoogleFonts.poppins(),
+              ),
+              backgroundColor: const Color(0xFF9C27B0),
+            ),
+          );
+          startTimer();
+        }
+      }
+    } on DioException catch (e) {
+      setState(() => _isResending = false);
+
+      String errorMessage = "Failed to resend code. Please try again.";
+
+      if (e.response?.statusCode == 429) {
+        errorMessage = "Too many requests. Please wait before trying again.";
+      } else if (e.type == DioExceptionType.connectionTimeout ||
+          e.type == DioExceptionType.receiveTimeout) {
+        errorMessage = "Connection timeout. Please check your internet connection.";
+      } else if (e.type == DioExceptionType.connectionError) {
+        errorMessage = "Cannot connect to server. Please try again later.";
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorMessage, style: GoogleFonts.poppins()),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    } catch (e) {
+      setState(() => _isResending = false);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Unexpected error: ${e.toString()}',
+              style: GoogleFonts.poppins(),
+            ),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _verifyOtp() async {
     final isValid = _formKey.currentState?.validate() ?? false;
     if (!isValid) return;
 
-    final enteredOtp = _otpController.text.trim();
-    if (enteredOtp == _expectedOtp) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("OTP Verified Successfully!")),
-      );
-      // Navigate to confirm password screen
-      Navigator.of(context).push(
-        MaterialPageRoute(builder: (context) => const ResetPasswordScreen()),
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Incorrect OTP, try again.")),
-      );
+    setState(() => _isVerifying = true);
+
+    try {
+      final enteredOtp = _otpController.text.trim();
+      final response = await _apiService.verifyOtp(identifier: widget.email, otp: enteredOtp);
+
+      setState(() => _isVerifying = false);
+
+      if (response.statusCode == 200) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                "OTP Verified Successfully!",
+                style: GoogleFonts.poppins(),
+              ),
+              backgroundColor: Colors.green,
+            ),
+          );
+
+          // Navigate to confirm password screen
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(
+              builder: (context) => ConfirmPasswordScreen(email: widget.email),
+            ),
+          );
+        }
+      }
+    } on DioException catch (e) {
+      setState(() => _isVerifying = false);
+
+      String errorMessage = "Invalid OTP. Please try again.";
+
+      if (e.response?.statusCode == 400) {
+        errorMessage = e.response?.data['message'] ?? "Invalid or expired OTP.";
+      } else if (e.response?.statusCode == 404) {
+        errorMessage = "OTP session expired. Please request a new code.";
+      } else if (e.type == DioExceptionType.connectionTimeout ||
+          e.type == DioExceptionType.receiveTimeout) {
+        errorMessage = "Connection timeout. Please check your internet connection.";
+      } else if (e.type == DioExceptionType.connectionError) {
+        errorMessage = "Cannot connect to server. Please try again later.";
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorMessage, style: GoogleFonts.poppins()),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    } catch (e) {
+      setState(() => _isVerifying = false);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Unexpected error: ${e.toString()}',
+              style: GoogleFonts.poppins(),
+            ),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -121,17 +238,26 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                   ),
                   SizedBox(height: verticalSpacing / 4),
                   Text(
-                    "Enter the verification code sent to your email",
+                    "Enter the verification code sent to",
                     style: GoogleFonts.poppins(
                       fontSize: 13,
                       color: Colors.grey[700],
                     ),
                     textAlign: TextAlign.center,
                   ),
+                  const SizedBox(height: 4),
+                  Text(
+                    widget.email,
+                    style: GoogleFonts.poppins(
+                      fontSize: 13,
+                      color: const Color(0xFF9C27B0),
+                      fontWeight: FontWeight.w600,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
 
                   SizedBox(height: verticalSpacing * 1.2),
 
-                  // Single full-width OTP input to match design
                   Form(
                     key: _formKey,
                     child: Column(
@@ -149,6 +275,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                           controller: _otpController,
                           keyboardType: TextInputType.number,
                           maxLength: 6,
+                          enabled: !_isVerifying,
                           onChanged: (v) => setState(() {}),
                           decoration: InputDecoration(
                             hintText: 'Enter 6-digit code',
@@ -193,19 +320,31 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
 
                   SizedBox(height: verticalSpacing * 1.4),
 
-                  // Verify Button (styled)
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton.icon(
-                      onPressed: _isOtpFilled ? _verifyOtp : null,
-                      icon: const Icon(
-                        Icons.person_outline,
-                        color: Colors.white,
-                      ),
+                      onPressed: (_isOtpFilled && !_isVerifying) 
+                          ? _verifyOtp 
+                          : null,
+                      icon: _isVerifying
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  Colors.white,
+                                ),
+                              ),
+                            )
+                          : const Icon(
+                              Icons.person_outline,
+                              color: Colors.white,
+                            ),
                       label: Padding(
                         padding: const EdgeInsets.symmetric(vertical: 12),
                         child: Text(
-                          'Verify Code →',
+                          _isVerifying ? 'Verifying...' : 'Verify Code →',
                           style: GoogleFonts.poppins(
                             color: Colors.white,
                             fontWeight: FontWeight.w600,
@@ -228,19 +367,22 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
 
                   SizedBox(height: verticalSpacing),
 
-                  // Resend (moved below Verify button)
                   Align(
                     alignment: Alignment.center,
                     child: _enableResend
                         ? GestureDetector(
-                            onTap: startTimer,
+                            onTap: _isResending ? null : _resendCode,
                             child: Text(
-                              'Resend Code',
+                              _isResending ? 'Sending...' : 'Resend Code',
                               style: GoogleFonts.poppins(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w600,
-                                color: const Color(0xFF9C27B0),
-                                decoration: TextDecoration.underline,
+                                color: _isResending 
+                                    ? Colors.grey 
+                                    : const Color(0xFF9C27B0),
+                                decoration: _isResending 
+                                    ? null 
+                                    : TextDecoration.underline,
                               ),
                             ),
                           )
@@ -255,18 +397,17 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
 
                   SizedBox(height: verticalSpacing),
 
-                  // Footer
                   GestureDetector(
                     onTap: () => Navigator.pop(context),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(
-                          Icons.arrow_back, // arrow icon
-                          size: 18, // arrow size
+                          Icons.arrow_back,
+                          size: 18,
                           color: Colors.grey[700],
                         ),
-                        SizedBox(width: 4), // spacing between arrow and text
+                        SizedBox(width: 4),
                         Text(
                           'Back to Login',
                           style: GoogleFonts.poppins(

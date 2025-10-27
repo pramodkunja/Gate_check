@@ -1,21 +1,27 @@
 import 'package:flutter/material.dart';
+import 'package:gatecheck/Services/Auth_Services/api_service.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:dio/dio.dart';
 import 'gatecheck_signin.dart';
 
-class ResetPasswordScreen extends StatefulWidget {
-  const ResetPasswordScreen({super.key});
+class ConfirmPasswordScreen extends StatefulWidget {
+  final String email;
+
+  const ConfirmPasswordScreen({super.key, required this.email});
 
   @override
-  State<ResetPasswordScreen> createState() => _ResetPasswordScreenState();
+  State<ConfirmPasswordScreen> createState() => _ConfirmPasswordScreenState();
 }
 
-class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
+class _ConfirmPasswordScreenState extends State<ConfirmPasswordScreen> {
   final _formKey = GlobalKey<FormState>();
   final _newPasswordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
+  final ApiService _apiService = ApiService();
 
   bool _obscureNewPassword = true;
   bool _obscureConfirmPassword = true;
+  bool _isResetting = false;
 
   bool _hasUppercase = false;
   bool _hasLowercase = false;
@@ -31,7 +37,6 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
       _hasNumber = password.contains(RegExp(r'\d'));
       _hasSpecialChar = password.contains(RegExp(r'[!@#\$%\^&*(),.?":{}|<>]'));
       _hasMinLength = password.length >= 8;
-      // show requirements while the user types
       _showRequirements = password.isNotEmpty;
     });
   }
@@ -43,20 +48,86 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
       _hasSpecialChar &&
       _hasMinLength;
 
-  void _resetPassword() {
-    if (_formKey.currentState!.validate()) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Password created successfully — redirecting...'),
-        ),
+  Future<void> _resetPassword() async {
+    if (!(_formKey.currentState?.validate() ?? false)) return;
+
+    setState(() => _isResetting = true);
+
+    try {
+      final newPassword = _newPasswordController.text.trim();
+      final confirmPassword = _confirmPasswordController.text.trim();
+
+      final response = await _apiService.setNewPassword(
+        identifier: widget.email,
+        newPassword: newPassword,
+        confirmPassword: confirmPassword,
       );
 
-      Future.delayed(const Duration(milliseconds: 1200), () {
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (context) => const GateCheckSignIn()),
-          (route) => false,
+      setState(() => _isResetting = false);
+
+      if (response.statusCode == 200) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Password reset successfully!',
+                style: GoogleFonts.poppins(),
+              ),
+              // backgroundColor: Colors.green,
+            ),
+          );
+
+          await Future.delayed(const Duration(milliseconds: 1200));
+
+          // ignore: use_build_context_synchronously
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (context) => const GateCheckSignIn()),
+            (route) => false,
+          );
+        }
+      }
+    } on DioException catch (e) {
+      setState(() => _isResetting = false);
+
+      String errorMessage = "Failed to reset password. Please try again.";
+
+      if (e.response?.statusCode == 400) {
+        errorMessage =
+            e.response?.data['message'] ??
+            "Password does not meet requirements.";
+      } else if (e.response?.statusCode == 404) {
+        errorMessage = "Session expired. Please request a new reset code.";
+      } else if (e.type == DioExceptionType.connectionTimeout ||
+          e.type == DioExceptionType.receiveTimeout) {
+        errorMessage =
+            "Connection timeout. Please check your internet connection.";
+      } else if (e.type == DioExceptionType.connectionError) {
+        errorMessage = "Cannot connect to server. Please try again later.";
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorMessage, style: GoogleFonts.poppins()),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
+          ),
         );
-      });
+      }
+    } catch (e) {
+      setState(() => _isResetting = false);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Unexpected error: ${e.toString()}',
+              style: GoogleFonts.poppins(),
+            ),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -130,11 +201,21 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Create a new strong password',
+                    'Create a new strong password for',
                     textAlign: TextAlign.center,
                     style: GoogleFonts.poppins(
                       fontSize: 14,
                       color: Colors.grey[600],
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    widget.email,
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.poppins(
+                      fontSize: 14,
+                      color: const Color(0xFF9C27B0),
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                   const SizedBox(height: 24),
@@ -146,6 +227,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                         TextFormField(
                           controller: _newPasswordController,
                           obscureText: _obscureNewPassword,
+                          enabled: !_isResetting,
                           decoration: InputDecoration(
                             labelText: 'New Password *',
                             hintText: 'Enter new password',
@@ -217,6 +299,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                         TextFormField(
                           controller: _confirmPasswordController,
                           obscureText: _obscureConfirmPassword,
+                          enabled: !_isResetting,
                           decoration: InputDecoration(
                             labelText: 'Confirm Password *',
                             hintText: 'Confirm new password',
@@ -266,15 +349,34 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                           child: ElevatedButton.icon(
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFF9C27B0),
+                              disabledBackgroundColor: const Color(
+                                0xFF9C27B0,
+                              ).withOpacity(0.6),
                               minimumSize: const Size.fromHeight(48),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(8),
                               ),
                             ),
-                            onPressed: _resetPassword,
-                            icon: const Icon(Icons.person_outline),
+                            onPressed: _isResetting ? null : _resetPassword,
+                            icon: _isResetting
+                                ? const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      valueColor: AlwaysStoppedAnimation<Color>(
+                                        Colors.white,
+                                      ),
+                                    ),
+                                  )
+                                : const Icon(
+                                    Icons.person_outline,
+                                    color: Colors.white,
+                                  ),
                             label: Text(
-                              'Reset Password →',
+                              _isResetting
+                                  ? 'Resetting...'
+                                  : 'Reset Password →',
                               style: GoogleFonts.poppins(
                                 fontWeight: FontWeight.w600,
                                 color: Colors.white,
@@ -285,15 +387,26 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                         const SizedBox(height: 12),
                         // Back to Login
                         TextButton(
-                          onPressed: () {
-                            Navigator.pushReplacement(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const LoginPage(),
-                              ),
-                            );
-                          },
-                          child: const Text('← Back to Login'),
+                          onPressed: _isResetting
+                              ? null
+                              : () {
+                                  Navigator.pushAndRemoveUntil(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) =>
+                                          const GateCheckSignIn(),
+                                    ),
+                                    (route) => false,
+                                  );
+                                },
+                          child: Text(
+                            '← Back to Login',
+                            style: GoogleFonts.poppins(
+                              color: _isResetting
+                                  ? Colors.grey
+                                  : const Color(0xFF9C27B0),
+                            ),
+                          ),
                         ),
                       ],
                     ),
@@ -304,19 +417,6 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
           ),
         ),
       ),
-    );
-  }
-}
-
-// Placeholder Login Page
-class LoginPage extends StatelessWidget {
-  const LoginPage({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Login Page')),
-      body: const Center(child: Text('Login Screen Placeholder')),
     );
   }
 }

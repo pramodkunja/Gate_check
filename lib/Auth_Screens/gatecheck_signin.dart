@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:gatecheck/Services/Auth_Services/api_service.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:dio/dio.dart';
 import 'password.dart';
 
 class GateCheckSignIn extends StatefulWidget {
@@ -12,15 +14,93 @@ class GateCheckSignIn extends StatefulWidget {
 class _GateCheckSignInState extends State<GateCheckSignIn> {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _userController = TextEditingController();
+  final ApiService _apiService = ApiService();
 
   final RegExp validInput = RegExp(
     r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$|^[a-zA-Z0-9._-]+$',
   );
 
+  bool _isLoading = false;
+
   @override
   void dispose() {
     _userController.dispose();
     super.dispose();
+  }
+
+  Future<void> _validateAndContinue() async {
+    if (!(_formKey.currentState?.validate() ?? false)) return;
+
+    final input = _userController.text.trim();
+    final emailOnly = RegExp(
+      r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}",
+    );
+
+    if (!emailOnly.hasMatch(input)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Please enter a valid email address."),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      // Validate user exists in the system
+      final response = await _apiService.validateUser(input);
+      
+      setState(() => _isLoading = false);
+
+      if (response.statusCode == 200) {
+        // User exists, navigate to password screen
+        if (mounted) {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) => SignInScreen(email: input),
+            ),
+          );
+        }
+      }
+    } on DioException catch (e) {
+      setState(() => _isLoading = false);
+      
+      String errorMessage = "An error occurred. Please try again.";
+      
+      if (e.response?.statusCode == 404) {
+        errorMessage = "No account found with this email. Please contact your administrator.";
+      } else if (e.response?.statusCode == 400) {
+        errorMessage = e.response?.data['message'] ?? "Invalid email format.";
+      } else if (e.type == DioExceptionType.connectionTimeout ||
+          e.type == DioExceptionType.receiveTimeout) {
+        errorMessage = "Connection timeout. Please check your internet connection.";
+      } else if (e.type == DioExceptionType.connectionError) {
+        errorMessage = "Cannot connect to server. Please try again later.";
+      }
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorMessage),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+    } catch (e) {
+      setState(() => _isLoading = false);
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Unexpected error: ${e.toString()}"),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -53,7 +133,6 @@ class _GateCheckSignInState extends State<GateCheckSignIn> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  // Header Section
                   Text(
                     "GATE CHECK",
                     style: GoogleFonts.poppins(
@@ -74,7 +153,6 @@ class _GateCheckSignInState extends State<GateCheckSignIn> {
                   ),
                   const SizedBox(height: 30),
 
-                  // Label
                   Align(
                     alignment: Alignment.centerLeft,
                     child: Text(
@@ -87,9 +165,9 @@ class _GateCheckSignInState extends State<GateCheckSignIn> {
                   ),
                   const SizedBox(height: 8),
 
-                  // Input Field
                   TextFormField(
                     controller: _userController,
+                    enabled: !_isLoading,
                     style: GoogleFonts.poppins(fontSize: 14),
                     decoration: InputDecoration(
                       hintText: "Enter userid / aliasname / email",
@@ -130,46 +208,27 @@ class _GateCheckSignInState extends State<GateCheckSignIn> {
                   ),
                   const SizedBox(height: 28),
 
-                  // Continue Button
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton.icon(
-                      onPressed: () {
-                        // First run the form validators (not empty etc.)
-                        if (!(_formKey.currentState?.validate() ?? false))
-                          return;
-
-                        final input = _userController.text.trim();
-                        // Basic email-only regex for navigation decision
-                        final emailOnly = RegExp(
-                          r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}",
-                        );
-
-                        if (emailOnly.hasMatch(input)) {
-                          // Navigate to the password screen and pass the email
-                          Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (context) => SignInScreen(email: input),
-                            ),
-                          );
-                        } else {
-                          // Show a clear error if the input is not an email
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                "Please enter a valid email address.",
+                      onPressed: _isLoading ? null : _validateAndContinue,
+                      icon: _isLoading
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  Colors.white,
+                                ),
                               ),
-                              backgroundColor: Colors.red,
+                            )
+                          : const Icon(
+                              Icons.person_outline,
+                              color: Colors.white,
                             ),
-                          );
-                        }
-                      },
-                      icon: const Icon(
-                        Icons.person_outline,
-                        color: Colors.white,
-                      ),
                       label: Text(
-                        "Continue →",
+                        _isLoading ? "Validating..." : "Continue →",
                         style: GoogleFonts.poppins(
                           fontWeight: FontWeight.bold,
                           color: Colors.white,
@@ -177,6 +236,8 @@ class _GateCheckSignInState extends State<GateCheckSignIn> {
                       ),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF6A1B9A),
+                        disabledBackgroundColor: 
+                            const Color(0xFF6A1B9A).withOpacity(0.6),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10),
                         ),

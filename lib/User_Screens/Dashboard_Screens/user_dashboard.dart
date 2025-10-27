@@ -4,8 +4,6 @@ import 'package:gatecheck/User_Screens/Dashboard_Screens/user_navigation_drawer.
 import 'package:gatecheck/User_Screens/Reports_screens/reports.dart';
 import 'package:gatecheck/User_Screens/Visitors_Screen/visitors_screen.dart';
 import 'package:google_fonts/google_fonts.dart';
-// import 'package:gatecheck/Admin_Screens/Organization_Management_Screens/organization_screen.dart';
-import 'package:gatecheck/Admin_Screens/Reports_screens/reports.dart';
 
 class UserDashboardScreen extends StatelessWidget {
   const UserDashboardScreen({super.key});
@@ -118,23 +116,6 @@ class UserDashboardScreen extends StatelessWidget {
                                 );
                               },
                             ),
-                            // const SizedBox(height: 10),
-                            // _buildActionCard(
-                            //   context: context,
-                            //   color: Colors.green.shade50,
-                            //   icon: Icons.security,
-                            //   label: "Manage Security",
-                            //   iconColor: Colors.green,
-                            //   onTap: () {
-                            //     Navigator.push(
-                            //       context,
-                            //       MaterialPageRoute(
-                            //         builder: (context) =>
-                            //             const OrganizationManagementScreen(),
-                            //       ),
-                            //     );
-                            //   },
-                            // ),
                             const SizedBox(height: 10),
                           ],
                         ),

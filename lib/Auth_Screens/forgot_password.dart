@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:gatecheck/Services/Auth_Services/api_service.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:dio/dio.dart';
 import 'reset_password.dart';
 import 'dart:math' as math;
 
@@ -14,6 +16,7 @@ class ResetPasswordScreen extends StatefulWidget {
 class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _emailController = TextEditingController();
+  final ApiService _apiService = ApiService();
 
   bool _isEmailValid = false;
   bool _isSending = false;
@@ -70,22 +73,73 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
     }
 
     setState(() => _isSending = true);
-    await Future.delayed(const Duration(milliseconds: 800)); // simulate API
-    setState(() => _isSending = false);
 
-    final email = _emailController.text.trim();
+    try {
+      final email = _emailController.text.trim();
+      final response = await _apiService.forgotPassword(email);
 
-    // TODO: Replace with backend call
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Reset code sent to $email'),
-        //backgroundColor: const Color(0xFF7B1FA2),
-      ),
-    );
-    // Navigate to the OTP / reset screen
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (context) => const OtpVerificationScreen()),
-    );
+      setState(() => _isSending = false);
+
+      if (response.statusCode == 200) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Reset code sent to $email',
+                style: GoogleFonts.poppins(),
+              ),
+              backgroundColor: const Color(0xFF7B1FA2),
+            ),
+          );
+
+          // Navigate to OTP verification screen with email
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) => OtpVerificationScreen(email: email),
+            ),
+          );
+        }
+      }
+    } on DioException catch (e) {
+      setState(() => _isSending = false);
+
+      String errorMessage = "Failed to send reset code. Please try again.";
+
+      if (e.response?.statusCode == 404) {
+        errorMessage = "No account found with this email address.";
+      } else if (e.response?.statusCode == 400) {
+        errorMessage = e.response?.data['message'] ?? "Invalid email address.";
+      } else if (e.type == DioExceptionType.connectionTimeout ||
+          e.type == DioExceptionType.receiveTimeout) {
+        errorMessage = "Connection timeout. Please check your internet connection.";
+      } else if (e.type == DioExceptionType.connectionError) {
+        errorMessage = "Cannot connect to server. Please try again later.";
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorMessage, style: GoogleFonts.poppins()),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+    } catch (e) {
+      setState(() => _isSending = false);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Unexpected error: ${e.toString()}',
+              style: GoogleFonts.poppins(),
+            ),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -182,6 +236,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                         TextFormField(
                           controller: _emailController,
                           keyboardType: TextInputType.emailAddress,
+                          enabled: !_isSending,
                           autovalidateMode: AutovalidateMode.onUserInteraction,
                           validator: _validateEmail,
                           decoration: InputDecoration(
@@ -246,15 +301,26 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                             onPressed: (!_isEmailValid || _isSending)
                                 ? null
                                 : _sendResetCode,
-                            icon: const Icon(
-                              Icons.email,
-                              size: 20,
-                              color: Colors.white,
-                            ),
+                            icon: _isSending
+                                ? const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      valueColor: AlwaysStoppedAnimation<Color>(
+                                        Colors.white,
+                                      ),
+                                    ),
+                                  )
+                                : const Icon(
+                                    Icons.email,
+                                    size: 20,
+                                    color: Colors.white,
+                                  ),
                             label: Padding(
                               padding: const EdgeInsets.symmetric(vertical: 2),
                               child: Text(
-                                'Send Reset Code →',
+                                _isSending ? 'Sending...' : 'Send Reset Code →',
                                 style: GoogleFonts.poppins(
                                   fontWeight: FontWeight.w600,
                                   fontSize: 15,
@@ -278,8 +344,6 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                           onTap: () {
                             if (Navigator.canPop(context)) {
                               Navigator.pop(context);
-                            } else {
-                              debugPrint('Back to Login tapped');
                             }
                           },
                           child: Text(

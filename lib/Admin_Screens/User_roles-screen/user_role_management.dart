@@ -15,7 +15,7 @@ class UserRole {
 }
 
 class UserRolesManagementScreen extends StatefulWidget {
-  const UserRolesManagementScreen({Key? key}) : super(key: key);
+  const UserRolesManagementScreen({super.key});
 
   @override
   State<UserRolesManagementScreen> createState() =>
