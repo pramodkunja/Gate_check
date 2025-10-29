@@ -1,11 +1,13 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:gatecheck/Admin_Screens/Dashboard_Screens/dashboard_screen.dart';
 import 'package:gatecheck/Services/Auth_Services/api_service.dart';
+import 'package:gatecheck/Services/User_services/user_service.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:dio/dio.dart';
 import 'package:gatecheck/Auth_Screens/forgot_password.dart';
 import 'package:gatecheck/User_Screens/Dashboard_Screens/user_dashboard.dart';
-import 'package:gatecheck/Admin_Screens/Dashboard_Screens/dashboard_screen.dart';
+//import 'package:gatecheck/Admin_Screens/Dashboard_Screens/dashboard.dart';
 
 class SignInScreen extends StatefulWidget {
   final String? email;
@@ -81,8 +83,6 @@ class _SignInScreenState extends State<SignInScreen> {
       setState(() => _isLoading = false);
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        
-        
         final responseBody = response.data;
         debugPrint('Login success. Raw response: $responseBody');
 
@@ -127,6 +127,14 @@ class _SignInScreenState extends State<SignInScreen> {
         }
 
         debugPrint('Determined userRole: $userRole');
+
+        // Persist user info in the in-memory UserService so other screens can access it
+        UserService().setCurrentUser({
+          'name': userName,
+          'username': userName,
+          'role': userRole,
+          'email': identifier,
+        });
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(

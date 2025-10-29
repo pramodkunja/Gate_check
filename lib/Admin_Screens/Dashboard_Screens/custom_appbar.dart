@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gatecheck/Services/User_services/user_service.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:gatecheck/Admin_Screens/Profile_Screen/profile_screen.dart';
 import 'package:gatecheck/Auth_Screens/gatecheck_signin.dart';
@@ -8,6 +9,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
     super.key,
     required this.userName,
     required this.firstLetter,
+    required this.email,
   });
 
   @override
@@ -15,9 +17,11 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   final String userName;
   final String firstLetter;
+  final String email;
 
   @override
   Widget build(BuildContext context) {
+    // email is provided via the constructor
     return AppBar(
       backgroundColor: Colors.white,
       centerTitle: true,
@@ -59,7 +63,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      "teerdavenig@gmail.com",
+                      email,
                       style: GoogleFonts.poppins(
                         fontSize: 12,
                         color: Colors.grey,

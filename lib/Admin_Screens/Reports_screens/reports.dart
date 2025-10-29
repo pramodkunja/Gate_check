@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:gatecheck/Admin_Screens/Dashboard_Screens/custom_appbar.dart';
 import 'package:gatecheck/Admin_Screens/Dashboard_Screens/navigation_drawer.dart';
+import 'package:gatecheck/Services/User_services/user_service.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class ReportsScreen extends StatefulWidget {
@@ -34,13 +35,17 @@ class _ReportsScreenState extends State<ReportsScreen>
 
   @override
   Widget build(BuildContext context) {
+
+    String userName = UserService().getUserName();
+    String firstLetter = userName.isNotEmpty ? userName[0].toUpperCase() : "?";
+    String email = UserService().getUserByEmail(userName) as String;
     super.build(context);
 
     final size = MediaQuery.of(context).size;
     final isSmallScreen = size.width < 600;
 
     return Scaffold(
-      appBar: CustomAppBar(userName: 'Admin', firstLetter: 'A'),
+      appBar: CustomAppBar(userName: userName, firstLetter: firstLetter, email: email),
       drawer: Navigation(),
       backgroundColor: const Color(0xFFF8F9FA),
       body: SafeArea(

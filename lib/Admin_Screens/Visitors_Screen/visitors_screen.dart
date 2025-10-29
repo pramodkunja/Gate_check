@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:gatecheck/Admin_Screens/Dashboard_Screens/custom_appbar.dart';
 import 'package:gatecheck/Admin_Screens/Dashboard_Screens/navigation_drawer.dart';
+import 'package:gatecheck/Services/User_services/user_service.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'models/visitor_model.dart';
 import 'utils/colors.dart';
@@ -127,13 +128,14 @@ class _RegularVisitorsScreenState extends State<RegularVisitorsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    String userName = "Veni"; // you’ll replace with API data later
+    String userName = UserService().getUserName();
     String firstLetter = userName.isNotEmpty ? userName[0].toUpperCase() : "?";
+      String email = UserService().getUserByEmail(userName) as String;
 
     return Scaffold(
       // backgroundColor: AppColors.background,
       drawer: const Navigation(),
-      appBar: CustomAppBar(userName: userName, firstLetter: firstLetter),
+      appBar: CustomAppBar(userName: userName, firstLetter: firstLetter, email: email),
       // appBar: AppBar(
       //   backgroundColor: Colors.white,
       //   elevation: 0,

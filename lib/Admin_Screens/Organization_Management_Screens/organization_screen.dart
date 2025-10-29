@@ -7,6 +7,7 @@ import 'package:gatecheck/Admin_Screens/Organization_Management_Screens/widgets/
 import 'package:gatecheck/Admin_Screens/Organization_Management_Screens/widgets/addorganization_dialog.dart';
 import 'package:gatecheck/Admin_Screens/Organization_Management_Screens/widgets/organization_card.dart';
 import 'package:gatecheck/Admin_Screens/Organization_Management_Screens/widgets/user_management.dart';
+import 'package:gatecheck/Services/User_services/user_service.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class OrganizationManagementScreen extends StatefulWidget {
@@ -129,13 +130,14 @@ class _OrganizationManagementScreenState
 
   @override
   Widget build(BuildContext context) {
-    String userName = "Veni";
+   String userName = UserService().getUserName();
     String firstLetter = userName.isNotEmpty ? userName[0].toUpperCase() : "?";
+      String email = UserService().getUserByEmail(userName) as String;
     final screenWidth = MediaQuery.of(context).size.width;
     final isSmallScreen = screenWidth < 600;
 
     return Scaffold(
-      appBar: CustomAppBar(userName: userName, firstLetter: firstLetter),
+      appBar: CustomAppBar(userName: userName, firstLetter: firstLetter, email: email),
       drawer: const Navigation(),
       body: SafeArea(
         child: Column(

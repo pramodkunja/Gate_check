@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:gatecheck/Services/User_services/user_service.dart';
 import 'package:gatecheck/Admin_Screens/Dashboard_Screens/custom_appbar.dart';
 import 'package:gatecheck/Admin_Screens/Dashboard_Screens/navigation_drawer.dart';
 import 'package:gatecheck/Admin_Screens/Organization_Management_Screens/organization_screen.dart';
@@ -11,16 +12,21 @@ class DashboardScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Simulate API fetched user data
-    String userName = "Veni"; // You’ll replace with API data later
+    // Get current logged-in user from UserService (set at login)
+    String userName = UserService().getUserName();
     String firstLetter = userName.isNotEmpty ? userName[0].toUpperCase() : "?";
+    String email = UserService().getUserByEmail(userName) as String;
 
     final size = MediaQuery.of(context).size;
     final isSmall = size.width < 360;
 
     return Scaffold(
       backgroundColor: Colors.grey[100],
-      appBar: CustomAppBar(userName: userName, firstLetter: firstLetter),
+      appBar: CustomAppBar(
+        userName: userName,
+        firstLetter: firstLetter,
+        email: email,
+      ),
       drawer: const Navigation(),
       body: LayoutBuilder(
         builder: (context, constraints) {

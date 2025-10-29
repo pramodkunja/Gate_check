@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gatecheck/Services/User_services/user_service.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:gatecheck/Admin_Screens/Profile_Screen/widgets/change_password.dart';
 import 'package:gatecheck/Admin_Screens/Profile_Screen/widgets/profile_information.dart';
@@ -74,11 +75,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    String userName = "Veni"; // Replace with API data later
+   String userName = UserService().getUserName();
     String firstLetter = userName.isNotEmpty ? userName[0].toUpperCase() : "?";
+    String email = UserService().getUserByEmail(userName) as String;
 
     return Scaffold(
-      appBar: CustomAppBar(userName: userName, firstLetter: firstLetter),
+      appBar: CustomAppBar(userName: userName, firstLetter: firstLetter, email: email),
       drawer: Navigation(),
       body: SingleChildScrollView(
         child: Column(
