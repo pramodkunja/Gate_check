@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:gatecheck/Admin_Screens/Categories/Screens/categories_management_screen.dart';
-import 'package:gatecheck/Admin_Screens/Dashboard_Screens/dashboard.dart';
+import 'package:gatecheck/Admin_Screens/Dashboard_Screens/dashboard_screen.dart';
 import 'package:gatecheck/Admin_Screens/Organization_Management_Screens/organization_screen.dart';
 import 'package:gatecheck/Admin_Screens/Profile_Screen/profile_screen.dart';
 import 'package:gatecheck/Admin_Screens/Roles_screens/permissions_management.dart';

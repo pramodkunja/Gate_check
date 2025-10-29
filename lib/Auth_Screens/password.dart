@@ -5,7 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:dio/dio.dart';
 import 'package:gatecheck/Auth_Screens/forgot_password.dart';
 import 'package:gatecheck/User_Screens/Dashboard_Screens/user_dashboard.dart';
-import 'package:gatecheck/Admin_Screens/Dashboard_Screens/dashboard.dart';
+import 'package:gatecheck/Admin_Screens/Dashboard_Screens/dashboard_screen.dart';
 
 class SignInScreen extends StatefulWidget {
   final String? email;
