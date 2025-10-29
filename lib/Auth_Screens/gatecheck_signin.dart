@@ -29,79 +29,91 @@ class _GateCheckSignInState extends State<GateCheckSignIn> {
   }
 
   Future<void> _validateAndContinue() async {
-    if (!(_formKey.currentState?.validate() ?? false)) return;
+  if (!(_formKey.currentState?.validate() ?? false)) return;
 
-    final input = _userController.text.trim();
-    final emailOnly = RegExp(
-      r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}",
+  final input = _userController.text.trim();
+  final emailRegex = RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$');
+  final userIdRegex = RegExp(r'^[0-9]+$');
+  final aliasRegex  = RegExp(r'^[a-zA-Z0-9._-]+$');
+
+  if (!( emailRegex.hasMatch(input)
+         || userIdRegex.hasMatch(input)
+         || aliasRegex.hasMatch(input)
+       )) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text("Please enter a valid Email, User ID or Alias name."),
+        backgroundColor: Colors.red,
+      ),
     );
+    return;
+  }
 
-    if (!emailOnly.hasMatch(input)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Please enter a valid email address."),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
+  setState(() => _isLoading = true);
+  try {
+    final response = await _apiService.validateUser(input);
+    setState(() => _isLoading = false);
 
-    setState(() => _isLoading = true);
-
-    try {
-      // Validate user exists in the system
-      final response = await _apiService.validateUser(input);
-      
-      setState(() => _isLoading = false);
-
-      if (response.statusCode == 200) {
-        // User exists, navigate to password screen
-        if (mounted) {
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (context) => SignInScreen(email: input),
-            ),
-          );
-        }
+    if (response.statusCode == 200) {
+      if (mounted) {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => SignInScreen(email: input),
+          ),
+        );
       }
-    } on DioException catch (e) {
-      setState(() => _isLoading = false);
-      
-      String errorMessage = "An error occurred. Please try again.";
-      
-      if (e.response?.statusCode == 404) {
-        errorMessage = "No account found with this email. Please contact your administrator.";
-      } else if (e.response?.statusCode == 400) {
-        errorMessage = e.response?.data['message'] ?? "Invalid email format.";
-      } else if (e.type == DioExceptionType.connectionTimeout ||
-          e.type == DioExceptionType.receiveTimeout) {
-        errorMessage = "Connection timeout. Please check your internet connection.";
-      } else if (e.type == DioExceptionType.connectionError) {
-        errorMessage = "Cannot connect to server. Please try again later.";
-      }
-      
+    } else {
+      // Handle unexpected non-200 codes
+      final errorMsg = response.data['message']?.toString()
+                     ?? 'User not found. Please check your UserID, Alias, or Email.';
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(errorMessage),
+            content: Text(errorMsg),
             backgroundColor: Colors.red,
             duration: const Duration(seconds: 4),
           ),
         );
       }
-    } catch (e) {
-      setState(() => _isLoading = false);
-      
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text("Unexpected error: ${e.toString()}"),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+    }
+  } on DioException catch (e) {
+    setState(() => _isLoading = false);
+
+    String errorMessage = "An error occurred. Please try again.";
+    if (e.response?.statusCode == 404) {
+      errorMessage = "No account found with this identifier. Please contact your administrator.";
+    } else if (e.response?.statusCode == 400) {
+      errorMessage = e.response?.data['message']?.toString() ?? "Invalid input format.";
+    } else if (e.type == DioExceptionType.connectionTimeout ||
+               e.type == DioExceptionType.receiveTimeout) {
+      errorMessage = "Connection timeout. Please check your internet connection.";
+    } else if (e.type == DioExceptionType.connectionError) {
+      errorMessage = "Cannot connect to server. Please try again later.";
+    }
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(errorMessage),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 4),
+        ),
+      );
+    }
+  } catch (e) {
+    setState(() => _isLoading = false);
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Unexpected error: ${e.toString()}"),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
+}
+
+
 
   @override
   Widget build(BuildContext context) {

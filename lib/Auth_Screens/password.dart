@@ -41,11 +41,11 @@ class _SignInScreenState extends State<SignInScreen> {
 
   void _regenerateCaptcha() {
     setState(() {
-      _captcha = generateCaptcha();
+      _captcha = _generateCaptcha();
     });
   }
 
-  String generateCaptcha() {
+  String _generateCaptcha() {
     const chars =
         'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
     final rnd = Random();
@@ -53,13 +53,9 @@ class _SignInScreenState extends State<SignInScreen> {
   }
 
   Future<void> _onSignIn() async {
-    final isValid = _formKey.currentState?.validate() ?? false;
-    if (!isValid) return;
+    if (!(_formKey.currentState?.validate() ?? false)) return;
 
     final captchaInput = _captchaController.text.trim();
-    final passwordInput = _passwordController.text.trim();
-
-    // First check captcha
     if (captchaInput != _captcha) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -72,44 +68,66 @@ class _SignInScreenState extends State<SignInScreen> {
       return;
     }
 
+    final passwordInput = _passwordController.text.trim();
+    final identifier = widget.email?.trim() ?? '';
+
     setState(() => _isLoading = true);
 
     try {
-      // Prepare login credentials - try different formats
-      // ignore: unused_local_variable
-      final credentials = {
-        'email': widget.email ?? '',
-        'password': passwordInput,
-      };
-
-      debugPrint('Attempting login with email: ${widget.email}');
-      
-      // Call login API using required named parameters
       final response = await _apiService.login(
-        identifier: widget.email ?? '',
+        identifier: identifier,
         password: passwordInput,
       );
-
       setState(() => _isLoading = false);
 
-      // Check if response is successful
       if (response.statusCode == 200 || response.statusCode == 201) {
-        final userData = response.data;
         
-        // Extract user information
+        
+        final responseBody = response.data;
+        debugPrint('Login success. Raw response: $responseBody');
+
         String userName = 'User';
         String userRole = 'user';
-        
-        if (userData is Map<String, dynamic>) {
-          userName = userData['name']?.toString() ?? 
-                     userData['username']?.toString() ?? 
-                     userData['user']?.toString() ?? 
-                     'User';
-          userRole = userData['role']?.toString().toLowerCase() ?? 
-                     userData['user_type']?.toString().toLowerCase() ?? 
-                     'user';
+
+        if (responseBody is Map<String, dynamic>) {
+          // Step 1: get nested user map
+          Map<String, dynamic>? userMap;
+          if (responseBody.containsKey('data') &&
+              responseBody['data'] is Map<String, dynamic>) {
+            final d = responseBody['data'] as Map<String, dynamic>;
+            if (d.containsKey('user') && d['user'] is Map<String, dynamic>) {
+              userMap = d['user'] as Map<String, dynamic>;
+            }
+          }
+          userMap ??= responseBody;
+
+          // Step 2: extract userName
+          userName =
+              userMap['username']?.toString() ??
+              userMap['name']?.toString() ??
+              'User';
+
+          // Step 3: extract role (correct field ‘roles’)
+          String rawRole =
+              userMap['roles ']?.toString() ??
+              userMap['role']?.toString() ??
+              userMap['user_type']?.toString() ??
+              '';
+
+          debugPrint('Raw role string from API: "$rawRole"');
+
+          rawRole = rawRole.trim().toLowerCase();
+
+          // Step 4: apply your rule: if empty or “null” treat as admin
+          if (rawRole.isEmpty || rawRole == 'null') {
+            userRole = 'admin';
+          } else {
+            userRole = rawRole;
+          }
         }
-        
+
+        debugPrint('Determined userRole: $userRole');
+
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -121,35 +139,24 @@ class _SignInScreenState extends State<SignInScreen> {
               duration: const Duration(milliseconds: 700),
             ),
           );
-
           await Future.delayed(const Duration(milliseconds: 700));
+          if (!mounted) return;
 
-          // Navigate based on role
-          if (userRole.contains('admin')) {
-            Navigator.of(context).pushAndRemoveUntil(
-              MaterialPageRoute(
-                builder: (context) => const DashboardScreen(),
-              ),
-              (route) => false,
-            );
-          } else {
-            Navigator.of(context).pushAndRemoveUntil(
-              MaterialPageRoute(
-                builder: (context) => const UserDashboardScreen(),
-              ),
-              (route) => false,
-            );
-          }
+          _navigateByRole(userRole);
         }
+        debugPrint('\n\n\n\n\n');
+        debugPrint('Extracted userRole: $userRole');
+        debugPrint('Extracted userRole: $userName');
+        debugPrint('\n\n\n\n\n');
+        debugPrint('Login response data: ${response.data}');
       } else if (response.statusCode == 400) {
-        // Handle 400 Bad Request
         final errorMsg = _apiService.getErrorMessage(
           DioException(
             requestOptions: response.requestOptions,
             response: response,
           ),
         );
-        
+
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -160,7 +167,6 @@ class _SignInScreenState extends State<SignInScreen> {
           );
         }
       } else {
-        // Handle other status codes
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -175,9 +181,7 @@ class _SignInScreenState extends State<SignInScreen> {
       }
     } on DioException catch (e) {
       setState(() => _isLoading = false);
-
       final errorMessage = _apiService.getErrorMessage(e);
-
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -187,12 +191,10 @@ class _SignInScreenState extends State<SignInScreen> {
           ),
         );
       }
-
       _regenerateCaptcha();
       _captchaController.clear();
     } catch (e) {
       setState(() => _isLoading = false);
-
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -204,38 +206,50 @@ class _SignInScreenState extends State<SignInScreen> {
           ),
         );
       }
-
       _regenerateCaptcha();
       _captchaController.clear();
+    }
+  }
+
+  void _navigateByRole(String role) {
+    if (role == 'admin' || role == 'null') {
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const DashboardScreen()),
+        (route) => false,
+      );
+    } else {
+      // any non‐admin goes to user dashboard
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const UserDashboardScreen()),
+        (route) => false,
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
-    // ignore: deprecated_member_use
     final textScale = MediaQuery.of(context).textScaleFactor;
 
     String displayName = 'User';
     String userInitials = 'U';
-
     if (widget.email != null) {
-      final emailParts = widget.email!.split('@');
-      if (emailParts.isNotEmpty) {
-        displayName = emailParts[0];
-        userInitials = displayName.isNotEmpty
-            ? displayName.substring(0, min(1, displayName.length)).toUpperCase()
-            : 'U';
+      final parts = widget.email!.split('@');
+      if (parts.isNotEmpty) {
+        displayName = parts[0];
+        if (displayName.isNotEmpty) {
+          userInitials = displayName.substring(0, 1).toUpperCase();
+        }
       }
     }
+
+    final cardWidth = screenWidth * 0.9 > 400 ? 400.0 : screenWidth * 0.9;
 
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
-            final cardWidth = min(screenWidth * 0.9, 400.0);
-
             return Center(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(vertical: 24),
@@ -283,36 +297,20 @@ class _SignInScreenState extends State<SignInScreen> {
                             color: Colors.black87,
                           ),
                         ),
-                        // const SizedBox(height: 6),
-                        // Text(
-                        //   'Welcome, ${widget.email ?? 'user@example.com'}',
-                        //   style: GoogleFonts.poppins(
-                        //     fontSize: 12,
-                        //     color: Colors.grey[700],
-                        //   ),
-                        // ),
                         const SizedBox(height: 20),
 
+                        // Password field
                         Align(
                           alignment: Alignment.centerLeft,
-                          child: RichText(
-                            text: TextSpan(
-                              style: GoogleFonts.poppins(
-                                fontSize: 14,
-                                color: Colors.black87,
-                              ),
-                              children: [
-                                const TextSpan(text: 'Password '),
-                                TextSpan(
-                                  text: '*',
-                                  style: TextStyle(color: Colors.red[700]),
-                                ),
-                              ],
+                          child: Text(
+                            'Password *',
+                            style: GoogleFonts.poppins(
+                              fontSize: 14,
+                              color: Colors.black87,
                             ),
                           ),
                         ),
                         const SizedBox(height: 8),
-
                         TextFormField(
                           controller: _passwordController,
                           obscureText: _obscurePassword,
@@ -326,13 +324,6 @@ class _SignInScreenState extends State<SignInScreen> {
                               horizontal: 12,
                             ),
                             border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(10),
-                              borderSide: BorderSide(
-                                color: Colors.grey[400]!,
-                                width: 1,
-                              ),
-                            ),
-                            enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(10),
                               borderSide: BorderSide(
                                 color: Colors.grey[400]!,
@@ -368,6 +359,7 @@ class _SignInScreenState extends State<SignInScreen> {
                         ),
                         const SizedBox(height: 18),
 
+                        // Captcha section
                         Align(
                           alignment: Alignment.centerLeft,
                           child: Text(
@@ -379,7 +371,6 @@ class _SignInScreenState extends State<SignInScreen> {
                           ),
                         ),
                         const SizedBox(height: 8),
-
                         TextFormField(
                           controller: _captchaController,
                           enabled: !_isLoading,
@@ -392,13 +383,6 @@ class _SignInScreenState extends State<SignInScreen> {
                               horizontal: 12,
                             ),
                             border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(10),
-                              borderSide: BorderSide(
-                                color: Colors.grey[400]!,
-                                width: 1,
-                              ),
-                            ),
-                            enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(10),
                               borderSide: BorderSide(
                                 color: Colors.grey[400]!,
@@ -420,9 +404,7 @@ class _SignInScreenState extends State<SignInScreen> {
                             return null;
                           },
                         ),
-
                         const SizedBox(height: 12),
-
                         Row(
                           children: [
                             Expanded(
@@ -459,9 +441,9 @@ class _SignInScreenState extends State<SignInScreen> {
                             ),
                           ],
                         ),
-
                         const SizedBox(height: 22),
 
+                        // Sign In button
                         SizedBox(
                           width: double.infinity,
                           child: ElevatedButton.icon(
@@ -473,7 +455,8 @@ class _SignInScreenState extends State<SignInScreen> {
                                     child: CircularProgressIndicator(
                                       strokeWidth: 2,
                                       valueColor: AlwaysStoppedAnimation<Color>(
-                                          Colors.white),
+                                        Colors.white,
+                                      ),
                                     ),
                                   )
                                 : const Icon(Icons.login, color: Colors.white),
@@ -486,8 +469,9 @@ class _SignInScreenState extends State<SignInScreen> {
                             ),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFF6A1B9A),
-                              disabledBackgroundColor: 
-                                  const Color(0xFF6A1B9A).withOpacity(0.6),
+                              disabledBackgroundColor: const Color(
+                                0xFF6A1B9A,
+                              ).withOpacity(0.6),
                               padding: const EdgeInsets.symmetric(vertical: 14),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(10),
@@ -495,9 +479,9 @@ class _SignInScreenState extends State<SignInScreen> {
                             ),
                           ),
                         ),
-
                         const SizedBox(height: 14),
 
+                        // Forgot password link
                         InkWell(
                           onTap: () {
                             Navigator.of(context).push(
