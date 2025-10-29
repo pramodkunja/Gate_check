@@ -1,12 +1,13 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
+import 'package:gatecheck/Services/Base_URL/base_url.dart';
 
 class ApiService {
   static final ApiService _instance = ApiService._internal();
   factory ApiService() => _instance;
 
   late Dio _dio;
-  static const String baseUrl = 'http://192.168.0.174:7000';
+  static const String baseUrl =  Appconfig.baseURL;
 
   ApiService._internal() {
     _dio = Dio(
@@ -77,7 +78,7 @@ class ApiService {
   /// Validate if user exists in the system
   Future<Response> validateUser(String identifier) async {
     try {
-      final response = await _dio.post(
+      final response = await _dio.post( 
         '/login/validate/',
         data: {'identifier': identifier},
       );
