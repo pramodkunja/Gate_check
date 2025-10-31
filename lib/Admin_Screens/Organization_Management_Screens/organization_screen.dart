@@ -130,14 +130,18 @@ class _OrganizationManagementScreenState
 
   @override
   Widget build(BuildContext context) {
-   String userName = UserService().getUserName();
+    String userName = UserService().getUserName();
     String firstLetter = userName.isNotEmpty ? userName[0].toUpperCase() : "?";
-      String email = UserService().getUserByEmail(userName) as String;
+    String email = UserService().getUserEmail();
     final screenWidth = MediaQuery.of(context).size.width;
     final isSmallScreen = screenWidth < 600;
 
     return Scaffold(
-      appBar: CustomAppBar(userName: userName, firstLetter: firstLetter, email: email),
+      appBar: CustomAppBar(
+        userName: userName,
+        firstLetter: firstLetter,
+        email: email,
+      ),
       drawer: const Navigation(),
       body: SafeArea(
         child: Column(
@@ -168,7 +172,8 @@ class _OrganizationManagementScreenState
                                 const SizedBox(width: 12),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
                                         'Organization Management',
@@ -197,7 +202,8 @@ class _OrganizationManagementScreenState
                                   showDialog(
                                     context: context,
                                     builder: (context) => AddOrganizationDialog(
-                                        onAdd: _addOrganization),
+                                      onAdd: _addOrganization,
+                                    ),
                                   );
                                 },
                                 icon: const Icon(Icons.add),
@@ -208,7 +214,9 @@ class _OrganizationManagementScreenState
                                 style: OutlinedButton.styleFrom(
                                   foregroundColor: Colors.purple,
                                   side: const BorderSide(color: Colors.purple),
-                                  padding: const EdgeInsets.symmetric(vertical: 12),
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 12,
+                                  ),
                                 ),
                               ),
                             ),
@@ -255,7 +263,8 @@ class _OrganizationManagementScreenState
                                 showDialog(
                                   context: context,
                                   builder: (context) => AddOrganizationDialog(
-                                      onAdd: _addOrganization),
+                                    onAdd: _addOrganization,
+                                  ),
                                 );
                               },
                               icon: const Icon(Icons.add),
@@ -325,7 +334,8 @@ class _OrganizationManagementScreenState
                     )
                   : ListView.builder(
                       padding: EdgeInsets.symmetric(
-                          horizontal: isSmallScreen ? 12 : 16),
+                        horizontal: isSmallScreen ? 12 : 16,
+                      ),
                       itemCount: _filteredOrganizations.length,
                       itemBuilder: (context, index) {
                         final org = _filteredOrganizations[index];
@@ -388,12 +398,19 @@ class _OrganizationManagementScreenState
                                         children: [
                                           Expanded(
                                             child: OutlinedButton(
-                                              onPressed: () => Navigator.pop(context),
+                                              onPressed: () =>
+                                                  Navigator.pop(context),
                                               style: OutlinedButton.styleFrom(
-                                                padding: const EdgeInsets.symmetric(vertical: 12),
-                                                side: BorderSide(color: Colors.grey[300]!),
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                      vertical: 12,
+                                                    ),
+                                                side: BorderSide(
+                                                  color: Colors.grey[300]!,
+                                                ),
                                                 shape: RoundedRectangleBorder(
-                                                  borderRadius: BorderRadius.circular(8),
+                                                  borderRadius:
+                                                      BorderRadius.circular(8),
                                                 ),
                                               ),
                                               child: Text(
@@ -415,12 +432,19 @@ class _OrganizationManagementScreenState
                                               style: ElevatedButton.styleFrom(
                                                 // backgroundColor: Colors.red,
                                                 foregroundColor: Colors.red,
-                                                padding: const EdgeInsets.symmetric(vertical: 12),
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                      vertical: 12,
+                                                    ),
                                                 shape: RoundedRectangleBorder(
-                                                  borderRadius: BorderRadius.circular(8),
+                                                  borderRadius:
+                                                      BorderRadius.circular(8),
                                                 ),
                                               ),
-                                              icon: const Icon(Icons.delete_outline, size: 20),
+                                              icon: const Icon(
+                                                Icons.delete_outline,
+                                                size: 20,
+                                              ),
                                               label: Text(
                                                 'Delete',
                                                 style: GoogleFonts.poppins(

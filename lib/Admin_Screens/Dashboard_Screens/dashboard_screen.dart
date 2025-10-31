@@ -15,7 +15,7 @@ class DashboardScreen extends StatelessWidget {
     // Get current logged-in user from UserService (set at login)
     String userName = UserService().getUserName();
     String firstLetter = userName.isNotEmpty ? userName[0].toUpperCase() : "?";
-    String email = UserService().getUserByEmail(userName) as String;
+    String email = UserService().getUserEmail();
 
     final size = MediaQuery.of(context).size;
     final isSmall = size.width < 360;

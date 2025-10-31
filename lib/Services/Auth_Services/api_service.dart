@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:gatecheck/Services/Base_URL/base_url.dart';
 
 class ApiService {
@@ -7,7 +8,7 @@ class ApiService {
   factory ApiService() => _instance;
 
   late Dio _dio;
-  static const String baseUrl =  Appconfig.baseURL;
+  static const String baseUrl = Appconfig.baseURL;
 
   ApiService._internal() {
     _dio = Dio(
@@ -19,52 +20,62 @@ class ApiService {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
         },
-        validateStatus: (status) {
-          // Accept all status codes < 500 (you’ll still inspect status codes)
-          return status != null && status < 500;
-        },
+        validateStatus: (status) => status != null && status < 500,
       ),
     );
 
+    // Interceptors for token handling and logging
     _dio.interceptors.add(
       InterceptorsWrapper(
-        onRequest: (options, handler) {
-          debugPrint(
-            '╔════════════════════════════════════════════════════════',
-          );
+        onRequest: (options, handler) async {
+          final prefs = await SharedPreferences.getInstance();
+          final token = prefs.getString('authToken');
+
+          if (token != null && token.isNotEmpty) {
+            options.headers['Authorization'] = 'Bearer $token';
+          }
+
+          debugPrint('╔════════════════════════════════════════════════════════');
           debugPrint('║ REQUEST[${options.method}] => ${options.path}');
           debugPrint('║ Headers: ${options.headers}');
           debugPrint('║ Data: ${options.data}');
-          debugPrint(
-            '╚════════════════════════════════════════════════════════',
-          );
+          debugPrint('╚════════════════════════════════════════════════════════');
+
           return handler.next(options);
         },
         onResponse: (response, handler) {
-          debugPrint(
-            '╔════════════════════════════════════════════════════════',
-          );
-          debugPrint(
-            '║ RESPONSE[${response.statusCode}] => ${response.requestOptions.path}',
-          );
+          debugPrint('╔════════════════════════════════════════════════════════');
+          debugPrint('║ RESPONSE[${response.statusCode}] => ${response.requestOptions.path}');
           debugPrint('║ Data: ${response.data}');
-          debugPrint(
-            '╚════════════════════════════════════════════════════════',
-          );
+          debugPrint('╚════════════════════════════════════════════════════════');
           return handler.next(response);
         },
-        onError: (error, handler) {
-          debugPrint(
-            '╔════════════════════════════════════════════════════════',
-          );
-          debugPrint(
-            '║ ERROR[${error.response?.statusCode}] => ${error.requestOptions.path}',
-          );
+        onError: (error, handler) async {
+          debugPrint('╔════════════════════════════════════════════════════════');
+          debugPrint('║ ERROR[${error.response?.statusCode}] => ${error.requestOptions.path}');
           debugPrint('║ Message: ${error.message}');
           debugPrint('║ Response Data: ${error.response?.data}');
-          debugPrint(
-            '╚════════════════════════════════════════════════════════',
-          );
+          debugPrint('╚════════════════════════════════════════════════════════');
+
+          // 🔄 Auto-refresh token if expired
+          if (error.response?.statusCode == 401) {
+            final isRefreshed = await _refreshAccessToken();
+            if (isRefreshed) {
+              final req = error.requestOptions;
+              final prefs = await SharedPreferences.getInstance();
+              final newToken = prefs.getString('authToken');
+
+              req.headers['Authorization'] = 'Bearer $newToken';
+
+              try {
+                final clonedResponse = await _dio.fetch(req);
+                return handler.resolve(clonedResponse);
+              } catch (e) {
+                return handler.reject(error);
+              }
+            }
+          }
+
           return handler.next(error);
         },
       ),
@@ -73,153 +84,128 @@ class ApiService {
 
   Dio get dio => _dio;
 
-  // Authentication endpoints
-
-  /// Validate if user exists in the system
+  // -------------------- Validate User --------------------
   Future<Response> validateUser(String identifier) async {
-    try {
-      final response = await _dio.post( 
-        '/login/validate/',
-        data: {'identifier': identifier},
-      );
-      return response;
-    } catch (e) {
-      rethrow;
-    }
+    return await _dio.post('/login/validate/', data: {'identifier': identifier});
   }
 
-  /// Login with identifier/email and password
+  // -------------------- Login --------------------
   Future<Response> login({
     required String identifier,
     required String password,
   }) async {
     try {
-      final credentials = {'identifier': identifier, 'password': password};
-      debugPrint('Attempting login with: $credentials');
+      final response = await _dio.post(
+        '/login/login/',
+        data: {'identifier': identifier, 'password': password},
+      );
 
-      final response = await _dio.post('/login/login/', data: credentials);
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final prefs = await SharedPreferences.getInstance();
+
+        final data = response.data['data'];
+        final accessToken = data?['access']?.toString();
+        final refreshToken = data?['refresh']?.toString();
+
+        if (accessToken != null && accessToken.isNotEmpty) {
+          await prefs.setString('authToken', accessToken);
+          debugPrint('✅ Access token saved: $accessToken');
+        } else {
+          debugPrint('⚠️ No access token found in response');
+        }
+
+        if (refreshToken != null && refreshToken.isNotEmpty) {
+          await prefs.setString('refreshToken', refreshToken);
+          debugPrint('✅ Refresh token saved: $refreshToken');
+        } else {
+          debugPrint('⚠️ No refresh token found in response');
+        }
+      }
+
       return response;
-    } catch (e) {
-      debugPrint('Login error: $e');
+    } on DioException catch (e) {
+      debugPrint('❌ Login error: ${e.response?.data}');
       rethrow;
     }
   }
 
-  /// Request OTP for password reset
+  // -------------------- Forgot Password --------------------
   Future<Response> forgotPassword(String identifier) async {
-    try {
-      final response = await _dio.post(
-        '/login/otp-request/',
-        data: {'identifier': identifier},
-      );
-      return response;
-    } catch (e) {
-      rethrow;
-    }
+    return await _dio.post('/login/forgot-password/', data: {'identifier': identifier});
   }
 
-  /// Verify OTP code
-  Future<Response> verifyOtp({
-    required String identifier,
-    required String otp,
-  }) async {
-    try {
-      final response = await _dio.post(
-        '/login/verify-otp/',
-        data: {'identifier': identifier, 'otp': otp},
-      );
-      return response;
-    } catch (e) {
-      rethrow;
-    }
+  // -------------------- Verify OTP --------------------
+  Future<Response> verifyOtp(String identifier, String otp) async {
+    return await _dio.post('/login/verify-otp/', data: {'identifier': identifier, 'otp': otp});
   }
 
-  /// Set new password after OTP verification
+  // -------------------- Set New Password --------------------
   Future<Response> setNewPassword({
     required String identifier,
     required String newPassword,
-    // optionally confirmPassword if backend needs
-    String? confirmPassword,
+    required String confirmPassword,
   }) async {
-    try {
-      final data = {
-        'identifier': identifier,
-        'new_password': newPassword,
-        'confirm_password': confirmPassword,
-      };
-      // if (confirmPassword != null) {
-      //   data['confirm_password'] = confirmPassword;
-      // }
-      final response = await _dio.post('/login/set-new-password/', data: data);
-      return response;
-    } catch (e) {
-      rethrow;
-    }
+    return await _dio.post('/login/set-new-password/', data: {
+      'identifier': identifier,
+      'new_password': newPassword,
+      'confirm_password': confirmPassword,
+    });
   }
 
-  /// Logout user
-  Future<Response> logout() async {
-    try {
-      final response = await _dio.post('/login/logout/');
-      return response;
-    } catch (e) {
-      rethrow;
-    }
+  // -------------------- Get User Profile --------------------
+  Future<Response> getUserProfile() async {
+    return await _dio.get('/user/profile/');
   }
 
-  /// Helper method to parse error messages from API
+  // -------------------- Logout --------------------
+  Future<void> logout() async {
+    try {
+      await _dio.post('/login/logout/');
+    } catch (_) {}
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('authToken');
+    await prefs.remove('refreshToken');
+  }
+
+  // -------------------- Token Refresh --------------------
+  Future<bool> _refreshAccessToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    final refreshToken = prefs.getString('refreshToken');
+
+    if (refreshToken == null || refreshToken.isEmpty) {
+      debugPrint('⚠️ No refresh token found.');
+      return false;
+    }
+
+    try {
+      final response = await _dio.post(
+        '/login/refresh/',
+        data: {'refresh': refreshToken},
+      );
+
+      if (response.statusCode == 200) {
+        final newAccessToken = response.data['access']?.toString();
+        if (newAccessToken != null && newAccessToken.isNotEmpty) {
+          await prefs.setString('authToken', newAccessToken);
+          debugPrint('🔄 Access token refreshed successfully.');
+          return true;
+        }
+      }
+    } catch (e) {
+      debugPrint('❌ Token refresh failed: $e');
+    }
+
+    return false;
+  }
+
+  // -------------------- Error Message Helper --------------------
   String getErrorMessage(DioException error) {
     if (error.response?.data != null) {
       final data = error.response!.data;
-      if (data is Map<String, dynamic>) {
-        if (data.containsKey('error')) {
-          final err = data['error'];
-          if (err is String) return err;
-          if (err is Map) {
-            final first = err.values.first;
-            if (first is List && first.isNotEmpty) return first[0].toString();
-            return first.toString();
-          }
-        }
-        if (data.containsKey('message')) {
-          return data['message'].toString();
-        }
-        if (data.containsKey('detail')) {
-          return data['detail'].toString();
-        }
-        final errors = <String>[];
-        data.forEach((k, v) {
-          if (v is List && v.isNotEmpty) {
-            errors.add('$k: ${v[0]}');
-          } else if (v is String) {
-            errors.add(v);
-          }
-        });
-        if (errors.isNotEmpty) return errors.join(', ');
-      }
-      if (data is String) {
-        return data;
+      if (data is Map<String, dynamic> && data.containsKey('message')) {
+        return data['message'].toString();
       }
     }
-    switch (error.response?.statusCode) {
-      case 400:
-        return 'Invalid request. Please check your input.';
-      case 401:
-        return 'Incorrect credentials. Please try again.';
-      case 404:
-        return 'Resource not found.';
-      case 429:
-        return 'Too many requests. Please try again later.';
-      case 500:
-        return 'Server error. Please try again later.';
-      default:
-        if (error.type == DioExceptionType.connectionTimeout ||
-            error.type == DioExceptionType.receiveTimeout) {
-          return 'Connection timeout. Please check your internet.';
-        } else if (error.type == DioExceptionType.connectionError) {
-          return 'Cannot connect to server. Please try again.';
-        }
-        return 'An unexpected error occurred.';
-    }
+    return 'Unexpected error. Please try again.';
   }
 }

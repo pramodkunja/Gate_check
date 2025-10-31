@@ -108,6 +108,11 @@ class UserService {
     return _currentUser?['name'] ?? 'User';
   }
 
+  // Get user email
+String getUserEmail() {
+  return _currentUser?['email'] ?? '';
+}
+
   // Get user role
   String getUserRole() {
     return _currentUser?['role'] ?? '';

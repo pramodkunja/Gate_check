@@ -7,7 +7,7 @@ import 'confirm_password.dart';
 
 class OtpVerificationScreen extends StatefulWidget {
   final String email;
-  
+
   const OtpVerificationScreen({super.key, required this.email});
 
   @override
@@ -87,7 +87,8 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
         errorMessage = "Too many requests. Please wait before trying again.";
       } else if (e.type == DioExceptionType.connectionTimeout ||
           e.type == DioExceptionType.receiveTimeout) {
-        errorMessage = "Connection timeout. Please check your internet connection.";
+        errorMessage =
+            "Connection timeout. Please check your internet connection.";
       } else if (e.type == DioExceptionType.connectionError) {
         errorMessage = "Cannot connect to server. Please try again later.";
       }
@@ -126,7 +127,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
 
     try {
       final enteredOtp = _otpController.text.trim();
-      final response = await _apiService.verifyOtp(identifier: widget.email, otp: enteredOtp);
+      final response = await _apiService.verifyOtp(widget.email, enteredOtp);
 
       setState(() => _isVerifying = false);
 
@@ -161,7 +162,8 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
         errorMessage = "OTP session expired. Please request a new code.";
       } else if (e.type == DioExceptionType.connectionTimeout ||
           e.type == DioExceptionType.receiveTimeout) {
-        errorMessage = "Connection timeout. Please check your internet connection.";
+        errorMessage =
+            "Connection timeout. Please check your internet connection.";
       } else if (e.type == DioExceptionType.connectionError) {
         errorMessage = "Cannot connect to server. Please try again later.";
       }
@@ -323,8 +325,8 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton.icon(
-                      onPressed: (_isOtpFilled && !_isVerifying) 
-                          ? _verifyOtp 
+                      onPressed: (_isOtpFilled && !_isVerifying)
+                          ? _verifyOtp
                           : null,
                       icon: _isVerifying
                           ? const SizedBox(
@@ -377,11 +379,11 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                               style: GoogleFonts.poppins(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w600,
-                                color: _isResending 
-                                    ? Colors.grey 
+                                color: _isResending
+                                    ? Colors.grey
                                     : const Color(0xFF9C27B0),
-                                decoration: _isResending 
-                                    ? null 
+                                decoration: _isResending
+                                    ? null
                                     : TextDecoration.underline,
                               ),
                             ),

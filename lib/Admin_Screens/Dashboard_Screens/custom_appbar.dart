@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:gatecheck/Services/User_services/user_service.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:gatecheck/Admin_Screens/Profile_Screen/profile_screen.dart';
 import 'package:gatecheck/Auth_Screens/gatecheck_signin.dart';
