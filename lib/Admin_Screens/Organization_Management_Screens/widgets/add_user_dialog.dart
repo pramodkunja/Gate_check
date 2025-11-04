@@ -1,16 +1,19 @@
 // dialogs/add_user_dialog.dart
 import 'package:flutter/material.dart';
 import 'package:gatecheck/Admin_Screens/Organization_Management_Screens/models/models.dart';
+import 'package:gatecheck/Services/Admin_Services/organization_services.dart';
 import 'package:google_fonts/google_fonts.dart';
-
+import 'package:dio/dio.dart';
 
 class AddUserDialog extends StatefulWidget {
   final String companyName;
-  final Function(User) onAdd;
+  final String? companyId; // Add company ID parameter
+  final Function(User, String) onAdd;
 
   const AddUserDialog({
     super.key,
     required this.companyName,
+    this.companyId,
     required this.onAdd,
   });
 
@@ -26,7 +29,11 @@ class _AddUserDialogState extends State<AddUserDialog> {
   final _aliasController = TextEditingController();
   final _blockController = TextEditingController();
   final _floorController = TextEditingController();
+  final OrganizationService _orgService = OrganizationService();
+  
   String? _selectedRole;
+  String _companyNameFromAPI = '';
+  bool _isLoadingCompany = false;
 
   final List<String> _roles = [
     'Admin',
@@ -37,6 +44,48 @@ class _AddUserDialogState extends State<AddUserDialog> {
     'HR',
     'Sales',
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _companyNameFromAPI = widget.companyName;
+    if (widget.companyId != null) {
+      _loadCompanyDetails();
+    }
+  }
+
+  // Load company details from API
+  Future<void> _loadCompanyDetails() async {
+    setState(() {
+      _isLoadingCompany = true;
+    });
+
+    try {
+      final response = await _orgService.getOrganizationById(widget.companyId!);
+      
+      debugPrint('📦 Company details response: ${response.data}');
+
+      if (response.statusCode == 200) {
+        final data = response.data;
+        setState(() {
+          _companyNameFromAPI = data['company_name']?.toString() ?? widget.companyName;
+          _isLoadingCompany = false;
+        });
+      }
+    } on DioException catch (e) {
+      debugPrint('❌ Load company error: ${e.message}');
+      setState(() {
+        _companyNameFromAPI = widget.companyName;
+        _isLoadingCompany = false;
+      });
+    } catch (e) {
+      debugPrint('❌ Unexpected error: $e');
+      setState(() {
+        _companyNameFromAPI = widget.companyName;
+        _isLoadingCompany = false;
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -50,23 +99,37 @@ class _AddUserDialogState extends State<AddUserDialog> {
   }
 
   void _submit() {
-    if (_formKey.currentState!.validate()) {
-      final user = User(
-        id: DateTime.now().millisecondsSinceEpoch.toString(),
-        name: _nameController.text.trim(),
-        email: _emailController.text.trim(),
-        mobileNumber: _mobileController.text.trim(),
-        companyName: widget.companyName,
-        role: _selectedRole!,
-        aliasName: _aliasController.text.trim().isEmpty ? null : _aliasController.text.trim(),
-        block: _blockController.text.trim().isEmpty ? null : _blockController.text.trim(),
-        floor: _floorController.text.trim().isEmpty ? null : _floorController.text.trim(),
-        dateAdded: DateTime.now(),
+  if (_formKey.currentState!.validate()) {
+    if (_selectedRole == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select a role'))
       );
-      widget.onAdd(user);
-      Navigator.pop(context);
+      return;
     }
+    if (widget.companyId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Company ID is missing'))
+      );
+      return;
+    }
+
+    final user = User(
+      id: '', // Will be assigned by API
+      name: _nameController.text.trim(),
+      email: _emailController.text.trim(),
+      mobileNumber: _mobileController.text.trim(),
+      companyName: _companyNameFromAPI,
+      role: _selectedRole!,
+      aliasName: _aliasController.text.trim().isEmpty ? null : _aliasController.text.trim(),
+      block: _blockController.text.trim().isEmpty ? null : _blockController.text.trim(),
+      floor: _floorController.text.trim().isEmpty ? null : _floorController.text.trim(),
+      dateAdded: DateTime.now(),
+    );
+    widget.onAdd(user, widget.companyId!);  // pass companyId as extra parameter
+    Navigator.pop(context);
   }
+}
+
 
   @override
   Widget build(BuildContext context) {
@@ -186,12 +249,21 @@ class _AddUserDialogState extends State<AddUserDialog> {
                       ),
                       const SizedBox(height: 16),
                       TextFormField(
-                        initialValue: widget.companyName,
+                        initialValue: _isLoadingCompany ? 'Loading...' : _companyNameFromAPI,
                         style: GoogleFonts.poppins(fontSize: 16),
                         decoration: InputDecoration(
                           labelText: 'Company Name *',
                           labelStyle: GoogleFonts.poppins(fontSize: 18),
-                          prefixIcon: const Icon(Icons.business_outlined),
+                          prefixIcon: _isLoadingCompany 
+                              ? const Padding(
+                                  padding: EdgeInsets.all(12),
+                                  child: SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(strokeWidth: 2),
+                                  ),
+                                )
+                              : const Icon(Icons.business_outlined),
                           border: const OutlineInputBorder(),
                         ),
                         enabled: false,

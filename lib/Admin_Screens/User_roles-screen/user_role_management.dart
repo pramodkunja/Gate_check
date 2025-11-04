@@ -250,7 +250,7 @@ class _UserRolesManagementScreenState extends State<UserRolesManagementScreen> {
   Widget build(BuildContext context) {
  String userName = UserService().getUserName();
     String firstLetter = userName.isNotEmpty ? userName[0].toUpperCase() : "?";
-      String email = UserService().getUserByEmail(userName) as String;
+    String email = UserService().getUserEmail();
 
     final mq = MediaQuery.of(context);
     final isWide = mq.size.width > 600;

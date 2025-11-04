@@ -130,7 +130,7 @@ class _RegularVisitorsScreenState extends State<RegularVisitorsScreen> {
   Widget build(BuildContext context) {
     String userName = UserService().getUserName();
     String firstLetter = userName.isNotEmpty ? userName[0].toUpperCase() : "?";
-      String email = UserService().getUserByEmail(userName) as String;
+    String email = UserService().getUserEmail();
 
     return Scaffold(
       // backgroundColor: AppColors.background,

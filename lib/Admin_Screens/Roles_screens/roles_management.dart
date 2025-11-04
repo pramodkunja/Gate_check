@@ -55,7 +55,7 @@ class _RolesManagementScreenState extends State<RolesManagementScreen> {
 
     String userName = UserService().getUserName();
     String firstLetter = userName.isNotEmpty ? userName[0].toUpperCase() : "?";
-      String email = UserService().getUserByEmail(userName) as String;
+    String email = UserService().getUserEmail();
     final size = MediaQuery.of(context).size;
     final isSmallScreen = size.width < 400;
 

@@ -7,8 +7,10 @@ import 'package:gatecheck/Admin_Screens/Organization_Management_Screens/widgets/
 import 'package:gatecheck/Admin_Screens/Organization_Management_Screens/widgets/addorganization_dialog.dart';
 import 'package:gatecheck/Admin_Screens/Organization_Management_Screens/widgets/organization_card.dart';
 import 'package:gatecheck/Admin_Screens/Organization_Management_Screens/widgets/user_management.dart';
+import 'package:gatecheck/Services/Admin_Services/organization_services.dart';
 import 'package:gatecheck/Services/User_services/user_service.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:dio/dio.dart';
 
 class OrganizationManagementScreen extends StatefulWidget {
   const OrganizationManagementScreen({super.key});
@@ -20,74 +22,116 @@ class OrganizationManagementScreen extends StatefulWidget {
 
 class _OrganizationManagementScreenState
     extends State<OrganizationManagementScreen> {
-  final List<Organization> _organizations = [
-    Organization(
-      id: '1',
-      name: 'Sria Infotech Pvt Ltd',
-      location: 'Hyderabad',
-      pinCode: '500081',
-      address:
-          '1ST Floor, 1-121/63, Survey NO 63 Part, Behind Hotel Sitara Grand',
-      users: [
-        User(
-          id: '1',
-          name: 'Akshitha',
-          email: 'akshithayellanki@gmail.com',
-          mobileNumber: '1234567890',
-          companyName: 'Sria Infotech Pvt Ltd',
-          role: 'Admin',
-          block: '4',
-          floor: '2',
-        ),
-        User(
-          id: '2',
-          name: 'Vineeth',
-          email: 'vineetherramalla31@gmail.com',
-          mobileNumber: '0987654321',
-          companyName: 'Sria Infotech Pvt Ltd',
-          role: 'Manager',
-        ),
-      ],
-    ),
-    Organization(
-      id: '2',
-      name: 'Patil',
-      location: 'Hyderabad',
-      pinCode: '500082',
-      address:
-          'The Safe Legend, 3rd & 4th Floor, 6-3-1239/8/111 Ranuka Enclave, Raj Bhavan Road, Somajiguda',
-      users: [
-        User(
-          id: '3',
-          name: 'John Doe',
-          email: 'john.doe@example.com',
-          mobileNumber: '123-456-7890',
-          companyName: 'Patil',
-          role: 'Developer',
-          dateAdded: DateTime(2023, 10, 27),
-        ),
-        User(
-          id: '4',
-          name: 'Jane Smith',
-          email: 'jane.smith@example.com',
-          mobileNumber: '987-654-3210',
-          companyName: 'Patil',
-          role: 'Designer',
-          dateAdded: DateTime(2023, 10, 26),
-        ),
-      ],
-    ),
-  ];
-
-  final TextEditingController _searchController = TextEditingController();
+  final OrganizationService _orgService = OrganizationService();
+  List<Organization> _organizations = [];
   List<Organization> _filteredOrganizations = [];
+  final TextEditingController _searchController = TextEditingController();
+  
+  bool _isLoading = false;
+  String? _errorMessage;
 
   @override
   void initState() {
     super.initState();
-    _filteredOrganizations = _organizations;
+    _loadOrganizations();
   }
 
+  // -------------------- Load Organizations from API --------------------
+  Future<void> _loadOrganizations() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final response = await _orgService.getAllOrganizations();
+
+      debugPrint('📦 Response Status: ${response.statusCode}');
+      debugPrint('📦 Response Data Type: ${response.data.runtimeType}');
+      debugPrint('📦 Response Data: ${response.data}');
+
+      if (response.statusCode == 200) {
+        final data = response.data;
+        
+        // Parse the response based on your API structure
+        List<Organization> loadedOrgs = [];
+        
+        if (data is Map && data.containsKey('data')) {
+          final orgList = data['data'] as List;
+          loadedOrgs = orgList.map((orgData) => _parseOrganization(orgData)).toList();
+        } else if (data is List) {
+          loadedOrgs = data.map((orgData) => _parseOrganization(orgData)).toList();
+        }
+
+        debugPrint('✅ Loaded ${loadedOrgs.length} organizations');
+
+        setState(() {
+          _organizations = loadedOrgs;
+          _filteredOrganizations = loadedOrgs;
+          _isLoading = false;
+        });
+      } else {
+        setState(() {
+          _errorMessage = 'Failed to load organizations';
+          _isLoading = false;
+        });
+      }
+    } on DioException catch (e) {
+      debugPrint('❌ DioException: ${e.message}');
+      setState(() {
+        _errorMessage = _orgService.getErrorMessage(e);
+        _isLoading = false;
+      });
+      _showErrorSnackBar(_errorMessage!);
+    } catch (e) {
+      debugPrint('❌ Exception: $e');
+      setState(() {
+        _errorMessage = 'Unexpected error occurred: $e';
+        _isLoading = false;
+      });
+      _showErrorSnackBar(_errorMessage!);
+    }
+  }
+
+  // -------------------- Parse Organization from API Response --------------------
+  Organization _parseOrganization(Map<String, dynamic> data) {
+    debugPrint('🔍 Parsing organization: $data');
+    
+    final org = Organization(
+      id: data['id']?.toString() ?? '',
+      name: data['company_name']?.toString() ?? data['name']?.toString() ?? '',
+      location: data['location']?.toString() ?? '',
+      pinCode: data['pin_code']?.toString() ?? data['pincode']?.toString() ?? '',
+      address: data['address']?.toString() ?? '',
+      users: _parseUsers(data['users'] ?? []),
+    );
+    
+    debugPrint('✅ Parsed: ${org.name} (${org.id})');
+    return org;
+  }
+
+  // -------------------- Parse Users from API Response --------------------
+  List<User> _parseUsers(dynamic usersData) {
+    if (usersData is! List) return [];
+    
+    return usersData.map((userData) {
+      return User(
+        id: userData['id']?.toString() ?? '',
+        name: userData['name']?.toString() ?? '',
+        email: userData['email']?.toString() ?? '',
+        mobileNumber: userData['mobile_number']?.toString() ?? userData['phone']?.toString() ?? '',
+        companyName: userData['company_name']?.toString() ?? '',
+        role: userData['role']?.toString() ?? '',
+        block: userData['block']?.toString(),
+        floor: userData['floor']?.toString(),
+        dateAdded: userData['date_added'] != null 
+            ? DateTime.tryParse(userData['date_added'].toString()) 
+            : DateTime.now(),
+      );
+    }).toList();
+  }
+
+  // -------------------- Filter Organizations --------------------
   void _filterOrganizations(String query) {
     setState(() {
       if (query.isEmpty) {
@@ -104,28 +148,188 @@ class _OrganizationManagementScreenState
     });
   }
 
-  void _addOrganization(Organization org) {
-    setState(() {
-      _organizations.add(org);
-      _filteredOrganizations = _organizations;
-    });
-  }
+  // -------------------- Add Organization --------------------
+  Future<void> _addOrganization(Organization org) async {
+    try {
+      _showLoadingDialog();
 
-  void _updateOrganization(Organization org) {
-    setState(() {
-      final index = _organizations.indexWhere((o) => o.id == org.id);
-      if (index != -1) {
-        _organizations[index] = org;
-        _filteredOrganizations = _organizations;
+      final organizationData = {
+        'company_name': org.name,
+        'location': org.location,
+        'pin_code': org.pinCode,
+        'address': org.address,
+      };
+
+      final response = await _orgService.createOrganization(organizationData);
+
+      Navigator.pop(context); // Close loading dialog
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        _showSuccessSnackBar('Organization added successfully');
+        await _loadOrganizations(); // Reload the list
+      } else {
+        _showErrorSnackBar('Failed to add organization');
       }
-    });
+    } on DioException catch (e) {
+      Navigator.pop(context); // Close loading dialog
+      _showErrorSnackBar(_orgService.getErrorMessage(e));
+    } catch (e) {
+      Navigator.pop(context); // Close loading dialog
+      _showErrorSnackBar('Unexpected error occurred');
+    }
   }
 
-  void _deleteOrganization(String id) {
-    setState(() {
-      _organizations.removeWhere((org) => org.id == id);
-      _filteredOrganizations = _organizations;
-    });
+  // -------------------- Update Organization --------------------
+  Future<void> _updateOrganization(Organization org) async {
+    try {
+      _showLoadingDialog();
+
+      final organizationData = {
+        'company_name': org.name,
+        'location': org.location,
+        'pin_code': org.pinCode,
+        'address': org.address,
+      };
+
+      final response = await _orgService.updateOrganization(org.id, organizationData);
+
+      Navigator.pop(context); // Close loading dialog
+
+      if (response.statusCode == 200) {
+        _showSuccessSnackBar('Organization updated successfully');
+        await _loadOrganizations(); // Reload the list
+      } else {
+        _showErrorSnackBar('Failed to update organization');
+      }
+    } on DioException catch (e) {
+      Navigator.pop(context); // Close loading dialog
+      _showErrorSnackBar(_orgService.getErrorMessage(e));
+    } catch (e) {
+      Navigator.pop(context); // Close loading dialog
+      _showErrorSnackBar('Unexpected error occurred');
+    }
+  }
+
+  // -------------------- Delete Organization --------------------
+  Future<void> _deleteOrganization(String id) async {
+    try {
+      _showLoadingDialog();
+
+      final response = await _orgService.deleteOrganization(id);
+
+      Navigator.pop(context); // Close loading dialog
+
+      if (response.statusCode == 200 || response.statusCode == 204) {
+        _showSuccessSnackBar('Organization deleted successfully');
+        await _loadOrganizations(); // Reload the list
+      } else {
+        _showErrorSnackBar('Failed to delete organization');
+      }
+    } on DioException catch (e) {
+      Navigator.pop(context); // Close loading dialog
+      _showErrorSnackBar(_orgService.getErrorMessage(e));
+    } catch (e) {
+      Navigator.pop(context); // Close loading dialog
+      _showErrorSnackBar('Unexpected error occurred');
+    }
+  }
+
+  // -------------------- Add User to Organization --------------------
+  Future<void> _addUserToOrganization(Organization org, User newUser,String companyId) async {
+    try {
+      _showLoadingDialog();
+
+      final userData = {
+        'name': newUser.name,
+        'email': newUser.email,
+        'mobile_number': newUser.mobileNumber,
+        'company_name': org.name,
+        'company_id': org.id,
+        'company': companyId,            // use required key
+       'company_name': org.name,        // optional
+        'role': newUser.role,
+        'block': newUser.block,
+        'floor': newUser.floor,
+      };
+
+      final response = await _orgService.addUser(userData);
+
+      Navigator.pop(context); // Close loading dialog
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        _showSuccessSnackBar('User added successfully');
+        await _loadOrganizations(); // Reload to get updated user list
+      } else {
+        _showErrorSnackBar('Failed to add user');
+      }
+    } on DioException catch (e) {
+      Navigator.pop(context); // Close loading dialog
+      _showErrorSnackBar(_orgService.getErrorMessage(e));
+    } catch (e) {
+      Navigator.pop(context); // Close loading dialog
+      _showErrorSnackBar('Unexpected error occurred');
+    }
+  }
+
+  // -------------------- UI Helper Methods --------------------
+  void _showLoadingDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => Center(
+        child: Card(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const CircularProgressIndicator(),
+                const SizedBox(height: 16),
+                Text(
+                  'Processing...',
+                  style: GoogleFonts.poppins(fontSize: 14),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showSuccessSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.check_circle, color: Colors.white),
+            const SizedBox(width: 8),
+            Text(message, style: GoogleFonts.poppins()),
+          ],
+        ),
+        backgroundColor: Colors.green,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  void _showErrorSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.error, color: Colors.white),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(message, style: GoogleFonts.poppins()),
+            ),
+          ],
+        ),
+        backgroundColor: Colors.red,
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 4),
+      ),
+    );
   }
 
   @override
@@ -172,8 +376,7 @@ class _OrganizationManagementScreenState
                                 const SizedBox(width: 12),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
+                                    crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
                                       Text(
                                         'Organization Management',
@@ -214,9 +417,7 @@ class _OrganizationManagementScreenState
                                 style: OutlinedButton.styleFrom(
                                   foregroundColor: Colors.purple,
                                   side: const BorderSide(color: Colors.purple),
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 12,
-                                  ),
+                                  padding: const EdgeInsets.symmetric(vertical: 12),
                                 ),
                               ),
                             ),
@@ -311,188 +512,215 @@ class _OrganizationManagementScreenState
               ),
             ),
             Expanded(
-              child: _filteredOrganizations.isEmpty
-                  ? Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.business_outlined,
-                            size: 64,
-                            color: Colors.grey[400],
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            'No organizations found',
-                            style: GoogleFonts.poppins(
-                              fontSize: 16,
-                              color: Colors.grey[600],
-                            ),
-                          ),
-                        ],
-                      ),
-                    )
-                  : ListView.builder(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: isSmallScreen ? 12 : 16,
-                      ),
-                      itemCount: _filteredOrganizations.length,
-                      itemBuilder: (context, index) {
-                        final org = _filteredOrganizations[index];
-                        return OrganizationCard(
-                          organization: org,
-                          onEdit: () {
-                            showDialog(
-                              context: context,
-                              builder: (context) => AddOrganizationDialog(
-                                organization: org,
-                                onAdd: _updateOrganization,
+              child: _isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : _errorMessage != null
+                      ? Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.error_outline,
+                                size: 64,
+                                color: Colors.red[300],
                               ),
-                            );
-                          },
-                          onDelete: () {
-                            showDialog(
-                              context: context,
-                              builder: (context) => Dialog(
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(16),
+                              const SizedBox(height: 16),
+                              Text(
+                                _errorMessage!,
+                                style: GoogleFonts.poppins(
+                                  fontSize: 16,
+                                  color: Colors.grey[600],
                                 ),
-                                child: Padding(
-                                  padding: const EdgeInsets.all(24),
-                                  child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Container(
-                                        padding: const EdgeInsets.all(16),
-                                        decoration: BoxDecoration(
-                                          color: Colors.red.withOpacity(0.1),
-                                          shape: BoxShape.circle,
-                                        ),
-                                        child: const Icon(
-                                          Icons.warning_rounded,
-                                          color: Colors.red,
-                                          size: 48,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 24),
-                                      Text(
-                                        'Delete Organization',
-                                        style: GoogleFonts.poppins(
-                                          fontSize: 22,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                        textAlign: TextAlign.center,
-                                      ),
-                                      const SizedBox(height: 16),
-                                      Text(
-                                        'Are you sure you want to delete "${org.name}"? This action cannot be undone and will remove all associated data.',
-                                        style: GoogleFonts.poppins(
-                                          fontSize: 14,
-                                          color: Colors.grey[700],
-                                          height: 1.5,
-                                        ),
-                                        textAlign: TextAlign.center,
-                                      ),
-                                      const SizedBox(height: 24),
-                                      Row(
-                                        children: [
-                                          Expanded(
-                                            child: OutlinedButton(
-                                              onPressed: () =>
-                                                  Navigator.pop(context),
-                                              style: OutlinedButton.styleFrom(
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                      vertical: 12,
-                                                    ),
-                                                side: BorderSide(
-                                                  color: Colors.grey[300]!,
-                                                ),
-                                                shape: RoundedRectangleBorder(
-                                                  borderRadius:
-                                                      BorderRadius.circular(8),
-                                                ),
-                                              ),
-                                              child: Text(
-                                                'Cancel',
-                                                style: GoogleFonts.poppins(
-                                                  color: Colors.black87,
-                                                  fontWeight: FontWeight.w500,
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-                                          const SizedBox(width: 12),
-                                          Expanded(
-                                            child: ElevatedButton.icon(
-                                              onPressed: () {
-                                                _deleteOrganization(org.id);
-                                                Navigator.pop(context);
-                                              },
-                                              style: ElevatedButton.styleFrom(
-                                                // backgroundColor: Colors.red,
-                                                foregroundColor: Colors.red,
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                      vertical: 12,
-                                                    ),
-                                                shape: RoundedRectangleBorder(
-                                                  borderRadius:
-                                                      BorderRadius.circular(8),
-                                                ),
-                                              ),
-                                              icon: const Icon(
-                                                Icons.delete_outline,
-                                                size: 20,
-                                              ),
-                                              label: Text(
-                                                'Delete',
-                                                style: GoogleFonts.poppins(
-                                                  fontWeight: FontWeight.w600,
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ],
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: 16),
+                              ElevatedButton.icon(
+                                onPressed: _loadOrganizations,
+                                icon: const Icon(Icons.refresh),
+                                label: Text(
+                                  'Retry',
+                                  style: GoogleFonts.poppins(),
+                                ),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.purple,
+                                  foregroundColor: Colors.white,
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      : _filteredOrganizations.isEmpty
+                          ? Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.business_outlined,
+                                    size: 64,
+                                    color: Colors.grey[400],
                                   ),
-                                ),
+                                  const SizedBox(height: 16),
+                                  Text(
+                                    'No organizations found',
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 16,
+                                      color: Colors.grey[600],
+                                    ),
+                                  ),
+                                ],
                               ),
-                            );
-                          },
-                          onAddUser: () {
-                            showDialog(
-                              context: context,
-                              builder: (context) => AddUserDialog(
-                                companyName: org.name,
-                                onAdd: (newUser) {
-                                  setState(() {
-                                    org.users.add(newUser);
-                                  });
-                                  _updateOrganization(org);
+                            )
+                          : RefreshIndicator(
+                              onRefresh: _loadOrganizations,
+                              child: ListView.builder(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: isSmallScreen ? 12 : 16,
+                                ),
+                                itemCount: _filteredOrganizations.length,
+                                itemBuilder: (context, index) {
+                                  final org = _filteredOrganizations[index];
+                                  return OrganizationCard(
+                                    organization: org,
+                                    onEdit: () {
+                                      showDialog(
+                                        context: context,
+                                        builder: (context) => AddOrganizationDialog(
+                                          organization: org,
+                                          onAdd: _updateOrganization,
+                                        ),
+                                      );
+                                    },
+                                    onDelete: () => _showDeleteDialog(org),
+                                    onAddUser: () {
+                                      showDialog(
+                                        context: context,
+                                        builder: (context) => AddUserDialog(
+                                        companyName: org.name,
+                                        companyId: org.id, // Pass company ID
+                                        onAdd: (newUser, companyId) {
+                                            _addUserToOrganization(org, newUser,companyId);
+                                         
+                                          },
+                                        ),
+                                      );
+                                    },
+
+                                    onViewUsers: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => UserManagementScreen(
+                                            organization: org,
+                                            onUpdate: (updatedOrg) {
+                                              _loadOrganizations();
+                                            },
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                  );
                                 },
                               ),
-                            );
-                          },
-                          onViewUsers: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => UserManagementScreen(
-                                  organization: org,
-                                  onUpdate: (updatedOrg) {
-                                    _updateOrganization(updatedOrg);
-                                  },
-                                ),
-                              ),
-                            );
-                          },
-                        );
-                      },
-                    ),
+                            ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  void _showDeleteDialog(Organization org) {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.red.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.warning_rounded,
+                  color: Colors.red,
+                  size: 48,
+                ),
+              ),
+              const SizedBox(height: 24),
+              Text(
+                'Delete Organization',
+                style: GoogleFonts.poppins(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Are you sure you want to delete "${org.name}"? This action cannot be undone and will remove all associated data.',
+                style: GoogleFonts.poppins(
+                  fontSize: 14,
+                  color: Colors.grey[700],
+                  height: 1.5,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        side: BorderSide(color: Colors.grey[300]!),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      child: Text(
+                        'Cancel',
+                        style: GoogleFonts.poppins(
+                          color: Colors.black87,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        Navigator.pop(context);
+                        _deleteOrganization(org.id);
+                      },
+                      style: ElevatedButton.styleFrom(
+                        foregroundColor: Colors.red,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      icon: const Icon(Icons.delete_outline, size: 20),
+                      label: Text(
+                        'Delete',
+                        style: GoogleFonts.poppins(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );

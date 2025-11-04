@@ -118,7 +118,7 @@ class _RolePermissionsScreenState extends State<RolePermissionsScreen> {
 
     String userName = UserService().getUserName();
     String firstLetter = userName.isNotEmpty ? userName[0].toUpperCase() : "?";
-      String email = UserService().getUserByEmail(userName) as String;
+    String email = UserService().getUserEmail();
     final primaryPurple = const Color(0xFF7E57C2);
     final textDark = const Color(0xFF1F1F1F);
 
