@@ -26,6 +26,39 @@ class VisitorCard extends StatelessWidget {
     }
   }
 
+  bool _isScheduledForToday() {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final visitDate = DateTime(
+      visitor.visitingDate.year,
+      visitor.visitingDate.month,
+      visitor.visitingDate.day,
+    );
+    return visitDate.isAtSameMomentAs(today);
+  }
+
+  void _handleApprove(BuildContext context) {
+    onUpdate(visitor.id, visitor.copyWith(status: VisitorStatus.approved));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('${visitor.name} has been approved'),
+        backgroundColor: Colors.green,
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
+  void _handleReject(BuildContext context) {
+    onUpdate(visitor.id, visitor.copyWith(status: VisitorStatus.rejected));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('${visitor.name} has been rejected'),
+        backgroundColor: Colors.red,
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
   void _handleCheckIn(BuildContext context) async {
     final result = await Navigator.of(context).push<bool>(
       MaterialPageRoute(
@@ -70,11 +103,16 @@ class VisitorCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+    final screenWidth = size.width;
+    final screenHeight = size.height;
+
     final isPast = visitor.isPast;
+    final isToday = _isScheduledForToday();
     final formattedDate = DateFormat('yyyy-MM-dd').format(visitor.visitingDate);
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
+      margin: EdgeInsets.only(bottom: screenHeight * 0.02),
       decoration: BoxDecoration(
         color: AppColors.cardBackground,
         borderRadius: BorderRadius.circular(16),
@@ -87,22 +125,22 @@ class VisitorCard extends StatelessWidget {
         ],
       ),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(screenWidth * 0.04),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
                 CircleAvatar(
-                  radius: 28,
+                  radius: screenWidth * 0.07,
                   backgroundColor: AppColors.background,
                   child: Icon(
                     Icons.person,
-                    size: 28,
+                    size: screenWidth * 0.07,
                     color: AppColors.iconGray,
                   ),
                 ),
-                const SizedBox(width: 12),
+                SizedBox(width: screenWidth * 0.03),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -110,16 +148,16 @@ class VisitorCard extends StatelessWidget {
                       Text(
                         visitor.name,
                         style: GoogleFonts.inter(
-                          fontSize: 16,
+                          fontSize: screenWidth * 0.04,
                           fontWeight: FontWeight.w600,
                           color: AppColors.textPrimary,
                         ),
                       ),
-                      const SizedBox(height: 2),
+                      SizedBox(height: screenHeight * 0.002),
                       Text(
                         'ID: ${visitor.id}',
                         style: GoogleFonts.inter(
-                          fontSize: 13,
+                          fontSize: screenWidth * 0.0325,
                           color: AppColors.textSecondary,
                         ),
                       ),
@@ -128,9 +166,9 @@ class VisitorCard extends StatelessWidget {
                 ),
                 if (isPast)
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
+                    padding: EdgeInsets.symmetric(
+                      horizontal: screenWidth * 0.03,
+                      vertical: screenHeight * 0.008,
                     ),
                     decoration: BoxDecoration(
                       color: AppColors.pastLight,
@@ -139,7 +177,7 @@ class VisitorCard extends StatelessWidget {
                     child: Text(
                       'Past',
                       style: GoogleFonts.inter(
-                        fontSize: 12,
+                        fontSize: screenWidth * 0.03,
                         fontWeight: FontWeight.w500,
                         color: AppColors.past,
                       ),
@@ -147,9 +185,9 @@ class VisitorCard extends StatelessWidget {
                   )
                 else if (!visitor.isCheckedOut)
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
+                    padding: EdgeInsets.symmetric(
+                      horizontal: screenWidth * 0.03,
+                      vertical: screenHeight * 0.008,
                     ),
                     decoration: BoxDecoration(
                       color: visitor.status.color.withOpacity(0.1),
@@ -158,19 +196,22 @@ class VisitorCard extends StatelessWidget {
                     child: Text(
                       visitor.status.displayName,
                       style: GoogleFonts.inter(
-                        fontSize: 12,
+                        fontSize: screenWidth * 0.03,
                         fontWeight: FontWeight.w500,
                         color: visitor.status.color,
                       ),
                     ),
                   ),
-                const SizedBox(width: 8),
+                SizedBox(width: screenWidth * 0.02),
                 ActionMenu(visitor: visitor, onUpdate: onUpdate),
               ],
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: screenHeight * 0.02),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              padding: EdgeInsets.symmetric(
+                horizontal: screenWidth * 0.025,
+                vertical: screenHeight * 0.005,
+              ),
               decoration: BoxDecoration(
                 color: _getCategoryColor().withOpacity(0.1),
                 borderRadius: BorderRadius.circular(6),
@@ -180,14 +221,14 @@ class VisitorCard extends StatelessWidget {
                 children: [
                   Icon(
                     Icons.business_center,
-                    size: 14,
+                    size: screenWidth * 0.035,
                     color: _getCategoryColor(),
                   ),
-                  const SizedBox(width: 4),
+                  SizedBox(width: screenWidth * 0.01),
                   Text(
                     visitor.category,
                     style: GoogleFonts.inter(
-                      fontSize: 12,
+                      fontSize: screenWidth * 0.03,
                       fontWeight: FontWeight.w500,
                       color: _getCategoryColor(),
                     ),
@@ -195,16 +236,29 @@ class VisitorCard extends StatelessWidget {
                 ],
               ),
             ),
-            const SizedBox(height: 16),
-            _buildInfoRow(Icons.phone, visitor.phone),
-            const SizedBox(height: 12),
-            _buildInfoRow(Icons.calendar_today, formattedDate),
-            const SizedBox(height: 12),
+            SizedBox(height: screenHeight * 0.02),
+            _buildInfoRow(
+              Icons.phone,
+              visitor.phone,
+              screenWidth,
+              screenHeight,
+            ),
+            SizedBox(height: screenHeight * 0.015),
+            _buildInfoRow(
+              Icons.calendar_today,
+              formattedDate,
+              screenWidth,
+              screenHeight,
+            ),
+            SizedBox(height: screenHeight * 0.015),
             _buildInfoRow(
               Icons.access_time,
               '${visitor.visitingTime} - ${visitor.purpose}',
+              screenWidth,
+              screenHeight,
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: screenHeight * 0.02),
+            // Button logic based on conditions
             if (isPast)
               SizedBox(
                 width: double.infinity,
@@ -213,7 +267,9 @@ class VisitorCard extends StatelessWidget {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primaryLight,
                     foregroundColor: AppColors.primary,
-                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    padding: EdgeInsets.symmetric(
+                      vertical: screenHeight * 0.015,
+                    ),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
@@ -222,7 +278,7 @@ class VisitorCard extends StatelessWidget {
                   child: Text(
                     'Reschedule',
                     style: GoogleFonts.inter(
-                      fontSize: 14,
+                      fontSize: screenWidth * 0.035,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -230,29 +286,63 @@ class VisitorCard extends StatelessWidget {
               )
             else if (visitor.isCheckedOut)
               const SizedBox.shrink()
-            else if (visitor.status == VisitorStatus.pending)
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () => _handleCheckIn(context),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primaryLight,
-                    foregroundColor: AppColors.primary,
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+            // For today's visitors with pending status - show Approve/Reject
+            else if (isToday && visitor.status == VisitorStatus.pending)
+              Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () => _handleApprove(context),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green,
+                        foregroundColor: Colors.white,
+                        padding: EdgeInsets.symmetric(
+                          vertical: screenHeight * 0.015,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        elevation: 0,
+                      ),
+                      child: Text(
+                        'Approve',
+                        style: GoogleFonts.inter(
+                          fontSize: screenWidth * 0.035,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     ),
-                    elevation: 0,
                   ),
-                  child: Text(
-                    'Check In',
-                    style: GoogleFonts.inter(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
+                  SizedBox(width: screenWidth * 0.03),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () => _handleReject(context),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red,
+                        foregroundColor: Colors.white,
+                        padding: EdgeInsets.symmetric(
+                          vertical: screenHeight * 0.015,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        elevation: 0,
+                      ),
+                      child: Text(
+                        'Reject',
+                        style: GoogleFonts.inter(
+                          fontSize: screenWidth * 0.035,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     ),
                   ),
-                ),
+                ],
               )
+            // For future dates with pending status - show approved status automatically
+            else if (!isToday && visitor.status == VisitorStatus.pending)
+              const SizedBox.shrink()
+            // For approved visitors (either today after approval or future dates)
             else if (visitor.status == VisitorStatus.approved &&
                 !visitor.isCheckedIn)
               SizedBox(
@@ -262,7 +352,9 @@ class VisitorCard extends StatelessWidget {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primaryLight,
                     foregroundColor: AppColors.primary,
-                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    padding: EdgeInsets.symmetric(
+                      vertical: screenHeight * 0.015,
+                    ),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
@@ -271,12 +363,13 @@ class VisitorCard extends StatelessWidget {
                   child: Text(
                     'Check In',
                     style: GoogleFonts.inter(
-                      fontSize: 14,
+                      fontSize: screenWidth * 0.035,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
                 ),
               )
+            // For checked-in visitors - show Check Out
             else if (visitor.isCheckedIn)
               SizedBox(
                 width: double.infinity,
@@ -285,7 +378,9 @@ class VisitorCard extends StatelessWidget {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primaryLight,
                     foregroundColor: AppColors.primary,
-                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    padding: EdgeInsets.symmetric(
+                      vertical: screenHeight * 0.015,
+                    ),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
@@ -294,7 +389,7 @@ class VisitorCard extends StatelessWidget {
                   child: Text(
                     'Check Out',
                     style: GoogleFonts.inter(
-                      fontSize: 14,
+                      fontSize: screenWidth * 0.035,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -306,16 +401,21 @@ class VisitorCard extends StatelessWidget {
     );
   }
 
-  Widget _buildInfoRow(IconData icon, String text) {
+  Widget _buildInfoRow(
+    IconData icon,
+    String text,
+    double screenWidth,
+    double screenHeight,
+  ) {
     return Row(
       children: [
-        Icon(icon, size: 16, color: AppColors.iconGray),
-        const SizedBox(width: 8),
+        Icon(icon, size: screenWidth * 0.04, color: AppColors.iconGray),
+        SizedBox(width: screenWidth * 0.02),
         Expanded(
           child: Text(
             text,
             style: GoogleFonts.inter(
-              fontSize: 14,
+              fontSize: screenWidth * 0.035,
               color: AppColors.textSecondary,
             ),
           ),

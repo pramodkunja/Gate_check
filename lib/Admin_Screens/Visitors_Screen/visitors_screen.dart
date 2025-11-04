@@ -111,7 +111,21 @@ class _RegularVisitorsScreenState extends State<RegularVisitorsScreen> {
 
   void _addVisitor(Visitor visitor) {
     setState(() {
-      visitors.add(visitor);
+      // Check if visitor is scheduled for today
+      final now = DateTime.now();
+      final today = DateTime(now.year, now.month, now.day);
+      final visitDate = DateTime(
+        visitor.visitingDate.year,
+        visitor.visitingDate.month,
+        visitor.visitingDate.day,
+      );
+
+      // If scheduled for future date, auto-approve
+      final newVisitor = visitDate.isAfter(today)
+          ? visitor.copyWith(status: VisitorStatus.approved)
+          : visitor;
+
+      visitors.add(newVisitor);
       _applyFilters();
     });
   }
@@ -128,58 +142,39 @@ class _RegularVisitorsScreenState extends State<RegularVisitorsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+    final screenWidth = size.width;
+    final screenHeight = size.height;
+
     String userName = UserService().getUserName();
     String firstLetter = userName.isNotEmpty ? userName[0].toUpperCase() : "?";
     String email = UserService().getUserEmail();
 
     return Scaffold(
-      // backgroundColor: AppColors.background,
       drawer: const Navigation(),
-      appBar: CustomAppBar(userName: userName, firstLetter: firstLetter, email: email),
-      // appBar: AppBar(
-      //   backgroundColor: Colors.white,
-      //   elevation: 0,
-      //   leading: IconButton(
-      //     icon: const Icon(Icons.menu, color: AppColors.textPrimary),
-      //     onPressed: () {},
-      //   ),
-      //   centerTitle: true,
-      //   title: Text(
-      //     'Regular Visitors',
-      //     style: GoogleFonts.inter(
-      //       color: AppColors.textPrimary,
-      //       fontWeight: FontWeight.w600,
-      //       fontSize: 20,
-      //     ),
-      //   ),
-      //   actions: [
-      //     Padding(
-      //       padding: const EdgeInsets.only(right: 16),
-      //       child: CircleAvatar(
-      //         backgroundColor: AppColors.primaryLight,
-      //         child: Icon(
-      //           Icons.person,
-      //           color: AppColors.primary,
-      //         ),
-      //       ),
-      //     ),
-      //   ],
-      // ),
+      appBar: CustomAppBar(
+        userName: userName,
+        firstLetter: firstLetter,
+        email: email,
+      ),
       body: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.all(10),
+            padding: EdgeInsets.all(screenWidth * 0.025),
             child: Row(
               children: [
-                Icon(Icons.group_rounded, size: 30, color: AppColors.primary),
-
-                const SizedBox(width: 8),
+                Icon(
+                  Icons.group_rounded,
+                  size: screenWidth * 0.075,
+                  color: AppColors.primary,
+                ),
+                SizedBox(width: screenWidth * 0.02),
                 Text(
                   "Regular Visitors",
                   style: GoogleFonts.inter(
                     color: AppColors.textPrimary,
                     fontWeight: FontWeight.w600,
-                    fontSize: 20,
+                    fontSize: screenWidth * 0.05,
                   ),
                 ),
               ],
@@ -187,7 +182,7 @@ class _RegularVisitorsScreenState extends State<RegularVisitorsScreen> {
           ),
           Container(
             color: Colors.white,
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.all(screenWidth * 0.04),
             child: Column(
               children: [
                 Container(
@@ -206,21 +201,22 @@ class _RegularVisitorsScreenState extends State<RegularVisitorsScreen> {
                       hintText: 'Search by Name, ID, or Phone',
                       hintStyle: GoogleFonts.inter(
                         color: AppColors.textSecondary,
-                        fontSize: 14,
+                        fontSize: screenWidth * 0.035,
                       ),
-                      prefixIcon: const Icon(
+                      prefixIcon: Icon(
                         Icons.search,
                         color: AppColors.iconGray,
+                        size: screenWidth * 0.06,
                       ),
                       border: InputBorder.none,
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 14,
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: screenWidth * 0.04,
+                        vertical: screenHeight * 0.018,
                       ),
                     ),
                   ),
                 ),
-                const SizedBox(height: 16),
+                SizedBox(height: screenHeight * 0.02),
                 Row(
                   children: [
                     Expanded(
@@ -232,18 +228,20 @@ class _RegularVisitorsScreenState extends State<RegularVisitorsScreen> {
                                 AddVisitorDialog(onAdd: _addVisitor),
                           );
                         },
-                        icon: const Icon(Icons.add, size: 20),
+                        icon: Icon(Icons.add, size: screenWidth * 0.05),
                         label: Text(
                           'Add Visitor',
                           style: GoogleFonts.inter(
-                            fontSize: 14,
+                            fontSize: screenWidth * 0.035,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.primary,
                           foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          padding: EdgeInsets.symmetric(
+                            vertical: screenHeight * 0.018,
+                          ),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
@@ -251,7 +249,7 @@ class _RegularVisitorsScreenState extends State<RegularVisitorsScreen> {
                         ),
                       ),
                     ),
-                    const SizedBox(width: 12),
+                    SizedBox(width: screenWidth * 0.03),
                     FilterDropdown(
                       selectedStatus: selectedStatus,
                       selectedPassType: selectedPassType,
@@ -266,7 +264,7 @@ class _RegularVisitorsScreenState extends State<RegularVisitorsScreen> {
                             });
                           },
                     ),
-                    const SizedBox(width: 12),
+                    SizedBox(width: screenWidth * 0.03),
                     const ExcelDropdown(),
                   ],
                 ),
@@ -281,14 +279,14 @@ class _RegularVisitorsScreenState extends State<RegularVisitorsScreen> {
                       children: [
                         Icon(
                           Icons.people_outline,
-                          size: 64,
+                          size: screenWidth * 0.16,
                           color: AppColors.iconGray,
                         ),
-                        const SizedBox(height: 16),
+                        SizedBox(height: screenHeight * 0.02),
                         Text(
                           'No visitors found',
                           style: GoogleFonts.inter(
-                            fontSize: 16,
+                            fontSize: screenWidth * 0.04,
                             color: AppColors.textSecondary,
                           ),
                         ),
@@ -296,7 +294,7 @@ class _RegularVisitorsScreenState extends State<RegularVisitorsScreen> {
                     ),
                   )
                 : ListView.builder(
-                    padding: const EdgeInsets.all(16),
+                    padding: EdgeInsets.all(screenWidth * 0.04),
                     itemCount: filteredVisitors.length,
                     itemBuilder: (context, index) {
                       return VisitorCard(
