@@ -3,8 +3,17 @@ import 'package:google_fonts/google_fonts.dart';
 
 class AddNewRoleDialog extends StatefulWidget {
   final Function(String roleName, bool isActive) onSubmit;
+  final String? initialName;
+  final bool? initialIsActive;
+  final bool isEdit;
 
-  const AddNewRoleDialog({super.key, required this.onSubmit});
+  const AddNewRoleDialog({
+    super.key,
+    required this.onSubmit,
+    this.initialName,
+    this.initialIsActive,
+    this.isEdit = false,
+  });
 
   @override
   State<AddNewRoleDialog> createState() => _AddNewRoleDialogState();
@@ -12,8 +21,15 @@ class AddNewRoleDialog extends StatefulWidget {
 
 class _AddNewRoleDialogState extends State<AddNewRoleDialog> {
   final _formKey = GlobalKey<FormState>();
-  final TextEditingController _roleNameController = TextEditingController();
-  bool _isActive = true;
+  late TextEditingController _roleNameController;
+  late bool _isActive;
+
+  @override
+  void initState() {
+    super.initState();
+    _roleNameController = TextEditingController(text: widget.initialName ?? '');
+    _isActive = widget.initialIsActive ?? true;
+  }
 
   @override
   void dispose() {
@@ -51,7 +67,7 @@ class _AddNewRoleDialogState extends State<AddNewRoleDialog> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Add New Role',
+                  widget.isEdit ? 'Edit Role' : 'Add New Role',
                   style: GoogleFonts.poppins(
                     fontSize: titleFontSize,
                     fontWeight: FontWeight.w600,
@@ -59,14 +75,14 @@ class _AddNewRoleDialogState extends State<AddNewRoleDialog> {
                   ),
                 ),
                 GestureDetector(
-                  onTap: () => Navigator.pop(context),
+                  onTap: () => Navigator.of(context, rootNavigator: true).pop(),
                   child: const Icon(Icons.close, color: Colors.grey),
                 ),
               ],
             ),
             const SizedBox(height: 20),
 
-            // Form Section
+            // Form
             Form(
               key: _formKey,
               child: Column(
@@ -142,12 +158,13 @@ class _AddNewRoleDialogState extends State<AddNewRoleDialog> {
             ),
             const SizedBox(height: 20),
 
-            // Action Buttons
+            // Buttons
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 TextButton(
-                  onPressed: () => Navigator.pop(context),
+                  onPressed: () =>
+                      Navigator.of(context, rootNavigator: true).pop(),
                   child: Text(
                     'Cancel',
                     style: GoogleFonts.poppins(
@@ -170,20 +187,23 @@ class _AddNewRoleDialogState extends State<AddNewRoleDialog> {
                   ),
                   icon: const Icon(Icons.save_outlined, color: Colors.purple),
                   label: Text(
-                    'Submit',
+                    widget.isEdit ? 'Update' : 'Submit',
                     style: GoogleFonts.poppins(
                       color: Colors.purple,
                       fontWeight: FontWeight.w500,
                       fontSize: buttonFontSize,
                     ),
                   ),
-                  onPressed: () {
+                  onPressed: () async {
                     if (_formKey.currentState!.validate()) {
-                      widget.onSubmit(
+                      await widget.onSubmit(
                         _roleNameController.text.trim(),
                         _isActive,
                       );
-                      Navigator.pop(context);
+                      // ✅ Safe pop, prevents redirect or unmounted crash
+                      if (mounted) {
+                        Navigator.of(context, rootNavigator: true).pop();
+                      }
                     }
                   },
                 ),
