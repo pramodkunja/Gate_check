@@ -48,7 +48,7 @@ class ManualPassDialog extends StatelessWidget {
             _buildInfoRow(
               Icons.person,
               visitor.name,
-              visitor.id,
+              visitor.passId,
             ),
             const SizedBox(height: 20),
             _buildInfoRow(

@@ -246,6 +246,7 @@ class _OrganizationManagementScreenState
         'company_name': org.name,
         'company_id': org.id,
         'company': companyId,            // use required key
+       // ignore: equal_keys_in_map
        'company_name': org.name,        // optional
         'role': newUser.role,
         'block': newUser.block,

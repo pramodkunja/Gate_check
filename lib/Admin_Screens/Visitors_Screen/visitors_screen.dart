@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:dio/dio.dart';
 import 'package:gatecheck/Admin_Screens/Dashboard_Screens/custom_appbar.dart';
 import 'package:gatecheck/Admin_Screens/Dashboard_Screens/navigation_drawer.dart';
 import 'package:gatecheck/Services/User_services/user_service.dart';
+import 'package:gatecheck/Services/visitor_service.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'models/visitor_model.dart';
 import 'utils/colors.dart';
@@ -18,6 +20,8 @@ class RegularVisitorsScreen extends StatefulWidget {
 }
 
 class _RegularVisitorsScreenState extends State<RegularVisitorsScreen> {
+  final VisitorApiService _visitorService = VisitorApiService();
+
   List<Visitor> visitors = [];
   List<Visitor> filteredVisitors = [];
   String searchQuery = '';
@@ -25,59 +29,47 @@ class _RegularVisitorsScreenState extends State<RegularVisitorsScreen> {
   String selectedPassType = 'All Types';
   String selectedCategory = 'All Categories';
 
+  bool isLoading = false;
+  String? errorMessage;
+
+  // Change this to your actual company ID
+  static const int companyId = 1;
+
   @override
   void initState() {
     super.initState();
-    _loadSampleData();
+    _loadVisitors();
   }
 
-  void _loadSampleData() {
-    visitors = [
-      Visitor(
-        id: '12345',
-        name: 'John Doe',
-        phone: '+123-456-7890',
-        email: 'john@example.com',
-        category: 'Vendor',
-        passType: 'One Time',
-        visitingDate: DateTime(2024, 10, 26),
-        visitingTime: '10:30',
-        purpose: 'Meeting with marketing team',
-        whomToMeet: 'Marketing Department',
-        comingFrom: 'ABC Company',
-        status: VisitorStatus.approved,
-      ),
-      Visitor(
-        id: '67890',
-        name: 'Jane Smith',
-        phone: '+098-765-4321',
-        email: 'jane@example.com',
-        category: 'Walk-In',
-        passType: 'One Time',
-        visitingDate: DateTime(2024, 10, 27),
-        visitingTime: '14:00',
-        purpose: 'Interview',
-        whomToMeet: 'HR Department',
-        comingFrom: 'XYZ Corporation',
-        status: VisitorStatus.pending,
-      ),
-      Visitor(
-        id: '54321',
-        name: 'Michael Brown',
-        phone: '+111-222-3333',
-        email: 'michael@example.com',
-        category: 'Contractor',
-        passType: 'Recurring',
-        visitingDate: DateTime(2024, 10, 25),
-        visitingTime: '09:00',
-        purpose: 'Maintenance',
-        whomToMeet: 'Facilities',
-        comingFrom: 'BuildCo',
-        status: VisitorStatus.approved,
-        isCheckedOut: true,
-      ),
-    ];
-    filteredVisitors = visitors;
+  Future<void> _loadVisitors() async {
+    setState(() {
+      isLoading = true;
+      errorMessage = null;
+    });
+
+    try {
+      final response = await _visitorService.getVisitors(companyId);
+
+      if (response.statusCode == 200 && response.data != null) {
+        final List<dynamic> data = response.data as List<dynamic>;
+        setState(() {
+          visitors = data.map((json) => Visitor.fromJson(json)).toList();
+          _applyFilters();
+          isLoading = false;
+        });
+      } else {
+        setState(() {
+          errorMessage = 'Failed to load visitors';
+          isLoading = false;
+        });
+      }
+    } on DioException catch (e) {
+      setState(() {
+        errorMessage = _visitorService.getErrorMessage(e);
+        isLoading = false;
+      });
+      _showErrorSnackBar(errorMessage!);
+    }
   }
 
   void _applyFilters() {
@@ -86,7 +78,7 @@ class _RegularVisitorsScreenState extends State<RegularVisitorsScreen> {
         bool matchesSearch =
             searchQuery.isEmpty ||
             visitor.name.toLowerCase().contains(searchQuery.toLowerCase()) ||
-            visitor.id.contains(searchQuery) ||
+            visitor.passId.toLowerCase().contains(searchQuery.toLowerCase()) ||
             visitor.phone.contains(searchQuery);
 
         bool matchesStatus =
@@ -94,8 +86,7 @@ class _RegularVisitorsScreenState extends State<RegularVisitorsScreen> {
             visitor.status.displayName == selectedStatus;
 
         bool matchesPassType =
-            selectedPassType == 'All Types' ||
-            visitor.passType == selectedPassType;
+            selectedPassType == 'All Types' || visitor.passType == selectedPassType;
 
         bool matchesCategory =
             selectedCategory == 'All Categories' ||
@@ -109,35 +100,49 @@ class _RegularVisitorsScreenState extends State<RegularVisitorsScreen> {
     });
   }
 
-  void _addVisitor(Visitor visitor) {
+  Future<void> _addVisitor(Map<String, dynamic> visitorData) async {
     setState(() {
-      // Check if visitor is scheduled for today
-      final now = DateTime.now();
-      final today = DateTime(now.year, now.month, now.day);
-      final visitDate = DateTime(
-        visitor.visitingDate.year,
-        visitor.visitingDate.month,
-        visitor.visitingDate.day,
-      );
-
-      // If scheduled for future date, auto-approve
-      final newVisitor = visitDate.isAfter(today)
-          ? visitor.copyWith(status: VisitorStatus.approved)
-          : visitor;
-
-      visitors.add(newVisitor);
-      _applyFilters();
+      isLoading = true;
     });
+
+    try {
+      final response = await _visitorService.createVisitor(visitorData);
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        _showSuccessSnackBar('Visitor added successfully');
+        await _loadVisitors(); // Reload the list
+      } else {
+        _showErrorSnackBar('Failed to add visitor');
+      }
+    } on DioException catch (e) {
+      _showErrorSnackBar(_visitorService.getErrorMessage(e));
+    } finally {
+      setState(() {
+        isLoading = false;
+      });
+    }
   }
 
-  void _updateVisitor(String id, Visitor updatedVisitor) {
-    setState(() {
-      final index = visitors.indexWhere((v) => v.id == id);
-      if (index != -1) {
-        visitors[index] = updatedVisitor;
-        _applyFilters();
-      }
-    });
+  void _showSuccessSnackBar(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message, style: GoogleFonts.inter(color: Colors.white)),
+        backgroundColor: AppColors.approved,
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  }
+
+  void _showErrorSnackBar(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message, style: GoogleFonts.inter(color: Colors.white)),
+        backgroundColor: AppColors.rejected,
+        duration: const Duration(seconds: 3),
+      ),
+    );
   }
 
   @override
@@ -221,13 +226,15 @@ class _RegularVisitorsScreenState extends State<RegularVisitorsScreen> {
                   children: [
                     Expanded(
                       child: ElevatedButton.icon(
-                        onPressed: () {
-                          showDialog(
-                            context: context,
-                            builder: (context) =>
-                                AddVisitorDialog(onAdd: _addVisitor),
-                          );
-                        },
+                        onPressed: isLoading
+                            ? null
+                            : () {
+                                showDialog(
+                                  context: context,
+                                  builder: (context) =>
+                                      AddVisitorDialog(onAdd: _addVisitor),
+                                );
+                              },
                         icon: Icon(Icons.add, size: screenWidth * 0.05),
                         label: Text(
                           'Add Visitor',
@@ -256,13 +263,13 @@ class _RegularVisitorsScreenState extends State<RegularVisitorsScreen> {
                       selectedCategory: selectedCategory,
                       onFilterChanged:
                           (String status, String passType, String category) {
-                            setState(() {
-                              selectedStatus = status;
-                              selectedPassType = passType;
-                              selectedCategory = category;
-                              _applyFilters();
-                            });
-                          },
+                        setState(() {
+                          selectedStatus = status;
+                          selectedPassType = passType;
+                          selectedCategory = category;
+                          _applyFilters();
+                        });
+                      },
                     ),
                     SizedBox(width: screenWidth * 0.03),
                     const ExcelDropdown(),
@@ -272,37 +279,85 @@ class _RegularVisitorsScreenState extends State<RegularVisitorsScreen> {
             ),
           ),
           Expanded(
-            child: filteredVisitors.isEmpty
-                ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.people_outline,
-                          size: screenWidth * 0.16,
-                          color: AppColors.iconGray,
+            child: isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : errorMessage != null
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.error_outline,
+                              size: screenWidth * 0.16,
+                              color: AppColors.rejected,
+                            ),
+                            SizedBox(height: screenHeight * 0.02),
+                            Padding(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: screenWidth * 0.1,
+                              ),
+                              child: Text(
+                                errorMessage!,
+                                style: GoogleFonts.inter(
+                                  fontSize: screenWidth * 0.04,
+                                  color: AppColors.textSecondary,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                            SizedBox(height: screenHeight * 0.02),
+                            ElevatedButton.icon(
+                              onPressed: _loadVisitors,
+                              icon: const Icon(Icons.refresh),
+                              label: const Text('Retry'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.primary,
+                                foregroundColor: Colors.white,
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: screenWidth * 0.08,
+                                  vertical: screenHeight * 0.015,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
-                        SizedBox(height: screenHeight * 0.02),
-                        Text(
-                          'No visitors found',
-                          style: GoogleFonts.inter(
-                            fontSize: screenWidth * 0.04,
-                            color: AppColors.textSecondary,
+                      )
+                    : filteredVisitors.isEmpty
+                        ? Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.people_outline,
+                                  size: screenWidth * 0.16,
+                                  color: AppColors.iconGray,
+                                ),
+                                SizedBox(height: screenHeight * 0.02),
+                                Text(
+                                  searchQuery.isEmpty
+                                      ? 'No visitors found'
+                                      : 'No visitors match your search',
+                                  style: GoogleFonts.inter(
+                                    fontSize: screenWidth * 0.04,
+                                    color: AppColors.textSecondary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
+                        : RefreshIndicator(
+                            onRefresh: _loadVisitors,
+                            child: ListView.builder(
+                              padding: EdgeInsets.all(screenWidth * 0.04),
+                              itemCount: filteredVisitors.length,
+                              itemBuilder: (context, index) {
+                                return VisitorCard(
+                                  visitor: filteredVisitors[index],
+                                  onRefresh: _loadVisitors,
+                                );
+                              },
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-                  )
-                : ListView.builder(
-                    padding: EdgeInsets.all(screenWidth * 0.04),
-                    itemCount: filteredVisitors.length,
-                    itemBuilder: (context, index) {
-                      return VisitorCard(
-                        visitor: filteredVisitors[index],
-                        onUpdate: _updateVisitor,
-                      );
-                    },
-                  ),
           ),
         ],
       ),

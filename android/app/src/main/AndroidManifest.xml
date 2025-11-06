@@ -1,4 +1,34 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<!-- Add these permissions in android/app/src/main/AndroidManifest.xml -->
+<!-- Place them BEFORE the <application> tag -->
+
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    
+    <!-- Internet permission (should already exist) -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+    
+    <!-- Storage permissions for Android 12 and below -->
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
+    
+    <!-- Storage permissions for Android 13+ -->
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES"/>
+    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO"/>
+    
+    <!-- Required for accessing Downloads folder -->
+    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" 
+        android:maxSdkVersion="32"/>
+    
+    <application
+        android:label="gatecheck"
+        android:name="${applicationName}"
+        android:icon="@mipmap/ic_launcher"
+        android:requestLegacyExternalStorage="true">
+        
+        <!-- Your existing application code -->
+        
+    </application>
+</manifest>
     <application
         android:label="gatecheck"
         android:name="${applicationName}"

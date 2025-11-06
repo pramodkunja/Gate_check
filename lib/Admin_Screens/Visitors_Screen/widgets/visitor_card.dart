@@ -1,23 +1,30 @@
 import 'package:flutter/material.dart';
+import 'package:gatecheck/Admin_Screens/Visitors_Screen/entry_otp.dart';
+import 'package:gatecheck/Services/visitor_service.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
+import 'package:dio/dio.dart';
 import '../models/visitor_model.dart';
 import '../utils/colors.dart';
 import 'action_menu.dart';
-import 'package:gatecheck/Admin_Screens/Visitors_Screen/entry_otp.dart';
 import 'reschedule_dialog.dart';
 
 class VisitorCard extends StatelessWidget {
   final Visitor visitor;
-  final Function(String, Visitor) onUpdate;
+  final Function()? onRefresh;
 
-  const VisitorCard({super.key, required this.visitor, required this.onUpdate});
+  const VisitorCard({
+    super.key,
+    required this.visitor,
+    this.onRefresh,
+  });
 
   Color _getCategoryColor() {
     switch (visitor.category.toLowerCase()) {
       case 'vendor':
         return AppColors.primary;
       case 'walk-in':
+      case 'walk in':
         return const Color(0xFF0984E3);
       case 'contractor':
         return const Color(0xFFE17055);
@@ -37,52 +44,166 @@ class VisitorCard extends StatelessWidget {
     return visitDate.isAtSameMomentAs(today);
   }
 
-  void _handleApprove(BuildContext context) {
-    onUpdate(visitor.id, visitor.copyWith(status: VisitorStatus.approved));
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('${visitor.name} has been approved'),
-        backgroundColor: Colors.green,
-        duration: const Duration(seconds: 2),
-      ),
-    );
-  }
+  Future<void> _handleApprove(BuildContext context) async {
+    final visitorService = VisitorApiService();
 
-  void _handleReject(BuildContext context) {
-    onUpdate(visitor.id, visitor.copyWith(status: VisitorStatus.rejected));
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('${visitor.name} has been rejected'),
-        backgroundColor: Colors.red,
-        duration: const Duration(seconds: 2),
-      ),
-    );
-  }
-
-  void _handleCheckIn(BuildContext context) async {
-    final result = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(
-        builder: (_) => EntryOtpVerificationScreen(visitorName: visitor.name),
+    // Show loading indicator
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(),
       ),
     );
 
-    if (result == true) {
-      onUpdate(visitor.id, visitor.copyWith(isCheckedIn: true));
+    try {
+      final response = await visitorService.approveVisitor(visitor.id);
+
+      if (context.mounted) {
+        Navigator.pop(context); // Remove loading
+
+        if (response.statusCode == 200 || response.statusCode == 201) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('${visitor.name} has been approved'),
+              backgroundColor: Colors.green,
+              duration: const Duration(seconds: 2),
+            ),
+          );
+
+          // Refresh the list
+          if (onRefresh != null) {
+            onRefresh!();
+          }
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Failed to approve visitor'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } on DioException catch (e) {
+      if (context.mounted) {
+        Navigator.pop(context); // Remove loading
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(visitorService.getErrorMessage(e)),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
-  void _handleCheckOut(BuildContext context) async {
-    final result = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(
-        builder: (_) => EntryOtpVerificationScreen(visitorName: visitor.name),
+  Future<void> _handleReject(BuildContext context) async {
+    // Show confirmation dialog first
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Reject Visitor', style: GoogleFonts.inter()),
+        content: Text(
+          'Are you sure you want to reject ${visitor.name}?',
+          style: GoogleFonts.inter(),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text('Cancel', style: GoogleFonts.inter()),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(
+              'Reject',
+              style: GoogleFonts.inter(color: Colors.red),
+            ),
+          ),
+        ],
       ),
     );
 
-    if (result == true) {
-      onUpdate(
-        visitor.id,
-        visitor.copyWith(isCheckedOut: true, isCheckedIn: false),
-      );
+    if (confirmed != true || !context.mounted) return;
+
+    final visitorService = VisitorApiService();
+
+    // Show loading indicator
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(),
+      ),
+    );
+
+    try {
+      final response = await visitorService.rejectVisitor(visitor.id);
+
+      if (context.mounted) {
+        Navigator.pop(context); // Remove loading
+
+        if (response.statusCode == 200 || response.statusCode == 201) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('${visitor.name} has been rejected'),
+              backgroundColor: Colors.red,
+              duration: const Duration(seconds: 2),
+            ),
+          );
+
+          // Refresh the list
+          if (onRefresh != null) {
+            onRefresh!();
+          }
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Failed to reject visitor'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } on DioException catch (e) {
+      if (context.mounted) {
+        Navigator.pop(context); // Remove loading
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(visitorService.getErrorMessage(e)),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _handleCheckIn(BuildContext context) async {
+    final result = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => EntryOtpScreen(
+          visitor: visitor,
+          action: EntryExitAction.entry,
+        ),
+      ),
+    );
+
+    if (result == true && onRefresh != null) {
+      onRefresh!();
+    }
+  }
+
+  Future<void> _handleCheckOut(BuildContext context) async {
+    final result = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => EntryOtpScreen(
+          visitor: visitor,
+          action: EntryExitAction.exit,
+        ),
+      ),
+    );
+
+    if (result == true && onRefresh != null) {
+      onRefresh!();
     }
   }
 
@@ -90,12 +211,12 @@ class VisitorCard extends StatelessWidget {
     showDialog(
       context: context,
       builder: (context) => RescheduleDialog(
+        visitorId: visitor.id,
         visitorName: visitor.name,
-        onReschedule: (newDate, newTime) {
-          onUpdate(
-            visitor.id,
-            visitor.copyWith(visitingDate: newDate, visitingTime: newTime),
-          );
+        onSuccess: () {
+          if (onRefresh != null) {
+            onRefresh!();
+          }
         },
       ),
     );
@@ -152,14 +273,18 @@ class VisitorCard extends StatelessWidget {
                           fontWeight: FontWeight.w600,
                           color: AppColors.textPrimary,
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                       SizedBox(height: screenHeight * 0.002),
                       Text(
-                        'ID: ${visitor.id}',
+                        'ID: ${visitor.passId}',
                         style: GoogleFonts.inter(
                           fontSize: screenWidth * 0.0325,
                           color: AppColors.textSecondary,
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ],
                   ),
@@ -203,7 +328,10 @@ class VisitorCard extends StatelessWidget {
                     ),
                   ),
                 SizedBox(width: screenWidth * 0.02),
-                ActionMenu(visitor: visitor, onUpdate: onUpdate),
+                ActionMenu(
+                  visitor: visitor,
+                  onRefresh: onRefresh,
+                ),
               ],
             ),
             SizedBox(height: screenHeight * 0.02),
@@ -225,12 +353,16 @@ class VisitorCard extends StatelessWidget {
                     color: _getCategoryColor(),
                   ),
                   SizedBox(width: screenWidth * 0.01),
-                  Text(
-                    visitor.category,
-                    style: GoogleFonts.inter(
-                      fontSize: screenWidth * 0.03,
-                      fontWeight: FontWeight.w500,
-                      color: _getCategoryColor(),
+                  Flexible(
+                    child: Text(
+                      visitor.category,
+                      style: GoogleFonts.inter(
+                        fontSize: screenWidth * 0.03,
+                        fontWeight: FontWeight.w500,
+                        color: _getCategoryColor(),
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                 ],
@@ -418,9 +550,14 @@ class VisitorCard extends StatelessWidget {
               fontSize: screenWidth * 0.035,
               color: AppColors.textSecondary,
             ),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
           ),
         ),
       ],
     );
   }
 }
+
+
+

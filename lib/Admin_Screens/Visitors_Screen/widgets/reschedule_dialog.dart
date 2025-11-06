@@ -1,15 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:gatecheck/Services/visitor_service.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:dio/dio.dart';
 import '../utils/colors.dart';
 
 class RescheduleDialog extends StatefulWidget {
+  final String visitorId;
   final String visitorName;
-  final Function(DateTime, String) onReschedule;
+  final Function() onSuccess;
 
   const RescheduleDialog({
     super.key,
+    required this.visitorId,
     required this.visitorName,
-    required this.onReschedule,
+    required this.onSuccess,
   });
 
   @override
@@ -17,8 +21,11 @@ class RescheduleDialog extends StatefulWidget {
 }
 
 class _RescheduleDialogState extends State<RescheduleDialog> {
+  final VisitorApiService _visitorService = VisitorApiService();
+
   DateTime? selectedDate;
   TimeOfDay? selectedTime;
+  bool isSubmitting = false;
 
   Future<void> _selectDate() async {
     final DateTime? picked = await showDatePicker(
@@ -46,13 +53,8 @@ class _RescheduleDialogState extends State<RescheduleDialog> {
     }
   }
 
-  void _submitReschedule() {
-    if (selectedDate != null && selectedTime != null) {
-      final timeString =
-          '${selectedTime!.hour.toString().padLeft(2, '0')}:${selectedTime!.minute.toString().padLeft(2, '0')}';
-      widget.onReschedule(selectedDate!, timeString);
-      Navigator.pop(context);
-    } else {
+  Future<void> _submitReschedule() async {
+    if (selectedDate == null || selectedTime == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
@@ -62,18 +64,79 @@ class _RescheduleDialogState extends State<RescheduleDialog> {
           backgroundColor: AppColors.rejected,
         ),
       );
+      return;
+    }
+
+    setState(() {
+      isSubmitting = true;
+    });
+
+    try {
+      final newDate =
+          '${selectedDate!.year}-${selectedDate!.month.toString().padLeft(2, '0')}-${selectedDate!.day.toString().padLeft(2, '0')}';
+      final newTime =
+          '${selectedTime!.hour.toString().padLeft(2, '0')}:${selectedTime!.minute.toString().padLeft(2, '0')}:00';
+
+      final response = await _visitorService.rescheduleVisitor(
+        visitorId: widget.visitorId,
+        newDate: newDate,
+        newTime: newTime,
+      );
+
+      if (mounted) {
+        if (response.statusCode == 200 || response.statusCode == 201) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Visit rescheduled successfully',
+                style: GoogleFonts.inter(color: Colors.white),
+              ),
+              backgroundColor: AppColors.approved,
+            ),
+          );
+          widget.onSuccess();
+          Navigator.pop(context);
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Failed to reschedule visit'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } on DioException catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(_visitorService.getErrorMessage(e)),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          isSubmitting = false;
+        });
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+    final width = size.width;
+    final height = size.height;
+    final dialogWidth = width > 600 ? 400.0 : width * 0.9;
+
     return Dialog(
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
       ),
       child: Container(
-        constraints: const BoxConstraints(maxWidth: 400),
-        padding: const EdgeInsets.all(24),
+        width: dialogWidth,
+        padding: EdgeInsets.all(width * 0.06),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -81,50 +144,54 @@ class _RescheduleDialogState extends State<RescheduleDialog> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  'Reschedule Visit',
-                  style: GoogleFonts.inter(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textPrimary,
+                Expanded(
+                  child: Text(
+                    'Reschedule Visit',
+                    style: GoogleFonts.inter(
+                      fontSize: width < 360 ? 16 : 18,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textPrimary,
+                    ),
                   ),
                 ),
                 IconButton(
                   icon: const Icon(Icons.close),
-                  onPressed: () => Navigator.pop(context),
+                  onPressed: isSubmitting ? null : () => Navigator.pop(context),
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(),
+                  iconSize: width * 0.06,
                 ),
               ],
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: height * 0.01),
             Text(
               'Reschedule visit for ${widget.visitorName}',
               style: GoogleFonts.inter(
-                fontSize: 14,
+                fontSize: width < 360 ? 13 : 14,
                 color: AppColors.textSecondary,
               ),
             ),
-            const SizedBox(height: 24),
+            SizedBox(height: height * 0.03),
             Text(
               'New Visiting Date *',
               style: GoogleFonts.inter(
-                fontSize: 13,
+                fontSize: width < 360 ? 12 : 13,
                 fontWeight: FontWeight.w500,
                 color: AppColors.textPrimary,
               ),
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: height * 0.01),
             InkWell(
-              onTap: _selectDate,
+              onTap: isSubmitting ? null : _selectDate,
               child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 14,
+                padding: EdgeInsets.symmetric(
+                  horizontal: width * 0.03,
+                  vertical: height * 0.018,
                 ),
                 decoration: BoxDecoration(
                   border: Border.all(color: AppColors.border),
                   borderRadius: BorderRadius.circular(8),
+                  color: isSubmitting ? Colors.grey[100] : Colors.white,
                 ),
                 child: Row(
                   children: [
@@ -134,7 +201,7 @@ class _RescheduleDialogState extends State<RescheduleDialog> {
                             ? '${selectedDate!.month.toString().padLeft(2, '0')}/${selectedDate!.day.toString().padLeft(2, '0')}/${selectedDate!.year}'
                             : 'mm/dd/yyyy',
                         style: GoogleFonts.inter(
-                          fontSize: 14,
+                          fontSize: width < 360 ? 13 : 14,
                           color: selectedDate != null
                               ? AppColors.textPrimary
                               : AppColors.textSecondary,
@@ -143,33 +210,34 @@ class _RescheduleDialogState extends State<RescheduleDialog> {
                     ),
                     Icon(
                       Icons.calendar_today,
-                      size: 18,
+                      size: width * 0.045,
                       color: AppColors.iconGray,
                     ),
                   ],
                 ),
               ),
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: height * 0.02),
             Text(
               'New Visiting Time *',
               style: GoogleFonts.inter(
-                fontSize: 13,
+                fontSize: width < 360 ? 12 : 13,
                 fontWeight: FontWeight.w500,
                 color: AppColors.textPrimary,
               ),
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: height * 0.01),
             InkWell(
-              onTap: _selectTime,
+              onTap: isSubmitting ? null : _selectTime,
               child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 14,
+                padding: EdgeInsets.symmetric(
+                  horizontal: width * 0.03,
+                  vertical: height * 0.018,
                 ),
                 decoration: BoxDecoration(
                   border: Border.all(color: AppColors.border),
                   borderRadius: BorderRadius.circular(8),
+                  color: isSubmitting ? Colors.grey[100] : Colors.white,
                 ),
                 child: Row(
                   children: [
@@ -179,7 +247,7 @@ class _RescheduleDialogState extends State<RescheduleDialog> {
                             ? '${selectedTime!.hour.toString().padLeft(2, '0')}:${selectedTime!.minute.toString().padLeft(2, '0')}'
                             : '--:--',
                         style: GoogleFonts.inter(
-                          fontSize: 14,
+                          fontSize: width < 360 ? 13 : 14,
                           color: selectedTime != null
                               ? AppColors.textPrimary
                               : AppColors.textSecondary,
@@ -188,21 +256,24 @@ class _RescheduleDialogState extends State<RescheduleDialog> {
                     ),
                     Icon(
                       Icons.access_time,
-                      size: 18,
+                      size: width * 0.045,
                       color: AppColors.iconGray,
                     ),
                   ],
                 ),
               ),
             ),
-            const SizedBox(height: 24),
+            SizedBox(height: height * 0.03),
             Row(
               children: [
                 Expanded(
                   child: OutlinedButton(
-                    onPressed: () => Navigator.pop(context),
+                    onPressed:
+                        isSubmitting ? null : () => Navigator.pop(context),
                     style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      padding: EdgeInsets.symmetric(
+                        vertical: height * 0.018,
+                      ),
                       side: BorderSide(color: AppColors.border),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
@@ -211,33 +282,46 @@ class _RescheduleDialogState extends State<RescheduleDialog> {
                     child: Text(
                       'Cancel',
                       style: GoogleFonts.inter(
-                        fontSize: 14,
+                        fontSize: width < 360 ? 13 : 14,
                         fontWeight: FontWeight.w600,
                         color: AppColors.textPrimary,
                       ),
                     ),
                   ),
                 ),
-                const SizedBox(width: 12),
+                SizedBox(width: width * 0.03),
                 Expanded(
                   child: ElevatedButton(
-                    onPressed: _submitReschedule,
+                    onPressed: isSubmitting ? null : _submitReschedule,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primary,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      padding: EdgeInsets.symmetric(
+                        vertical: height * 0.018,
+                      ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
                       ),
                       elevation: 0,
                     ),
-                    child: Text(
-                      'Reschedule',
-                      style: GoogleFonts.inter(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white,
-                      ),
-                    ),
+                    child: isSubmitting
+                        ? SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                Colors.white,
+                              ),
+                            ),
+                          )
+                        : Text(
+                            'Reschedule',
+                            style: GoogleFonts.inter(
+                              fontSize: width < 360 ? 13 : 14,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white,
+                            ),
+                          ),
                   ),
                 ),
               ],

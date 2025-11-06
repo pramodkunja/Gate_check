@@ -42,6 +42,7 @@ class _ReportsScreenState extends State<ReportsScreen>
     super.build(context);
 
     final size = MediaQuery.of(context).size;
+    // ignore: unused_local_variable
     final isSmallScreen = size.width < 600;
 
     return Scaffold(
@@ -163,6 +164,7 @@ class _MonthlyReportTabState extends State<MonthlyReportTab> {
 
   @override
   Widget build(BuildContext context) {
+    // ignore: unused_local_variable
     final size = MediaQuery.of(context).size;
 
     return SingleChildScrollView(

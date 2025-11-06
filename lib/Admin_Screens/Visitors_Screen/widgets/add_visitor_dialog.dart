@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../models/visitor_model.dart';
 import '../utils/colors.dart';
 import '../utils/constants.dart';
 
 class AddVisitorDialog extends StatefulWidget {
-  final Function(Visitor) onAdd;
+  final Function(Map<String, dynamic>) onAdd;
 
   const AddVisitorDialog({super.key, required this.onAdd});
 
@@ -25,21 +24,26 @@ class _AddVisitorDialogState extends State<AddVisitorDialog> {
   final _securityNotesController = TextEditingController();
   final _vehicleNumberController = TextEditingController();
   final _allowingHoursController = TextEditingController(text: '8');
-
-  // New relationship fields requested
-  final _relationController = TextEditingController();
-  final _departmentController = TextEditingController();
-
-  // Recurring-specific controller
   final _recurringDaysController = TextEditingController();
-  DateTime? _validUntilDate;
+  final _companyDetailsController = TextEditingController();
 
   String selectedGender = 'Select gender';
   String selectedPassType = 'One Time';
+  int? selectedCategoryId;
   String selectedCategory = 'Select category';
   String selectedVehicleType = 'Select vehicle type';
   DateTime? selectedDate;
   TimeOfDay? selectedTime;
+  DateTime? _validUntilDate;
+
+  bool isSubmitting = false;
+
+  // Map category names to IDs (update these based on your API)
+  final Map<String, int> categoryMap = {
+    'Vendor': 9,
+    'Walk-In': 10,
+    'Contractor': 11,
+  };
 
   @override
   void dispose() {
@@ -53,9 +57,8 @@ class _AddVisitorDialogState extends State<AddVisitorDialog> {
     _securityNotesController.dispose();
     _vehicleNumberController.dispose();
     _allowingHoursController.dispose();
-    _relationController.dispose();
-    _departmentController.dispose();
     _recurringDaysController.dispose();
+    _companyDetailsController.dispose();
     super.dispose();
   }
 
@@ -89,7 +92,7 @@ class _AddVisitorDialogState extends State<AddVisitorDialog> {
     final DateTime now = DateTime.now();
     final DateTime? picked = await showDatePicker(
       context: ctx,
-      initialDate: _validUntilDate ?? now,
+      initialDate: _validUntilDate ?? now.add(const Duration(days: 30)),
       firstDate: now,
       lastDate: DateTime(now.year + 5),
     );
@@ -100,8 +103,10 @@ class _AddVisitorDialogState extends State<AddVisitorDialog> {
     }
   }
 
-  void _submitForm() {
-    // Basic required validations:
+  void _submitForm() async {
+    if (isSubmitting) return;
+
+    // Basic validations
     final bool basicValid = _formKey.currentState!.validate();
     final bool dateTimeSelected = selectedDate != null && selectedTime != null;
     final bool categorySelected = selectedCategory != 'Select category';
@@ -148,62 +153,91 @@ class _AddVisitorDialogState extends State<AddVisitorDialog> {
       }
     }
 
-    // Merge extra info into securityNotes so info isn't lost (adjust if your Visitor model has dedicated fields)
-    String extraNotes = _securityNotesController.text.trim();
-    final List<String> extras = [];
+    setState(() {
+      isSubmitting = true;
+    });
 
-    if (_relationController.text.trim().isNotEmpty) {
-      extras.add('Relation: ${_relationController.text.trim()}');
+    // Prepare data for API
+    final Map<String, dynamic> visitorData = {
+      'visitor_name': _nameController.text.trim(),
+      'mobile_number': _phoneController.text.trim(),
+      'email_id': _emailController.text.trim(),
+      'visiting_date':
+          '${selectedDate!.year}-${selectedDate!.month.toString().padLeft(2, '0')}-${selectedDate!.day.toString().padLeft(2, '0')}',
+      'visiting_time':
+          '${selectedTime!.hour.toString().padLeft(2, '0')}:${selectedTime!.minute.toString().padLeft(2, '0')}:00',
+      'purpose_of_visit': _purposeController.text.trim(),
+      'category': selectedCategoryId ?? categoryMap[selectedCategory],
+      'allowing_hours': int.tryParse(_allowingHoursController.text) ?? 8,
+    };
+
+    // Add optional fields
+    if (selectedGender != 'Select gender') {
+      String genderCode = 'O';
+      if (selectedGender == 'Male') {
+        genderCode = 'M';
+      } else if (selectedGender == 'Female') {
+        genderCode = 'F';
+      }
+      visitorData['gender'] = genderCode;
     }
-    if (_departmentController.text.trim().isNotEmpty) {
-      extras.add('Department: ${_departmentController.text.trim()}');
+
+    if (_whomToMeetController.text.trim().isNotEmpty) {
+      visitorData['whom_to_meet'] = _whomToMeetController.text.trim();
     }
+
+    if (_comingFromController.text.trim().isNotEmpty) {
+      visitorData['coming_from'] = _comingFromController.text.trim();
+    }
+
+    if (_companyDetailsController.text.trim().isNotEmpty) {
+      visitorData['company_details'] = _companyDetailsController.text.trim();
+    }
+
+    if (_belongingsController.text.trim().isNotEmpty) {
+      visitorData['belongings_tools'] = _belongingsController.text.trim();
+    }
+
+    if (_securityNotesController.text.trim().isNotEmpty) {
+      visitorData['security_notes'] = _securityNotesController.text.trim();
+    }
+
+    // Recurring pass specific
     if (selectedPassType == 'Recurring') {
-      extras.add('RecurringDays: ${_recurringDaysController.text.trim()}');
-      extras.add(
-        'ValidUntil: ${_validUntilDate != null ? '${_validUntilDate!.year}-${_validUntilDate!.month.toString().padLeft(2, '0')}-${_validUntilDate!.day.toString().padLeft(2, '0')}' : 'N/A'}',
-      );
-    }
-    if (extras.isNotEmpty) {
-      if (extraNotes.isNotEmpty) extraNotes += ' | ';
-      extraNotes += extras.join(' ; ');
+      visitorData['recurring_days'] =
+          int.tryParse(_recurringDaysController.text.trim());
     }
 
-    final visitor = Visitor(
-      id: 'VP${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}',
-      name: _nameController.text.trim(),
-      phone: _phoneController.text.trim(),
-      email: _emailController.text.trim(),
-      category: selectedCategory,
-      passType: selectedPassType,
-      visitingDate: selectedDate!,
-      visitingTime:
-          '${selectedTime!.hour.toString().padLeft(2, '0')}:${selectedTime!.minute.toString().padLeft(2, '0')}',
-      purpose: _purposeController.text.trim(),
-      whomToMeet: _whomToMeetController.text.trim(),
-      comingFrom: _comingFromController.text.trim(),
-      status: VisitorStatus.pending,
-      gender: selectedGender != 'Select gender' ? selectedGender : null,
-      vehicleType: selectedVehicleType != 'Select vehicle type'
-          ? selectedVehicleType
-          : null,
-      vehicleNumber: _vehicleNumberController.text.trim().isNotEmpty
-          ? _vehicleNumberController.text.trim()
-          : null,
-      belongingsTools: _belongingsController.text.trim().isNotEmpty
-          ? _belongingsController.text.trim()
-          : null,
-      securityNotes: extraNotes.isNotEmpty ? extraNotes : null,
-      allowingHours: int.tryParse(_allowingHoursController.text),
-    );
+    // Vehicle information (if you have vehicle API endpoint)
+    if (_vehicleNumberController.text.trim().isNotEmpty &&
+        selectedVehicleType != 'Select vehicle type') {
+      // You might need to create vehicle first and get its ID
+      // For now, we'll just send vehicle number in notes
+      final vehicleInfo =
+          'Vehicle: $selectedVehicleType - ${_vehicleNumberController.text.trim()}';
+      if (visitorData['security_notes'] != null) {
+        visitorData['security_notes'] += ' | $vehicleInfo';
+      } else {
+        visitorData['security_notes'] = vehicleInfo;
+      }
+    }
 
-    widget.onAdd(visitor);
-    Navigator.pop(context);
+    try {
+      await widget.onAdd(visitorData);
+      if (mounted) {
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          isSubmitting = false;
+        });
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    // Single column layout: each field stacked vertically to avoid overflow on small screens.
     return Dialog(
       insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -233,7 +267,7 @@ class _AddVisitorDialogState extends State<AddVisitorDialog> {
                   const Spacer(),
                   IconButton(
                     icon: const Icon(Icons.close),
-                    onPressed: () => Navigator.pop(context),
+                    onPressed: isSubmitting ? null : () => Navigator.pop(context),
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(),
                   ),
@@ -253,7 +287,6 @@ class _AddVisitorDialogState extends State<AddVisitorDialog> {
                       _buildSectionTitle('Basic Information'),
                       const SizedBox(height: 12),
 
-                      // Visitor Name
                       _buildTextField(
                         controller: _nameController,
                         label: 'Visitor Name',
@@ -262,7 +295,6 @@ class _AddVisitorDialogState extends State<AddVisitorDialog> {
                       ),
                       const SizedBox(height: 12),
 
-                      // Mobile Number
                       _buildTextField(
                         controller: _phoneController,
                         label: 'Mobile Number',
@@ -272,16 +304,15 @@ class _AddVisitorDialogState extends State<AddVisitorDialog> {
                       ),
                       const SizedBox(height: 12),
 
-                      // Email
                       _buildTextField(
                         controller: _emailController,
                         label: 'Email Address',
                         hint: 'Enter email address',
+                        isRequired: true,
                         keyboardType: TextInputType.emailAddress,
                       ),
                       const SizedBox(height: 12),
 
-                      // Gender
                       _buildDropdown(
                         label: 'Gender',
                         value: selectedGender,
@@ -291,15 +322,12 @@ class _AddVisitorDialogState extends State<AddVisitorDialog> {
                             selectedGender = value!;
                           });
                         },
-                        isRequired: true,
                       ),
                       const SizedBox(height: 20),
 
-                      // Visit Details
                       _buildSectionTitle('Visit Details'),
                       const SizedBox(height: 12),
 
-                      // Pass Type (when Recurring -> show extra fields)
                       _buildDropdown(
                         label: 'Pass Type',
                         value: selectedPassType,
@@ -307,7 +335,6 @@ class _AddVisitorDialogState extends State<AddVisitorDialog> {
                         onChanged: (value) {
                           setState(() {
                             selectedPassType = value!;
-                            // Clear recurring fields when pass type changes away from Recurring
                             if (selectedPassType != 'Recurring') {
                               _recurringDaysController.clear();
                               _validUntilDate = null;
@@ -318,7 +345,6 @@ class _AddVisitorDialogState extends State<AddVisitorDialog> {
                       ),
                       const SizedBox(height: 12),
 
-                      // If Recurring: show Recurring Days & Valid Until
                       if (selectedPassType == 'Recurring') ...[
                         _buildTextField(
                           controller: _recurringDaysController,
@@ -337,7 +363,6 @@ class _AddVisitorDialogState extends State<AddVisitorDialog> {
                         const SizedBox(height: 12),
                       ],
 
-                      // Category
                       _buildDropdown(
                         label: 'Category',
                         value: selectedCategory,
@@ -350,13 +375,13 @@ class _AddVisitorDialogState extends State<AddVisitorDialog> {
                         onChanged: (value) {
                           setState(() {
                             selectedCategory = value!;
+                            selectedCategoryId = categoryMap[value];
                           });
                         },
                         isRequired: true,
                       ),
                       const SizedBox(height: 12),
 
-                      // Visiting Date
                       _buildDatePicker(
                         label: 'Visiting Date',
                         selectedDate: selectedDate,
@@ -365,7 +390,6 @@ class _AddVisitorDialogState extends State<AddVisitorDialog> {
                       ),
                       const SizedBox(height: 12),
 
-                      // Visiting Time
                       _buildTimePicker(
                         label: 'Visiting Time',
                         selectedTime: selectedTime,
@@ -374,7 +398,6 @@ class _AddVisitorDialogState extends State<AddVisitorDialog> {
                       ),
                       const SizedBox(height: 12),
 
-                      // Allowing Hours
                       _buildTextField(
                         controller: _allowingHoursController,
                         label: 'Allowing Hours',
@@ -384,8 +407,7 @@ class _AddVisitorDialogState extends State<AddVisitorDialog> {
                       ),
                       const SizedBox(height: 20),
 
-                      // Relationship & Purpose (with two new textfields)
-                      _buildSectionTitle('Relationship & Purpose'),
+                      _buildSectionTitle('Purpose & Details'),
                       const SizedBox(height: 12),
 
                       _buildTextField(
@@ -395,26 +417,17 @@ class _AddVisitorDialogState extends State<AddVisitorDialog> {
                       ),
                       const SizedBox(height: 12),
 
-                      // New: Relation
-                      _buildTextField(
-                        controller: _relationController,
-                        label: 'Relation',
-                        hint: 'e.g., Client, Supplier, Employee',
-                      ),
-                      const SizedBox(height: 12),
-
-                      // New: Department
-                      _buildTextField(
-                        controller: _departmentController,
-                        label: 'Department',
-                        hint: 'Department or team name',
-                      ),
-                      const SizedBox(height: 12),
-
                       _buildTextField(
                         controller: _comingFromController,
                         label: 'Coming From',
                         hint: 'Company/organization name',
+                      ),
+                      const SizedBox(height: 12),
+
+                      _buildTextField(
+                        controller: _companyDetailsController,
+                        label: 'Company Details',
+                        hint: 'Additional company information',
                       ),
                       const SizedBox(height: 12),
 
@@ -427,7 +440,6 @@ class _AddVisitorDialogState extends State<AddVisitorDialog> {
                       ),
                       const SizedBox(height: 20),
 
-                      // Security & Additional Details
                       _buildSectionTitle('Security & Additional Details'),
                       const SizedBox(height: 12),
 
@@ -442,10 +454,10 @@ class _AddVisitorDialogState extends State<AddVisitorDialog> {
                         controller: _securityNotesController,
                         label: 'Security Notes',
                         hint: 'Any security observations',
+                        maxLines: 2,
                       ),
                       const SizedBox(height: 20),
 
-                      // Vehicle Information
                       _buildSectionTitle('Vehicle Information'),
                       const SizedBox(height: 12),
 
@@ -485,7 +497,7 @@ class _AddVisitorDialogState extends State<AddVisitorDialog> {
                 children: [
                   Expanded(
                     child: OutlinedButton(
-                      onPressed: () => Navigator.pop(context),
+                      onPressed: isSubmitting ? null : () => Navigator.pop(context),
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         side: BorderSide(color: AppColors.border),
@@ -506,7 +518,7 @@ class _AddVisitorDialogState extends State<AddVisitorDialog> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: ElevatedButton(
-                      onPressed: _submitForm,
+                      onPressed: isSubmitting ? null : _submitForm,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primary,
                         padding: const EdgeInsets.symmetric(vertical: 14),
@@ -515,14 +527,24 @@ class _AddVisitorDialogState extends State<AddVisitorDialog> {
                         ),
                         elevation: 0,
                       ),
-                      child: Text(
-                        'Add Visitor',
-                        style: GoogleFonts.poppins(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white,
-                        ),
-                      ),
+                      child: isSubmitting
+                          ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor:
+                                    AlwaysStoppedAnimation<Color>(Colors.white),
+                              ),
+                            )
+                          : Text(
+                              'Add Visitor',
+                              style: GoogleFonts.poppins(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white,
+                              ),
+                            ),
                     ),
                   ),
                 ],
@@ -534,13 +556,11 @@ class _AddVisitorDialogState extends State<AddVisitorDialog> {
     );
   }
 
-  // ---------- Helper widgets (same style as your original) ----------
-
   Widget _buildSectionTitle(String title) {
     return Text(
       title,
       style: GoogleFonts.poppins(
-        fontSize: 18,
+        fontSize: 16,
         fontWeight: FontWeight.w600,
         color: AppColors.textPrimary,
       ),
@@ -583,6 +603,7 @@ class _AddVisitorDialogState extends State<AddVisitorDialog> {
           controller: controller,
           keyboardType: keyboardType,
           maxLines: maxLines,
+          enabled: !isSubmitting,
           decoration: InputDecoration(
             hintText: hint,
             hintStyle: GoogleFonts.poppins(
@@ -676,7 +697,7 @@ class _AddVisitorDialogState extends State<AddVisitorDialog> {
               child: Text(item, style: GoogleFonts.poppins(fontSize: 13)),
             );
           }).toList(),
-          onChanged: (v) => onChanged(v),
+          onChanged: isSubmitting ? null : onChanged,
         ),
       ],
     );
@@ -713,7 +734,7 @@ class _AddVisitorDialogState extends State<AddVisitorDialog> {
         ),
         const SizedBox(height: 8),
         InkWell(
-          onTap: onTap,
+          onTap: isSubmitting ? null : onTap,
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
             decoration: BoxDecoration(
@@ -775,7 +796,7 @@ class _AddVisitorDialogState extends State<AddVisitorDialog> {
         ),
         const SizedBox(height: 8),
         InkWell(
-          onTap: onTap,
+          onTap: isSubmitting ? null : onTap,
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
             decoration: BoxDecoration(
