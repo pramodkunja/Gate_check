@@ -38,7 +38,7 @@ class _ReportsScreenState extends State<ReportsScreen>
 
     String userName = UserService().getUserName();
     String firstLetter = userName.isNotEmpty ? userName[0].toUpperCase() : "?";
-    String email = UserService().getUserByEmail(userName) as String;
+    String email = UserService().getUserEmail();
     super.build(context);
 
     final size = MediaQuery.of(context).size;
