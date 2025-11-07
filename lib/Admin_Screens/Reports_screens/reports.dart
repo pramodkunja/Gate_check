@@ -38,10 +38,11 @@ class _ReportsScreenState extends State<ReportsScreen>
 
     String userName = UserService().getUserName();
     String firstLetter = userName.isNotEmpty ? userName[0].toUpperCase() : "?";
-    String email = UserService().getUserByEmail(userName) as String;
+    String email = UserService().getUserEmail();
     super.build(context);
 
     final size = MediaQuery.of(context).size;
+    // ignore: unused_local_variable
     final isSmallScreen = size.width < 600;
 
     return Scaffold(
@@ -163,6 +164,7 @@ class _MonthlyReportTabState extends State<MonthlyReportTab> {
 
   @override
   Widget build(BuildContext context) {
+    // ignore: unused_local_variable
     final size = MediaQuery.of(context).size;
 
     return SingleChildScrollView(

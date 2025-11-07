@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:gatecheck/User_Screens/Visitors_Screen/entry_otp.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import '../models/visitor_model.dart';
 import '../utils/colors.dart';
 import 'action_menu.dart';
-import 'package:gatecheck/Admin_Screens/Visitors_Screen/entry_otp.dart';
 import 'reschedule_dialog.dart';
 
 class VisitorCard extends StatelessWidget {

@@ -21,6 +21,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _isLoading = false;
   
   // Profile data variables
+  // ignore: unused_field
   Map<String, dynamic>? _profileData;
   String _name = '';
   String _companyName = '';

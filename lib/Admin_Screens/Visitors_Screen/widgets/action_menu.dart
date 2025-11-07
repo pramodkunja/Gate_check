@@ -7,12 +7,12 @@ import 'qr_code_dialog.dart';
 
 class ActionMenu extends StatefulWidget {
   final Visitor visitor;
-  final Function(String, Visitor) onUpdate;
+  final Function()? onRefresh;
 
   const ActionMenu({
     super.key,
     required this.visitor,
-    required this.onUpdate,
+    this.onRefresh,
   });
 
   @override
@@ -43,9 +43,11 @@ class _ActionMenuState extends State<ActionMenu> {
   void _closeMenu() {
     _overlayEntry?.remove();
     _overlayEntry = null;
-    setState(() {
-      _isOpen = false;
-    });
+    if (mounted) {
+      setState(() {
+        _isOpen = false;
+      });
+    }
   }
 
   OverlayEntry _createOverlayEntry() {
