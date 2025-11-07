@@ -3,8 +3,17 @@ import 'package:google_fonts/google_fonts.dart';
 
 class AddNewPermissionDialog extends StatefulWidget {
   final Function(String permissionName, bool isActive) onSubmit;
+  final String? initialName;
+  final bool? initialIsActive;
+  final bool isEdit;
 
-  const AddNewPermissionDialog({super.key, required this.onSubmit});
+  const AddNewPermissionDialog({
+    super.key,
+    required this.onSubmit,
+    this.initialName,
+    this.initialIsActive,
+    this.isEdit = false,
+  });
 
   @override
   State<AddNewPermissionDialog> createState() => _AddNewPermissionDialogState();
@@ -12,9 +21,18 @@ class AddNewPermissionDialog extends StatefulWidget {
 
 class _AddNewPermissionDialogState extends State<AddNewPermissionDialog> {
   final _formKey = GlobalKey<FormState>();
-  final TextEditingController _permissionNameController =
-      TextEditingController();
-  bool _isActive = true;
+  late TextEditingController _permissionNameController;
+  late bool _isActive;
+  bool _isSubmitting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _permissionNameController = TextEditingController(
+      text: widget.initialName ?? '',
+    );
+    _isActive = widget.initialIsActive ?? true;
+  }
 
   @override
   void dispose() {
@@ -52,7 +70,7 @@ class _AddNewPermissionDialogState extends State<AddNewPermissionDialog> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Add New Permission',
+                  widget.isEdit ? 'Edit Permission' : 'Add New Permission',
                   style: GoogleFonts.poppins(
                     fontSize: titleFontSize,
                     fontWeight: FontWeight.w600,
@@ -60,14 +78,19 @@ class _AddNewPermissionDialogState extends State<AddNewPermissionDialog> {
                   ),
                 ),
                 GestureDetector(
-                  onTap: () => Navigator.pop(context),
-                  child: const Icon(Icons.close, color: Colors.grey),
+                  onTap: _isSubmitting
+                      ? null
+                      : () => Navigator.of(context, rootNavigator: true).pop(),
+                  child: Icon(
+                    Icons.close,
+                    color: _isSubmitting ? Colors.grey[300] : Colors.grey,
+                  ),
                 ),
               ],
             ),
             const SizedBox(height: 20),
 
-            // Form Section
+            // Form
             Form(
               key: _formKey,
               child: Column(
@@ -84,6 +107,7 @@ class _AddNewPermissionDialogState extends State<AddNewPermissionDialog> {
                   const SizedBox(height: 8),
                   TextFormField(
                     controller: _permissionNameController,
+                    enabled: !_isSubmitting,
                     decoration: InputDecoration(
                       hintText: 'Enter permission name',
                       hintStyle: GoogleFonts.poppins(
@@ -108,10 +132,20 @@ class _AddNewPermissionDialogState extends State<AddNewPermissionDialog> {
                           width: 1,
                         ),
                       ),
+                      disabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(
+                          color: Colors.grey.shade200,
+                          width: 1,
+                        ),
+                      ),
                     ),
                     validator: (value) {
                       if (value == null || value.trim().isEmpty) {
                         return 'Permission name is required';
+                      }
+                      if (value.trim().length < 3) {
+                        return 'Permission name must be at least 3 characters';
                       }
                       return null;
                     },
@@ -121,9 +155,11 @@ class _AddNewPermissionDialogState extends State<AddNewPermissionDialog> {
                     children: [
                       Checkbox(
                         value: _isActive,
-                        onChanged: (value) {
-                          setState(() => _isActive = value ?? false);
-                        },
+                        onChanged: _isSubmitting
+                            ? null
+                            : (value) {
+                                setState(() => _isActive = value ?? false);
+                              },
                         activeColor: Colors.purple,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(4),
@@ -143,16 +179,18 @@ class _AddNewPermissionDialogState extends State<AddNewPermissionDialog> {
             ),
             const SizedBox(height: 20),
 
-            // Action Buttons
+            // Buttons
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 TextButton(
-                  onPressed: () => Navigator.pop(context),
+                  onPressed: _isSubmitting
+                      ? null
+                      : () => Navigator.of(context, rootNavigator: true).pop(),
                   child: Text(
                     'Cancel',
                     style: GoogleFonts.poppins(
-                      color: Colors.black54,
+                      color: _isSubmitting ? Colors.grey[300] : Colors.black54,
                       fontSize: buttonFontSize,
                     ),
                   ),
@@ -160,7 +198,10 @@ class _AddNewPermissionDialogState extends State<AddNewPermissionDialog> {
                 const SizedBox(width: 10),
                 OutlinedButton.icon(
                   style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: Colors.purple, width: 1),
+                    side: BorderSide(
+                      color: _isSubmitting ? Colors.grey[300]! : Colors.purple,
+                      width: 1,
+                    ),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10),
                     ),
@@ -169,24 +210,61 @@ class _AddNewPermissionDialogState extends State<AddNewPermissionDialog> {
                       vertical: 10,
                     ),
                   ),
-                  icon: const Icon(Icons.save_outlined, color: Colors.purple),
+                  icon: _isSubmitting
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              Colors.purple,
+                            ),
+                          ),
+                        )
+                      : const Icon(Icons.save_outlined, color: Colors.purple),
                   label: Text(
-                    'Submit',
+                    widget.isEdit ? 'Update' : 'Submit',
                     style: GoogleFonts.poppins(
-                      color: Colors.purple,
+                      color: _isSubmitting ? Colors.grey[300] : Colors.purple,
                       fontWeight: FontWeight.w500,
                       fontSize: buttonFontSize,
                     ),
                   ),
-                  onPressed: () {
-                    if (_formKey.currentState!.validate()) {
-                      widget.onSubmit(
-                        _permissionNameController.text.trim(),
-                        _isActive,
-                      );
-                      Navigator.pop(context);
-                    }
-                  },
+                  onPressed: _isSubmitting
+                      ? null
+                      : () async {
+                          if (_formKey.currentState!.validate()) {
+                            setState(() {
+                              _isSubmitting = true;
+                            });
+
+                            try {
+                              await widget.onSubmit(
+                                _permissionNameController.text.trim(),
+                                _isActive,
+                              );
+                              // ✅ Safe pop, prevents redirect or unmounted crash
+                              if (mounted) {
+                                Navigator.of(
+                                  context,
+                                  rootNavigator: true,
+                                ).pop();
+                              }
+                            } catch (e) {
+                              setState(() {
+                                _isSubmitting = false;
+                              });
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('Error: ${e.toString()}'),
+                                    backgroundColor: Colors.red,
+                                  ),
+                                );
+                              }
+                            }
+                          }
+                        },
                 ),
               ],
             ),
