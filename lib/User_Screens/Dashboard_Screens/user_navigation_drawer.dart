@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:gatecheck/User_Screens/Dashboard_Screens/user_dashboard.dart';
-import 'package:gatecheck/User_Screens/Profile_Screens/user_profile_screen.dart';
-import 'package:gatecheck/User_Screens/Visitors_Screen/visitors_screen.dart';
+import 'package:gatecheck/routes/app_routes.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class UserNavigation extends StatefulWidget {
@@ -12,7 +10,6 @@ class UserNavigation extends StatefulWidget {
 }
 
 class _UserNavigationState extends State<UserNavigation> {
-  bool isRolesExpanded = false;
   String selectedRoute = '';
 
   @override
@@ -90,72 +87,6 @@ class _UserNavigationState extends State<UserNavigation> {
                     isSelected: selectedRoute == 'Profile',
                     onTap: () => _handleUserNavigation('Profile'),
                   ),
-                  SizedBox(height: screenHeight * 0.01),
-            //       _buildMenuItem(
-            //         icon: Icons.business_outlined,
-            //         title: 'Organization',
-            //         isSelected: selectedRoute == 'Organization',
-            //         onTap: () => _handleUserNavigation('Organization'),
-            //       ),
-            //       SizedBox(height: screenHeight * 0.01),
-
-            //       // Expandable Roles Section
-            //       _buildExpandableMenuItem(
-            //         icon: Icons.person_outline,
-            //         title: 'Roles',
-            //         isExpanded: isRolesExpanded,
-            //         onTap: () {
-            //           setState(() {
-            //             isRolesExpanded = !isRolesExpanded;
-            //           });
-            //         },
-            //       ),
-
-            //       // Submenu Items
-            //       AnimatedSize(
-            //         duration: const Duration(milliseconds: 300),
-            //         curve: Curves.easeInOut,
-            //         child: isRolesExpanded
-            //             ? Column(
-            //                 children: [
-            //                   _buildSubMenuItem(
-            //                     icon: Icons.person_outline,
-            //                     title: 'Roles',
-            //                     isSelected: selectedRoute == 'Roles',
-            //                     onTap: () => _handleUserNavigation('Roles'),
-            //                   ),
-            //                   _buildSubMenuItem(
-            //                     icon: Icons.shield_outlined,
-            //                     title: 'Permissions',
-            //                     isSelected: selectedRoute == 'Permissions',
-            //                     onTap: () => _handleUserNavigation('Permissions'),
-            //                   ),
-            //                   _buildSubMenuItem(
-            //                     icon: Icons.link,
-            //                     title: 'Roles & Permissions',
-            //                     isSelected:
-            //                         selectedRoute == 'Roles & Permissions',
-            //                     onTap: () =>
-            //                         _handleUserNavigation('Roles & Permissions'),
-            //                   ),
-            //                   _buildSubMenuItem(
-            //                     icon: Icons.person_outline,
-            //                     title: 'User Roles',
-            //                     isSelected: selectedRoute == 'User Roles',
-            //                     onTap: () => _handleUserNavigation('User Roles'),
-            //                   ),
-            //                 ],
-            //               )
-            //             : const SizedBox.shrink(),
-            //       ),
-
-            //       if (!isRolesExpanded) SizedBox(height: screenHeight * 0.01),
-            //       _buildMenuItem(
-            //         icon: Icons.folder_outlined,
-            //         title: 'Categories',
-            //         isSelected: selectedRoute == 'Categories',
-            //         onTap: () => _handleUserNavigation('Categories'),
-            //       ),
                 ],
               ),
             ),
@@ -241,178 +172,25 @@ class _UserNavigationState extends State<UserNavigation> {
     );
   }
 
-  Widget _buildExpandableMenuItem({
-    required IconData icon,
-    required String title,
-    required bool isExpanded,
-    required VoidCallback onTap,
-  }) {
-    final screenWidth = MediaQuery.of(context).size.width;
-
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
-        child: Container(
-          padding: EdgeInsets.symmetric(
-            vertical: screenWidth * 0.035,
-            horizontal: screenWidth * 0.04,
-          ),
-          decoration: BoxDecoration(borderRadius: BorderRadius.circular(8)),
-          child: Row(
-            children: [
-              Icon(icon, color: Colors.white, size: screenWidth * 0.06),
-              SizedBox(width: screenWidth * 0.04),
-              Expanded(
-                child: Text(
-                  title,
-                  style: GoogleFonts.poppins(
-                    color: Colors.white,
-                    fontSize: screenWidth * 0.042,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
-              Icon(
-                isExpanded
-                    ? Icons.keyboard_arrow_up
-                    : Icons.keyboard_arrow_down,
-                color: Colors.white,
-                size: screenWidth * 0.055,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSubMenuItem({
-    required IconData icon,
-    required String title,
-    required bool isSelected,
-    required VoidCallback onTap,
-  }) {
-    final screenWidth = MediaQuery.of(context).size.width;
-
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
-        child: Container(
-          margin: EdgeInsets.only(left: screenWidth * 0.08),
-          padding: EdgeInsets.symmetric(
-            vertical: screenWidth * 0.03,
-            horizontal: screenWidth * 0.04,
-          ),
-          decoration: BoxDecoration(
-            color: isSelected ? const Color(0xFF334155) : Colors.transparent,
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Row(
-            children: [
-              Icon(
-                icon,
-                color: const Color(0xFF94A3B8),
-                size: screenWidth * 0.05,
-              ),
-              SizedBox(width: screenWidth * 0.03),
-              Expanded(
-                child: Text(
-                  title,
-                  style: GoogleFonts.poppins(
-                    color: isSelected ? Colors.white : const Color(0xFFCBD5E1),
-                    fontSize: screenWidth * 0.038,
-                    fontWeight: isSelected
-                        ? FontWeight.w500
-                        : FontWeight.normal,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
   void _handleUserNavigation(String route) {
     setState(() {
       selectedRoute = route;
     });
     Navigator.pop(context);
 
-    if (route == 'Dashboard') {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => const UserDashboardScreen()),
-      );
+    switch (route) {
+      case 'Dashboard':
+        AppRoutes.navigateToUserDashboard(context);
+        break;
+      case 'GateCheck':
+        AppRoutes.navigateToUserVisitors(context);
+        break;
+      case 'Profile':
+        AppRoutes.navigateToUserProfile(context);
+        break;
+      case 'Reports':
+        AppRoutes.navigateToUserReports(context);
+        break;
     }
-
-    if (route == 'GateCheck') {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => const UserRegularVisitorsScreen()),
-      );
-    }
-
-    if (route == 'Profile') {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => const UserProfileScreen()),
-      );
-    }
-
-    // if (route == 'Organization') {
-    //   Navigator.push(
-    //     context,
-    //     MaterialPageRoute(
-    //       builder: (context) => const OrganizationManagementScreen(),
-    //     ),
-    //   );
-    // }
-
-    // if (route == 'Roles') {
-    //   Navigator.push(
-    //     context,
-    //     MaterialPageRoute(builder: (context) => const RolesManagementScreen()),
-    //   );
-    // }
-
-    // if (route == 'Roles & Permissions') {
-    //   Navigator.push(
-    //     context,
-    //     MaterialPageRoute(builder: (context) => const RolePermissionsScreen()),
-    //   );
-    // }
-
-    // if (route == 'Permissions') {
-    //   Navigator.push(
-    //     context,
-    //     MaterialPageRoute(
-    //       builder: (context) => const PermissionManagementScreen(),
-    //     ),
-    //   );
-    // }
-
-    // if (route == 'User Roles') {
-    //   Navigator.push(
-    //     context,
-    //     MaterialPageRoute(
-    //       builder: (context) => const UserRolesManagementScreen(),
-    //     ),
-    //   );
-    // }
-
-    // if (route == 'Categories') {
-    //   Navigator.push(
-    //     context,
-    //     MaterialPageRoute(
-    //       builder: (context) => const CategoriesManagementScreen(),
-    //     ),
-    //   );
-    // }
   }
 }

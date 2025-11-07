@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:gatecheck/Services/Auth_Services/api_service.dart';
 import 'package:gatecheck/Services/User_services/user_service.dart';
+import 'package:gatecheck/User_Screens/Dashboard_Screens/user_custom_appbar.dart';
+import 'package:gatecheck/User_Screens/Dashboard_Screens/user_navigation_drawer.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:gatecheck/Admin_Screens/Profile_Screen/widgets/change_password.dart';
 import 'package:gatecheck/Admin_Screens/Profile_Screen/widgets/profile_information.dart';
@@ -19,7 +21,7 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   final ApiService _apiService = ApiService();
   bool _isLoading = false;
-  
+
   // Profile data variables
   // ignore: unused_field
   Map<String, dynamic>? _profileData;
@@ -49,17 +51,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     try {
       final response = await _apiService.getUserProfile();
-      
+
       if (response.statusCode == 200 && response.data != null) {
-        final data = response.data is Map<String, dynamic> 
+        final data = response.data is Map<String, dynamic>
             ? response.data as Map<String, dynamic>
             : <String, dynamic>{};
-        
+
         debugPrint('📦 Profile Data: $data');
 
         setState(() {
           _profileData = data;
-          
+
           // Extract basic user information
           _name = data['username']?.toString() ?? '';
           _aliasName = data['alias_name']?.toString() ?? '';
@@ -69,9 +71,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
           _mobileNumber = data['mobile_number']?.toString() ?? '';
           _blockBuilding = data['block']?.toString() ?? '';
           _floor = data['floor']?.toString() ?? '';
-          
+
           // Extract nested company information
-          if (data['company'] != null && data['company'] is Map<String, dynamic>) {
+          if (data['company'] != null &&
+              data['company'] is Map<String, dynamic>) {
             final company = data['company'] as Map<String, dynamic>;
             _companyName = company['company_name']?.toString() ?? '';
             _address = company['address']?.toString() ?? '';
@@ -209,21 +212,32 @@ class _ProfileScreenState extends State<ProfileScreen> {
     // Use fetched data if available, otherwise use UserService
     final displayName = _name.isNotEmpty ? _name : userName;
     final displayEmail = _email.isNotEmpty ? _email : email;
-    final displayInitial = displayName.isNotEmpty ? displayName[0].toUpperCase() : 'U';
+    final displayInitial = displayName.isNotEmpty
+        ? displayName[0].toUpperCase()
+        : 'U';
+
+    // decide role
+    final String? role = UserService()
+        .getUserRole(); // assume you add this service method
+    final bool isAdmin = (role == null || role == 'admin');
 
     return Scaffold(
-      appBar: CustomAppBar(
-        userName: userName, 
-        firstLetter: firstLetter, 
-        email: email
-      ),
-      drawer: Navigation(),
-      body: _isLoading
-          ? Center(
-              child: CircularProgressIndicator(
-                color: Colors.purple,
-              ),
+      drawer: isAdmin
+          ? const Navigation() // assume admin drawer
+          : const UserNavigation(), // you should have a user drawer
+      appBar: isAdmin
+          ? CustomAppBar(
+              userName: userName,
+              firstLetter: firstLetter,
+              email: email,
             )
+          : UserCustomAppBar(
+              userName: userName,
+              firstLetter: firstLetter,
+              email: email,
+            ),
+      body: _isLoading
+          ? Center(child: CircularProgressIndicator(color: Colors.purple))
           : SingleChildScrollView(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -236,7 +250,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       children: [
                         Row(
                           children: [
-                            const Icon(Icons.person_outline, color: Colors.black),
+                            const Icon(
+                              Icons.person_outline,
+                              color: Colors.black,
+                            ),
                             const SizedBox(width: 8),
                             Text(
                               'Profile',

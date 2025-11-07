@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:gatecheck/User_Screens/Profile_Screens/user_profile_screen.dart';
+import 'package:gatecheck/Admin_Screens/Profile_Screen/profile_screen.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:gatecheck/Auth_Screens/gatecheck_signin.dart';
 
-class UserAppBar extends StatelessWidget implements PreferredSizeWidget {
-  const UserAppBar({
+class UserCustomAppBar extends StatelessWidget implements PreferredSizeWidget {
+  const UserCustomAppBar({
     super.key,
     required this.userName,
     required this.firstLetter,
+    required this.email,
   });
 
   @override
@@ -15,9 +16,12 @@ class UserAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   final String userName;
   final String firstLetter;
+  final String email;
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    
     return AppBar(
       backgroundColor: Colors.white,
       centerTitle: true,
@@ -25,7 +29,7 @@ class UserAppBar extends StatelessWidget implements PreferredSizeWidget {
       iconTheme: const IconThemeData(color: Colors.black),
       actions: [
         Padding(
-          padding: const EdgeInsets.only(right: 12.0),
+          padding: EdgeInsets.only(right: screenWidth * 0.03),
           child: PopupMenuButton<String>(
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(10),
@@ -33,7 +37,7 @@ class UserAppBar extends StatelessWidget implements PreferredSizeWidget {
             offset: const Offset(0, 50),
             onSelected: (value) {
               if (value == "profile") {
-                // Navigate to profile page if needed
+                // Navigation handled in itemBuilder
               } else if (value == "signout") {
                 Navigator.of(context).pushAndRemoveUntil(
                   MaterialPageRoute(
@@ -53,15 +57,15 @@ class UserAppBar extends StatelessWidget implements PreferredSizeWidget {
                       userName,
                       style: GoogleFonts.poppins(
                         fontWeight: FontWeight.bold,
-                        fontSize: 14,
+                        fontSize: screenWidth * 0.035,
                         color: Colors.black,
                       ),
                     ),
-                    const SizedBox(height: 2),
+                    SizedBox(height: 2),
                     Text(
-                      "teerdavenig@gmail.com",
+                      email,
                       style: GoogleFonts.poppins(
-                        fontSize: 12,
+                        fontSize: screenWidth * 0.03,
                         color: Colors.grey,
                       ),
                     ),
@@ -75,18 +79,18 @@ class UserAppBar extends StatelessWidget implements PreferredSizeWidget {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => const UserProfileScreen(),
+                      builder: (context) => const ProfileScreen(),
                     ),
                   );
                 },
                 child: Row(
                   children: [
-                    const Icon(Icons.person_outline, size: 18),
-                    const SizedBox(width: 8),
+                    Icon(Icons.person_outline, size: screenWidth * 0.045),
+                    SizedBox(width: screenWidth * 0.02),
                     Text(
                       "Profile",
                       style: GoogleFonts.poppins(
-                        fontSize: 13,
+                        fontSize: screenWidth * 0.033,
                         color: Colors.black87,
                       ),
                     ),
@@ -97,12 +101,12 @@ class UserAppBar extends StatelessWidget implements PreferredSizeWidget {
                 value: "signout",
                 child: Row(
                   children: [
-                    const Icon(Icons.logout, size: 18),
-                    const SizedBox(width: 8),
+                    Icon(Icons.logout, size: screenWidth * 0.045),
+                    SizedBox(width: screenWidth * 0.02),
                     Text(
                       "Sign out",
                       style: GoogleFonts.poppins(
-                        fontSize: 13,
+                        fontSize: screenWidth * 0.033,
                         color: Colors.black87,
                       ),
                     ),
@@ -111,19 +115,20 @@ class UserAppBar extends StatelessWidget implements PreferredSizeWidget {
               ),
             ],
             child: Container(
-              padding: const EdgeInsets.all(2),
+              padding: EdgeInsets.all(screenWidth * 0.005),
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(color: Colors.purple, width: 1),
               ),
               child: CircleAvatar(
-                radius: 18,
+                radius: screenWidth * 0.045,
                 backgroundColor: Colors.white,
                 child: Text(
                   firstLetter,
                   style: GoogleFonts.poppins(
                     color: Colors.purple,
                     fontWeight: FontWeight.bold,
+                    fontSize: screenWidth * 0.04,
                   ),
                 ),
               ),

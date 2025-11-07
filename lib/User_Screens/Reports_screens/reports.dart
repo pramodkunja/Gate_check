@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:gatecheck/Admin_Screens/Dashboard_Screens/custom_appbar.dart';
-import 'package:gatecheck/Admin_Screens/Dashboard_Screens/navigation_drawer.dart';
 import 'package:gatecheck/User_Screens/Dashboard_Screens/user_custom_appbar.dart';
 import 'package:gatecheck/User_Screens/Dashboard_Screens/user_navigation_drawer.dart';
+import 'package:gatecheck/Services/User_services/user_service.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class UserReportsScreen extends StatefulWidget {
@@ -13,9 +12,7 @@ class UserReportsScreen extends StatefulWidget {
 }
 
 class _UserReportsScreenState extends State<UserReportsScreen>
-    with
-        TickerProviderStateMixin,
-        AutomaticKeepAliveClientMixin<UserReportsScreen> {
+    with TickerProviderStateMixin, AutomaticKeepAliveClientMixin<UserReportsScreen> {
   late TabController _tabController;
   String selectedYear = '2025';
 
@@ -36,37 +33,41 @@ class _UserReportsScreenState extends State<UserReportsScreen>
 
   @override
   Widget build(BuildContext context) {
+    String userName = UserService().getUserName();
+    String firstLetter = userName.isNotEmpty ? userName[0].toUpperCase() : "?";
+    String email = UserService().getUserEmail();
     super.build(context);
 
     final size = MediaQuery.of(context).size;
-    final isSmallScreen = size.width < 600;
+    final screenWidth = size.width;
+    final screenHeight = size.height;
 
     return Scaffold(
-      appBar: UserAppBar(userName: 'Admin', firstLetter: 'A'),
-      drawer: UserNavigation(),
+      appBar: UserCustomAppBar(userName: userName, firstLetter: firstLetter, email: email),
+      drawer: const UserNavigation(),
       backgroundColor: const Color(0xFFF8F9FA),
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(16.0),
+          padding: EdgeInsets.all(screenWidth * 0.04),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 children: [
-                  Icon(Icons.insert_drive_file, color: Colors.blue, size: 28),
-                  const SizedBox(width: 8),
+                  Icon(Icons.insert_drive_file, color: Colors.blue, size: screenWidth * 0.07),
+                  SizedBox(width: screenWidth * 0.02),
                   Text(
                     'Reports',
                     style: GoogleFonts.poppins(
-                      fontSize: 22,
+                      fontSize: screenWidth * 0.055,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 8),
+              SizedBox(height: screenHeight * 0.01),
               Container(
-                height: 70,
+                height: screenHeight * 0.09,
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(12),
@@ -77,33 +78,30 @@ class _UserReportsScreenState extends State<UserReportsScreen>
                     final tabWidth = constraints.maxWidth / 2;
                     return Stack(
                       children: [
-                        // TabBar
                         TabBar(
                           controller: _tabController,
                           labelStyle: GoogleFonts.poppins(
                             fontWeight: FontWeight.w600,
+                            fontSize: screenWidth * 0.033,
                           ),
                           indicator: BoxDecoration(
                             color: const Color(0xFF6F42C1),
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          indicatorSize:
-                              TabBarIndicatorSize.tab, // 👈 fills entire tab
+                          indicatorSize: TabBarIndicatorSize.tab,
                           unselectedLabelColor: Colors.black54,
                           labelColor: Colors.white,
-                          tabs: const [
+                          tabs: [
                             Tab(
-                              icon: Icon(Icons.calendar_today),
+                              icon: Icon(Icons.calendar_today, size: screenWidth * 0.05),
                               text: 'Monthly Report',
                             ),
                             Tab(
-                              icon: Icon(Icons.insert_drive_file_outlined),
+                              icon: Icon(Icons.insert_drive_file_outlined, size: screenWidth * 0.05),
                               text: 'Customized Report',
                             ),
                           ],
                         ),
-
-                        // Divider between tabs
                         Positioned(
                           left: tabWidth - 0.5,
                           top: 8,
@@ -118,7 +116,7 @@ class _UserReportsScreenState extends State<UserReportsScreen>
                   },
                 ),
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: screenHeight * 0.02),
               Expanded(
                 child: TabBarView(
                   controller: _tabController,
@@ -144,30 +142,22 @@ class _MonthlyReportTabState extends State<MonthlyReportTab> {
   String selectedYear = '2025';
   final List<String> years = ['2023', '2024', '2025'];
   final List<String> months = [
-    'January',
-    'February',
-    'March',
-    'April',
-    'May',
-    'June',
-    'July',
-    'August',
-    'September',
-    'October',
-    'November',
-    'December',
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December',
   ];
 
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
+    final screenWidth = size.width;
+    final screenHeight = size.height;
 
     return SingleChildScrollView(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.all(screenWidth * 0.04),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(16),
@@ -184,11 +174,11 @@ class _MonthlyReportTabState extends State<MonthlyReportTab> {
                 Text(
                   'Select Year:',
                   style: GoogleFonts.poppins(
-                    fontSize: 16,
+                    fontSize: screenWidth * 0.04,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
-                const SizedBox(width: 12),
+                SizedBox(width: screenWidth * 0.03),
                 Expanded(
                   child: DropdownButtonFormField<String>(
                     value: selectedYear,
@@ -197,18 +187,16 @@ class _MonthlyReportTabState extends State<MonthlyReportTab> {
                         borderRadius: BorderRadius.circular(12),
                         borderSide: const BorderSide(color: Colors.grey),
                       ),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: screenWidth * 0.03,
+                        vertical: screenHeight * 0.01,
                       ),
                     ),
                     items: years
-                        .map(
-                          (year) => DropdownMenuItem(
-                            value: year,
-                            child: Text(year, style: GoogleFonts.poppins()),
-                          ),
-                        )
+                        .map((year) => DropdownMenuItem(
+                              value: year,
+                              child: Text(year, style: GoogleFonts.poppins()),
+                            ))
                         .toList(),
                     onChanged: (value) {
                       setState(() => selectedYear = value!);
@@ -218,16 +206,16 @@ class _MonthlyReportTabState extends State<MonthlyReportTab> {
               ],
             ),
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: screenHeight * 0.02),
           ListView.builder(
             physics: const NeverScrollableScrollPhysics(),
             shrinkWrap: true,
             itemCount: months.length,
             itemBuilder: (context, index) {
               return Padding(
-                padding: const EdgeInsets.symmetric(vertical: 6),
+                padding: EdgeInsets.symmetric(vertical: screenHeight * 0.008),
                 child: Container(
-                  padding: const EdgeInsets.all(16),
+                  padding: EdgeInsets.all(screenWidth * 0.04),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(16),
@@ -244,36 +232,31 @@ class _MonthlyReportTabState extends State<MonthlyReportTab> {
                     children: [
                       Row(
                         children: [
-                          const Icon(
+                          Icon(
                             Icons.calendar_today,
-                            color: Color(0xFF6F42C1),
+                            color: const Color(0xFF6F42C1),
+                            size: screenWidth * 0.05,
                           ),
-                          const SizedBox(width: 12),
+                          SizedBox(width: screenWidth * 0.03),
                           Expanded(
                             child: Text(
                               months[index],
                               style: GoogleFonts.poppins(
-                                fontSize: 16,
+                                fontSize: screenWidth * 0.04,
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 10),
+                      SizedBox(height: screenHeight * 0.012),
                       Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
+                        spacing: screenWidth * 0.02,
+                        runSpacing: screenHeight * 0.01,
                         children: [
-                          _buildOutlinedButton(
-                            'Excel',
-                            const Color(0xFF00A651),
-                          ),
-                          _buildOutlinedButton('PDF', const Color(0xFFE53935)),
-                          _buildOutlinedButton(
-                            'Preview',
-                            const Color(0xFF1E88E5),
-                          ),
+                          _buildOutlinedButton('Excel', const Color(0xFF00A651), screenWidth),
+                          _buildOutlinedButton('PDF', const Color(0xFFE53935), screenWidth),
+                          _buildOutlinedButton('Preview', const Color(0xFF1E88E5), screenWidth),
                         ],
                       ),
                     ],
@@ -287,16 +270,21 @@ class _MonthlyReportTabState extends State<MonthlyReportTab> {
     );
   }
 
-  Widget _buildOutlinedButton(String text, Color color) {
+  Widget _buildOutlinedButton(String text, Color color, double screenWidth) {
     return OutlinedButton(
       onPressed: () {},
       style: OutlinedButton.styleFrom(
         side: BorderSide(color: color),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.03, vertical: screenWidth * 0.02),
       ),
       child: Text(
         text,
-        style: GoogleFonts.poppins(color: color, fontWeight: FontWeight.w500),
+        style: GoogleFonts.poppins(
+          color: color,
+          fontWeight: FontWeight.w500,
+          fontSize: screenWidth * 0.033,
+        ),
       ),
     );
   }
@@ -331,9 +319,13 @@ class _CustomizedReportTabState extends State<CustomizedReportTab> {
 
   @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+    final screenWidth = size.width;
+    final screenHeight = size.height;
+
     return SingleChildScrollView(
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(screenWidth * 0.04),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
@@ -347,42 +339,22 @@ class _CustomizedReportTabState extends State<CustomizedReportTab> {
         ),
         child: Column(
           children: [
-            _buildDateTimePicker(
-              'From Date',
-              Icons.calendar_today,
-              fromDateController,
-              true,
-            ),
-            const SizedBox(height: 12),
-            _buildDateTimePicker(
-              'To Date',
-              Icons.calendar_today,
-              toDateController,
-              true,
-            ),
-            const SizedBox(height: 12),
-            _buildDateTimePicker(
-              'From Time',
-              Icons.access_time,
-              fromTimeController,
-              false,
-            ),
-            const SizedBox(height: 12),
-            _buildDateTimePicker(
-              'To Time',
-              Icons.access_time,
-              toTimeController,
-              false,
-            ),
-            const SizedBox(height: 20),
+            _buildDateTimePicker('From Date', Icons.calendar_today, fromDateController, true, screenWidth, screenHeight),
+            SizedBox(height: screenHeight * 0.015),
+            _buildDateTimePicker('To Date', Icons.calendar_today, toDateController, true, screenWidth, screenHeight),
+            SizedBox(height: screenHeight * 0.015),
+            _buildDateTimePicker('From Time', Icons.access_time, fromTimeController, false, screenWidth, screenHeight),
+            SizedBox(height: screenHeight * 0.015),
+            _buildDateTimePicker('To Time', Icons.access_time, toTimeController, false, screenWidth, screenHeight),
+            SizedBox(height: screenHeight * 0.025),
             Wrap(
               alignment: WrapAlignment.center,
-              spacing: 8,
-              runSpacing: 8,
+              spacing: screenWidth * 0.02,
+              runSpacing: screenHeight * 0.01,
               children: [
-                _buildButton('Download Excel', const Color(0xFF00A651)),
-                _buildButton('Download PDF', const Color(0xFFE53935)),
-                _buildButton('Preview', const Color(0xFF1E88E5)),
+                _buildButton('Download Excel', const Color(0xFF00A651), screenWidth),
+                _buildButton('Download PDF', const Color(0xFFE53935), screenWidth),
+                _buildButton('Preview', const Color(0xFF1E88E5), screenWidth),
               ],
             ),
           ],
@@ -396,6 +368,8 @@ class _CustomizedReportTabState extends State<CustomizedReportTab> {
     IconData icon,
     TextEditingController controller,
     bool isDate,
+    double screenWidth,
+    double screenHeight,
   ) {
     return TextField(
       controller: controller,
@@ -423,8 +397,8 @@ class _CustomizedReportTabState extends State<CustomizedReportTab> {
       },
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: GoogleFonts.poppins(fontSize: 14),
-        prefixIcon: Icon(icon, color: const Color(0xFF6F42C1)),
+        labelStyle: GoogleFonts.poppins(fontSize: screenWidth * 0.035),
+        prefixIcon: Icon(icon, color: const Color(0xFF6F42C1), size: screenWidth * 0.055),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: Colors.grey),
@@ -433,17 +407,21 @@ class _CustomizedReportTabState extends State<CustomizedReportTab> {
     );
   }
 
-  Widget _buildButton(String text, Color color) {
+  Widget _buildButton(String text, Color color, double screenWidth) {
     return OutlinedButton(
       onPressed: () {},
       style: OutlinedButton.styleFrom(
         side: BorderSide(color: color),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.03, vertical: screenWidth * 0.025),
       ),
       child: Text(
         text,
-        style: GoogleFonts.poppins(color: color, fontWeight: FontWeight.w500),
+        style: GoogleFonts.poppins(
+          color: color,
+          fontWeight: FontWeight.w500,
+          fontSize: screenWidth * 0.033,
+        ),
       ),
     );
   }

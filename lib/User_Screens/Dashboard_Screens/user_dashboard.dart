@@ -1,30 +1,37 @@
 import 'package:flutter/material.dart';
+import 'package:gatecheck/Admin_Screens/Visitors_Screen/visitors_screen.dart';
+import 'package:gatecheck/User_Screens/Reports_screens/reports.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:gatecheck/Services/User_services/user_service.dart';
 import 'package:gatecheck/User_Screens/Dashboard_Screens/user_custom_appbar.dart';
 import 'package:gatecheck/User_Screens/Dashboard_Screens/user_navigation_drawer.dart';
-import 'package:gatecheck/User_Screens/Reports_screens/reports.dart';
-import 'package:gatecheck/User_Screens/Visitors_Screen/visitors_screen.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 class UserDashboardScreen extends StatelessWidget {
   const UserDashboardScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // Simulate API fetched user data
-    String userName = "Veni"; // You’ll replace with API data later
+    // Get current logged-in user from UserService
+    String userName = UserService().getUserName();
     String firstLetter = userName.isNotEmpty ? userName[0].toUpperCase() : "?";
+    String email = UserService().getUserEmail();
 
     final size = MediaQuery.of(context).size;
-    final isSmall = size.width < 360;
+    final screenWidth = size.width;
+    final screenHeight = size.height;
 
     return Scaffold(
       backgroundColor: Colors.grey[100],
-      appBar: UserAppBar(userName: userName, firstLetter: firstLetter),
+      appBar: UserCustomAppBar(
+        userName: userName,
+        firstLetter: firstLetter,
+        email: email,
+      ),
       drawer: const UserNavigation(),
       body: LayoutBuilder(
         builder: (context, constraints) {
           return SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.all(screenWidth * 0.04),
             child: ConstrainedBox(
               constraints: BoxConstraints(minHeight: constraints.maxHeight),
               child: IntrinsicHeight(
@@ -33,7 +40,7 @@ class UserDashboardScreen extends StatelessWidget {
                   children: [
                     // Welcome message
                     Container(
-                      padding: const EdgeInsets.all(16),
+                      padding: EdgeInsets.all(screenWidth * 0.04),
                       decoration: BoxDecoration(
                         color: Colors.white,
                         border: Border.all(color: Colors.purple, width: 1.2),
@@ -45,47 +52,49 @@ class UserDashboardScreen extends StatelessWidget {
                           Text(
                             "Welcome back, $userName!",
                             style: GoogleFonts.poppins(
-                              fontSize: 18,
+                              fontSize: screenWidth * 0.045,
                               fontWeight: FontWeight.bold,
                               color: Colors.purple,
                             ),
                           ),
-                          const SizedBox(height: 6),
+                          SizedBox(height: screenHeight * 0.008),
                           Text(
                             "Here's what's happening with your security system today.",
                             style: GoogleFonts.poppins(
                               color: Colors.black54,
-                              fontSize: 14,
+                              fontSize: screenWidth * 0.035,
                               fontWeight: FontWeight.w400,
                             ),
                           ),
                         ],
                       ),
                     ),
-                    const SizedBox(height: 20),
+                    SizedBox(height: screenHeight * 0.025),
 
                     // Quick Actions
                     Card(
                       elevation: 2,
                       child: Padding(
-                        padding: const EdgeInsets.all(8.0),
+                        padding: EdgeInsets.all(screenWidth * 0.02),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const SizedBox(height: 10),
+                            SizedBox(height: screenHeight * 0.012),
                             Text(
                               "Quick Actions",
                               style: GoogleFonts.poppins(
-                                fontSize: 16,
+                                fontSize: screenWidth * 0.04,
                                 fontWeight: FontWeight.bold,
                                 color: Colors.black,
                               ),
                             ),
-                            const SizedBox(height: 10),
+                            SizedBox(height: screenHeight * 0.012),
 
                             // Action Cards
                             _buildActionCard(
                               context: context,
+                              screenWidth: screenWidth,
+                              screenHeight: screenHeight,
                               color: Colors.purple.shade50,
                               icon: Icons.person_add_alt,
                               label: "Add New Visitor",
@@ -95,14 +104,16 @@ class UserDashboardScreen extends StatelessWidget {
                                   context,
                                   MaterialPageRoute(
                                     builder: (context) =>
-                                        const UserRegularVisitorsScreen(),
+                                        const RegularVisitorsScreen(),
                                   ),
                                 );
                               },
                             ),
-                            const SizedBox(height: 10),
+                            SizedBox(height: screenHeight * 0.012),
                             _buildActionCard(
                               context: context,
+                              screenWidth: screenWidth,
+                              screenHeight: screenHeight,
                               color: Colors.blue.shade50,
                               icon: Icons.description_outlined,
                               label: "Generate Report",
@@ -116,31 +127,31 @@ class UserDashboardScreen extends StatelessWidget {
                                 );
                               },
                             ),
-                            const SizedBox(height: 10),
+                            SizedBox(height: screenHeight * 0.012),
                           ],
                         ),
                       ),
                     ),
 
-                    const SizedBox(height: 40),
+                    SizedBox(height: screenHeight * 0.05),
 
                     // Visitors section
                     Column(
                       children: [
                         CircleAvatar(
-                          radius: isSmall ? 20 : 24,
+                          radius: screenWidth * 0.06,
                           backgroundColor: Colors.purple.shade50,
                           child: Icon(
                             Icons.people_alt,
                             color: Colors.purple,
-                            size: isSmall ? 22 : 26,
+                            size: screenWidth * 0.065,
                           ),
                         ),
-                        const SizedBox(height: 8),
+                        SizedBox(height: screenHeight * 0.01),
                         Text(
                           "56",
                           style: GoogleFonts.poppins(
-                            fontSize: 28,
+                            fontSize: screenWidth * 0.07,
                             fontWeight: FontWeight.bold,
                             color: Colors.black,
                           ),
@@ -149,7 +160,7 @@ class UserDashboardScreen extends StatelessWidget {
                           "Visitors",
                           style: GoogleFonts.poppins(
                             color: Colors.black54,
-                            fontSize: 14,
+                            fontSize: screenWidth * 0.035,
                             fontWeight: FontWeight.w400,
                           ),
                         ),
@@ -167,6 +178,8 @@ class UserDashboardScreen extends StatelessWidget {
 
   Widget _buildActionCard({
     required BuildContext context,
+    required double screenWidth,
+    required double screenHeight,
     required Color color,
     required IconData icon,
     required String label,
@@ -181,7 +194,7 @@ class UserDashboardScreen extends StatelessWidget {
         borderRadius: BorderRadius.circular(10),
         onTap: onTap,
         child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 18),
+          padding: EdgeInsets.symmetric(vertical: screenHeight * 0.022),
           decoration: BoxDecoration(
             color: color,
             borderRadius: BorderRadius.circular(10),
@@ -189,12 +202,12 @@ class UserDashboardScreen extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, color: iconColor),
-              const SizedBox(width: 8),
+              Icon(icon, color: iconColor, size: screenWidth * 0.06),
+              SizedBox(width: screenWidth * 0.02),
               Text(
                 label,
                 style: GoogleFonts.poppins(
-                  fontSize: 16,
+                  fontSize: screenWidth * 0.04,
                   fontWeight: FontWeight.w500,
                   color: Colors.black,
                 ),
