@@ -12,8 +12,8 @@ class EditPermissionsDialog extends StatefulWidget {
   const EditPermissionsDialog({
     required this.role,
     required this.onUpdate,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   State<EditPermissionsDialog> createState() => _EditPermissionsDialogState();
@@ -129,7 +129,7 @@ class _EditPermissionsDialogState extends State<EditPermissionsDialog> {
     final success = await _apiService.updatePermissions(
       rolePermissionId: widget.role.rolePermissionId,
       role: widget.role.role,
-      permissions: selectedPermissions.toList(),
+      permission_id: selectedPermissions.toList(),
     );
 
     setState(() => _isSubmitting = false);

@@ -27,6 +27,9 @@ class _OrganizationManagementScreenState
   List<Organization> _filteredOrganizations = [];
   final TextEditingController _searchController = TextEditingController();
   
+  // Store user counts for each organization
+  Map<String, int> _userCounts = {};
+  
   bool _isLoading = false;
   String? _errorMessage;
 
@@ -70,6 +73,9 @@ class _OrganizationManagementScreenState
           _filteredOrganizations = loadedOrgs;
           _isLoading = false;
         });
+
+        // Load user counts for all organizations
+        await _loadUserCounts();
       } else {
         setState(() {
           _errorMessage = 'Failed to load organizations';
@@ -91,6 +97,39 @@ class _OrganizationManagementScreenState
       });
       _showErrorSnackBar(_errorMessage!);
     }
+  }
+
+  // -------------------- Load User Counts for All Organizations --------------------
+  Future<void> _loadUserCounts() async {
+    Map<String, int> counts = {};
+    
+    for (var org in _organizations) {
+      try {
+        final response = await _orgService.getUsers(org.id);
+        
+        if (response.statusCode == 200) {
+          final data = response.data;
+          int userCount = 0;
+          
+          if (data is List) {
+            userCount = data.length;
+          } else if (data is Map && data.containsKey('data')) {
+            final userList = data['data'] as List;
+            userCount = userList.length;
+          }
+          
+          counts[org.id] = userCount;
+          debugPrint('✅ Organization ${org.name} (${org.id}): $userCount users');
+        }
+      } catch (e) {
+        debugPrint('❌ Error loading user count for org ${org.id}: $e');
+        counts[org.id] = 0;
+      }
+    }
+    
+    setState(() {
+      _userCounts = counts;
+    });
   }
 
   // -------------------- Parse Organization from API Response --------------------
@@ -117,7 +156,7 @@ class _OrganizationManagementScreenState
     return usersData.map((userData) {
       return User(
         id: userData['id']?.toString() ?? '',
-        name: userData['name']?.toString() ?? '',
+        name: userData['name']?.toString() ?? userData['username']?.toString() ?? '',
         email: userData['email']?.toString() ?? '',
         mobileNumber: userData['mobile_number']?.toString() ?? userData['phone']?.toString() ?? '',
         companyName: userData['company_name']?.toString() ?? '',
@@ -235,7 +274,7 @@ class _OrganizationManagementScreenState
   }
 
   // -------------------- Add User to Organization --------------------
-  Future<void> _addUserToOrganization(Organization org, User newUser,String companyId) async {
+  Future<void> _addUserToOrganization(Organization org, User newUser, String companyId) async {
     try {
       _showLoadingDialog();
 
@@ -245,9 +284,7 @@ class _OrganizationManagementScreenState
         'mobile_number': newUser.mobileNumber,
         'company_name': org.name,
         'company_id': org.id,
-        'company': companyId,            // use required key
-       // ignore: equal_keys_in_map
-       'company_name': org.name,        // optional
+        'company': companyId,
         'role': newUser.role,
         'block': newUser.block,
         'floor': newUser.floor,
@@ -305,7 +342,9 @@ class _OrganizationManagementScreenState
           children: [
             const Icon(Icons.check_circle, color: Colors.white),
             const SizedBox(width: 8),
-            Text(message, style: GoogleFonts.poppins()),
+            Expanded(
+              child: Text(message, style: GoogleFonts.poppins()),
+            ),
           ],
         ),
         backgroundColor: Colors.green,
@@ -340,6 +379,7 @@ class _OrganizationManagementScreenState
     String email = UserService().getUserEmail();
     final screenWidth = MediaQuery.of(context).size.width;
     final isSmallScreen = screenWidth < 600;
+    final isMediumScreen = screenWidth >= 600 && screenWidth < 900;
 
     return Scaffold(
       appBar: CustomAppBar(
@@ -382,14 +422,14 @@ class _OrganizationManagementScreenState
                                       Text(
                                         'Organization Management',
                                         style: GoogleFonts.poppins(
-                                          fontSize: 18,
+                                          fontSize: 16,
                                           fontWeight: FontWeight.bold,
                                         ),
                                       ),
                                       Text(
                                         'Manage organizations and members',
                                         style: GoogleFonts.poppins(
-                                          fontSize: 12,
+                                          fontSize: 11,
                                           color: Colors.grey,
                                         ),
                                       ),
@@ -410,10 +450,10 @@ class _OrganizationManagementScreenState
                                     ),
                                   );
                                 },
-                                icon: const Icon(Icons.add),
+                                icon: const Icon(Icons.add, size: 20),
                                 label: Text(
                                   'Add Organization',
-                                  style: GoogleFonts.poppins(),
+                                  style: GoogleFonts.poppins(fontSize: 13),
                                 ),
                                 style: OutlinedButton.styleFrom(
                                   foregroundColor: Colors.purple,
@@ -432,10 +472,10 @@ class _OrganizationManagementScreenState
                                 color: Colors.purple,
                                 borderRadius: BorderRadius.circular(8),
                               ),
-                              child: const Icon(
+                              child: Icon(
                                 Icons.business,
                                 color: Colors.white,
-                                size: 24,
+                                size: isMediumScreen ? 20 : 24,
                               ),
                             ),
                             const SizedBox(width: 12),
@@ -446,14 +486,14 @@ class _OrganizationManagementScreenState
                                   Text(
                                     'Organization Management',
                                     style: GoogleFonts.poppins(
-                                      fontSize: 20,
+                                      fontSize: isMediumScreen ? 18 : 20,
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),
                                   Text(
                                     'Manage your organizations and their members',
                                     style: GoogleFonts.poppins(
-                                      fontSize: 14,
+                                      fontSize: isMediumScreen ? 12 : 14,
                                       color: Colors.grey,
                                     ),
                                   ),
@@ -469,17 +509,19 @@ class _OrganizationManagementScreenState
                                   ),
                                 );
                               },
-                              icon: const Icon(Icons.add),
+                              icon: const Icon(Icons.add, size: 18),
                               label: Text(
                                 'Add\nOrganization',
-                                style: GoogleFonts.poppins(fontSize: 12),
+                                style: GoogleFonts.poppins(
+                                  fontSize: isMediumScreen ? 11 : 12,
+                                ),
                                 textAlign: TextAlign.center,
                               ),
                               style: OutlinedButton.styleFrom(
                                 foregroundColor: Colors.purple,
                                 side: const BorderSide(color: Colors.purple),
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 16,
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: isMediumScreen ? 12 : 16,
                                   vertical: 8,
                                 ),
                               ),
@@ -490,23 +532,37 @@ class _OrganizationManagementScreenState
                   TextField(
                     controller: _searchController,
                     onChanged: _filterOrganizations,
-                    style: GoogleFonts.poppins(fontSize: 16),
+                    style: GoogleFonts.poppins(
+                      fontSize: isSmallScreen ? 14 : 16,
+                    ),
                     decoration: InputDecoration(
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
                       ),
                       hintText: 'Search Organizations...',
-                      hintStyle: GoogleFonts.poppins(fontSize: 16),
-                      prefixIcon: const Icon(Icons.search),
+                      hintStyle: GoogleFonts.poppins(
+                        fontSize: isSmallScreen ? 14 : 16,
+                      ),
+                      prefixIcon: Icon(
+                        Icons.search,
+                        size: isSmallScreen ? 20 : 24,
+                      ),
                       suffixIcon: _searchController.text.isNotEmpty
                           ? IconButton(
-                              icon: const Icon(Icons.clear),
+                              icon: Icon(
+                                Icons.clear,
+                                size: isSmallScreen ? 20 : 24,
+                              ),
                               onPressed: () {
                                 _searchController.clear();
                                 _filterOrganizations('');
                               },
                             )
                           : null,
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: isSmallScreen ? 12 : 16,
+                        vertical: isSmallScreen ? 12 : 16,
+                      ),
                     ),
                   ),
                 ],
@@ -517,37 +573,49 @@ class _OrganizationManagementScreenState
                   ? const Center(child: CircularProgressIndicator())
                   : _errorMessage != null
                       ? Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.error_outline,
-                                size: 64,
-                                color: Colors.red[300],
-                              ),
-                              const SizedBox(height: 16),
-                              Text(
-                                _errorMessage!,
-                                style: GoogleFonts.poppins(
-                                  fontSize: 16,
-                                  color: Colors.grey[600],
+                          child: Padding(
+                            padding: EdgeInsets.all(isSmallScreen ? 16 : 24),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.error_outline,
+                                  size: isSmallScreen ? 48 : 64,
+                                  color: Colors.red[300],
                                 ),
-                                textAlign: TextAlign.center,
-                              ),
-                              const SizedBox(height: 16),
-                              ElevatedButton.icon(
-                                onPressed: _loadOrganizations,
-                                icon: const Icon(Icons.refresh),
-                                label: Text(
-                                  'Retry',
-                                  style: GoogleFonts.poppins(),
+                                SizedBox(height: isSmallScreen ? 12 : 16),
+                                Text(
+                                  _errorMessage!,
+                                  style: GoogleFonts.poppins(
+                                    fontSize: isSmallScreen ? 14 : 16,
+                                    color: Colors.grey[600],
+                                  ),
+                                  textAlign: TextAlign.center,
                                 ),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.purple,
-                                  foregroundColor: Colors.white,
+                                SizedBox(height: isSmallScreen ? 12 : 16),
+                                ElevatedButton.icon(
+                                  onPressed: _loadOrganizations,
+                                  icon: Icon(
+                                    Icons.refresh,
+                                    size: isSmallScreen ? 18 : 20,
+                                  ),
+                                  label: Text(
+                                    'Retry',
+                                    style: GoogleFonts.poppins(
+                                      fontSize: isSmallScreen ? 13 : 14,
+                                    ),
+                                  ),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.purple,
+                                    foregroundColor: Colors.white,
+                                    padding: EdgeInsets.symmetric(
+                                      horizontal: isSmallScreen ? 16 : 24,
+                                      vertical: isSmallScreen ? 10 : 12,
+                                    ),
+                                  ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                         )
                       : _filteredOrganizations.isEmpty
@@ -557,14 +625,14 @@ class _OrganizationManagementScreenState
                                 children: [
                                   Icon(
                                     Icons.business_outlined,
-                                    size: 64,
+                                    size: isSmallScreen ? 48 : 64,
                                     color: Colors.grey[400],
                                   ),
-                                  const SizedBox(height: 16),
+                                  SizedBox(height: isSmallScreen ? 12 : 16),
                                   Text(
                                     'No organizations found',
                                     style: GoogleFonts.poppins(
-                                      fontSize: 16,
+                                      fontSize: isSmallScreen ? 14 : 16,
                                       color: Colors.grey[600],
                                     ),
                                   ),
@@ -580,8 +648,11 @@ class _OrganizationManagementScreenState
                                 itemCount: _filteredOrganizations.length,
                                 itemBuilder: (context, index) {
                                   final org = _filteredOrganizations[index];
+                                  final userCount = _userCounts[org.id] ?? 0;
+                                  
                                   return OrganizationCard(
                                     organization: org,
+                                    userCount: userCount, // Pass the user count
                                     onEdit: () {
                                       showDialog(
                                         context: context,
@@ -596,16 +667,14 @@ class _OrganizationManagementScreenState
                                       showDialog(
                                         context: context,
                                         builder: (context) => AddUserDialog(
-                                        companyName: org.name,
-                                        companyId: org.id, // Pass company ID
-                                        onAdd: (newUser, companyId) {
-                                            _addUserToOrganization(org, newUser,companyId);
-                                         
+                                          companyName: org.name,
+                                          companyId: org.id,
+                                          onAdd: (newUser, companyId) {
+                                            _addUserToOrganization(org, newUser, companyId);
                                           },
                                         ),
                                       );
                                     },
-
                                     onViewUsers: () {
                                       Navigator.push(
                                         context,
@@ -631,6 +700,9 @@ class _OrganizationManagementScreenState
   }
 
   void _showDeleteDialog(Organization org) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isSmallScreen = screenWidth < 600;
+
     showDialog(
       context: context,
       builder: (context) => Dialog(
@@ -638,49 +710,51 @@ class _OrganizationManagementScreenState
           borderRadius: BorderRadius.circular(16),
         ),
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: EdgeInsets.all(isSmallScreen ? 20 : 24),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               Container(
-                padding: const EdgeInsets.all(16),
+                padding: EdgeInsets.all(isSmallScreen ? 12 : 16),
                 decoration: BoxDecoration(
                   color: Colors.red.withOpacity(0.1),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.warning_rounded,
                   color: Colors.red,
-                  size: 48,
+                  size: isSmallScreen ? 36 : 48,
                 ),
               ),
-              const SizedBox(height: 24),
+              SizedBox(height: isSmallScreen ? 16 : 24),
               Text(
                 'Delete Organization',
                 style: GoogleFonts.poppins(
-                  fontSize: 22,
+                  fontSize: isSmallScreen ? 18 : 22,
                   fontWeight: FontWeight.bold,
                 ),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: isSmallScreen ? 12 : 16),
               Text(
                 'Are you sure you want to delete "${org.name}"? This action cannot be undone and will remove all associated data.',
                 style: GoogleFonts.poppins(
-                  fontSize: 14,
+                  fontSize: isSmallScreen ? 13 : 14,
                   color: Colors.grey[700],
                   height: 1.5,
                 ),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 24),
+              SizedBox(height: isSmallScreen ? 20 : 24),
               Row(
                 children: [
                   Expanded(
                     child: OutlinedButton(
                       onPressed: () => Navigator.pop(context),
                       style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        padding: EdgeInsets.symmetric(
+                          vertical: isSmallScreen ? 10 : 12,
+                        ),
                         side: BorderSide(color: Colors.grey[300]!),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8),
@@ -691,6 +765,7 @@ class _OrganizationManagementScreenState
                         style: GoogleFonts.poppins(
                           color: Colors.black87,
                           fontWeight: FontWeight.w500,
+                          fontSize: isSmallScreen ? 13 : 14,
                         ),
                       ),
                     ),
@@ -703,17 +778,24 @@ class _OrganizationManagementScreenState
                         _deleteOrganization(org.id);
                       },
                       style: ElevatedButton.styleFrom(
-                        foregroundColor: Colors.red,
-                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        backgroundColor: Colors.red,
+                        foregroundColor: Colors.white,
+                        padding: EdgeInsets.symmetric(
+                          vertical: isSmallScreen ? 10 : 12,
+                        ),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8),
                         ),
                       ),
-                      icon: const Icon(Icons.delete_outline, size: 20),
+                      icon: Icon(
+                        Icons.delete_outline,
+                        size: isSmallScreen ? 18 : 20,
+                      ),
                       label: Text(
                         'Delete',
                         style: GoogleFonts.poppins(
                           fontWeight: FontWeight.w600,
+                          fontSize: isSmallScreen ? 13 : 14,
                         ),
                       ),
                     ),

@@ -2,7 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:gatecheck/Admin_Screens/Dashboard_Screens/custom_appbar.dart';
 import 'package:gatecheck/Admin_Screens/Dashboard_Screens/navigation_drawer.dart';
 import 'package:gatecheck/Services/User_services/user_service.dart';
+import 'package:gatecheck/Services/Auth_Services/api_service.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:dio/dio.dart';
+import 'package:path_provider/path_provider.dart';
+import 'dart:io';
+import 'package:open_file/open_file.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:url_launcher/url_launcher.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ReportsScreen extends StatefulWidget {
   const ReportsScreen({super.key});
@@ -35,7 +43,6 @@ class _ReportsScreenState extends State<ReportsScreen>
 
   @override
   Widget build(BuildContext context) {
-
     String userName = UserService().getUserName();
     String firstLetter = userName.isNotEmpty ? userName[0].toUpperCase() : "?";
     String email = UserService().getUserEmail();
@@ -46,8 +53,9 @@ class _ReportsScreenState extends State<ReportsScreen>
     final isSmallScreen = size.width < 600;
 
     return Scaffold(
-      appBar: CustomAppBar(userName: userName, firstLetter: firstLetter, email: email),
-      drawer: Navigation(),
+      appBar: CustomAppBar(
+          userName: userName, firstLetter: firstLetter, email: email),
+      drawer: const Navigation(),
       backgroundColor: const Color(0xFFF8F9FA),
       body: SafeArea(
         child: Padding(
@@ -57,7 +65,8 @@ class _ReportsScreenState extends State<ReportsScreen>
             children: [
               Row(
                 children: [
-                  Icon(Icons.insert_drive_file, color: Colors.blue, size: 28),
+                  const Icon(Icons.insert_drive_file,
+                      color: Colors.blue, size: 28),
                   const SizedBox(width: 8),
                   Text(
                     'Reports',
@@ -81,7 +90,6 @@ class _ReportsScreenState extends State<ReportsScreen>
                     final tabWidth = constraints.maxWidth / 2;
                     return Stack(
                       children: [
-                        // TabBar
                         TabBar(
                           controller: _tabController,
                           labelStyle: GoogleFonts.poppins(
@@ -91,8 +99,7 @@ class _ReportsScreenState extends State<ReportsScreen>
                             color: const Color(0xFF6F42C1),
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          indicatorSize:
-                              TabBarIndicatorSize.tab, // 👈 fills entire tab
+                          indicatorSize: TabBarIndicatorSize.tab,
                           unselectedLabelColor: Colors.black54,
                           labelColor: Colors.white,
                           tabs: const [
@@ -106,8 +113,6 @@ class _ReportsScreenState extends State<ReportsScreen>
                             ),
                           ],
                         ),
-
-                        // Divider between tabs
                         Positioned(
                           left: tabWidth - 0.5,
                           top: 8,
@@ -146,7 +151,7 @@ class MonthlyReportTab extends StatefulWidget {
 
 class _MonthlyReportTabState extends State<MonthlyReportTab> {
   String selectedYear = '2025';
-  final List<String> years = ['2023', '2024', '2025'];
+  final List<String> years = ['2023', '2024', '2025', '2026'];
   final List<String> months = [
     'January',
     'February',
@@ -162,11 +167,219 @@ class _MonthlyReportTabState extends State<MonthlyReportTab> {
     'December',
   ];
 
+  bool isLoading = false;
+  String? loadingAction;
+  int? loadingMonth;
+
+  Future<void> _downloadReport(
+      String type, int monthIndex, bool isPreview) async {
+    setState(() {
+      isLoading = true;
+      loadingAction = type;
+      loadingMonth = monthIndex;
+    });
+
+    try {
+      final month = monthIndex + 1;
+      String endpoint = '';
+      String fileName = '';
+
+      if (type == 'PDF') {
+        endpoint =
+            '/reports/monthly-visitor-pdf/?year=$selectedYear&month=$month${isPreview ? '&preview=true' : ''}';
+        fileName = 'Report_${months[monthIndex]}_$selectedYear.pdf';
+      } else if (type == 'Excel') {
+        endpoint =
+            '/reports/monthly-visitor-excel/?year=$selectedYear&month=$month';
+        fileName = 'Report_${months[monthIndex]}_$selectedYear.xlsx';
+      }
+
+      if (isPreview) {
+        // For preview, open in browser or PDF viewer
+        final baseUrl = ApiService.baseUrl;
+        final prefs = await SharedPreferences.getInstance();
+        final token = prefs.getString('authToken');
+        final previewUrl = '$baseUrl$endpoint';
+        
+        debugPrint('🔍 Preview URL: $previewUrl');
+        
+        if (kIsWeb) {
+          // On web, open in new tab
+          if (await canLaunchUrl(Uri.parse(previewUrl))) {
+            await launchUrl(Uri.parse(previewUrl), mode: LaunchMode.externalApplication);
+          }
+        } else {
+          // On mobile, download to temp and open
+          final tempDir = await getTemporaryDirectory();
+          final tempFile = '${tempDir.path}/preview_$fileName';
+          
+          try {
+            await ApiService().dio.download(
+              endpoint,
+              tempFile,
+              options: Options(
+                responseType: ResponseType.bytes,
+                followRedirects: true,
+                validateStatus: (status) => status! < 500,
+                headers: {
+                  'Authorization': 'Bearer $token',
+                },
+              ),
+            );
+            
+            debugPrint('✅ Preview file downloaded to: $tempFile');
+            final result = await OpenFile.open(tempFile);
+            debugPrint('📂 Open result: ${result.message}');
+            
+            if (result.type != ResultType.done) {
+              throw Exception('Could not open file: ${result.message}');
+            }
+          } catch (e) {
+            debugPrint('❌ Preview error: $e');
+            rethrow;
+          }
+        }
+      } else {
+        // Download file
+        await _downloadAndOpenFile(endpoint, fileName, false);
+      }
+
+      if (mounted) {
+        String message = isPreview ? 'Opening preview...' : 'File saved to Downloads folder';
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(message, style: GoogleFonts.poppins()),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 2),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } on DioException catch (e) {
+      debugPrint('❌ DioException: ${e.response?.statusCode} - ${e.message}');
+      debugPrint('❌ Response data: ${e.response?.data}');
+      
+      if (mounted) {
+        String errorMessage = 'Failed to download report';
+        if (e.response?.statusCode == 404) {
+          errorMessage = 'No data available for ${months[monthIndex]} $selectedYear';
+        } else if (e.response?.statusCode == 500) {
+          errorMessage = 'Server error. Please try again later';
+        } else if (e.response?.data != null) {
+          errorMessage = ApiService().getErrorMessage(e);
+        } else if (e.type == DioExceptionType.connectionTimeout) {
+          errorMessage = 'Connection timeout. Please check your internet';
+        } else if (e.type == DioExceptionType.receiveTimeout) {
+          errorMessage = 'Download timeout. File might be too large';
+        }
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorMessage, style: GoogleFonts.poppins()),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('❌ General error: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e', style: GoogleFonts.poppins()),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+          loadingAction = null;
+          loadingMonth = null;
+        });
+      }
+    }
+  }
+
+  Future<void> _downloadAndOpenFile(
+      String endpoint, String fileName, bool openFile) async {
+    if (kIsWeb) {
+      // For web, construct download URL
+      final baseUrl = ApiService.baseUrl;
+      final downloadUrl = '$baseUrl$endpoint';
+      if (await canLaunchUrl(Uri.parse(downloadUrl))) {
+        await launchUrl(Uri.parse(downloadUrl), mode: LaunchMode.externalApplication);
+      }
+      return;
+    }
+
+    // For mobile platforms - use Downloads directory
+    Directory? directory;
+    if (Platform.isAndroid) {
+      directory = Directory('/storage/emulated/0/Download');
+      if (!await directory.exists()) {
+        directory = await getExternalStorageDirectory();
+      }
+    } else {
+      directory = await getApplicationDocumentsDirectory();
+    }
+
+    final filePath = '${directory!.path}/$fileName';
+    debugPrint('📁 Saving file to: $filePath');
+
+    // Download with progress
+    await ApiService().dio.download(
+      endpoint,
+      filePath,
+      options: Options(
+        responseType: ResponseType.bytes,
+        followRedirects: true,
+        validateStatus: (status) => status! < 500,
+      ),
+      onReceiveProgress: (received, total) {
+        if (total != -1) {
+          debugPrint('Download progress: ${(received / total * 100).toStringAsFixed(0)}%');
+        }
+      },
+    );
+
+    debugPrint('✅ File saved successfully at: $filePath');
+
+    // Open the file
+    if (openFile) {
+      final result = await OpenFile.open(filePath);
+      debugPrint('📂 Open file result: ${result.message}');
+    } else {
+      // Show file location to user with auto-dismiss
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'File saved to Downloads folder',
+              style: GoogleFonts.poppins(),
+            ),
+            action: SnackBarAction(
+              label: 'Open',
+              onPressed: () {
+                OpenFile.open(filePath);
+                ScaffoldMessenger.of(context).hideCurrentSnackBar();
+              },
+            ),
+            duration: const Duration(seconds: 3),
+            backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    // ignore: unused_local_variable
-    final size = MediaQuery.of(context).size;
-
     return SingleChildScrollView(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -229,6 +442,8 @@ class _MonthlyReportTabState extends State<MonthlyReportTab> {
             shrinkWrap: true,
             itemCount: months.length,
             itemBuilder: (context, index) {
+              final isLoadingThisMonth = isLoading && loadingMonth == index;
+
               return Padding(
                 padding: const EdgeInsets.symmetric(vertical: 6),
                 child: Container(
@@ -263,6 +478,12 @@ class _MonthlyReportTabState extends State<MonthlyReportTab> {
                               ),
                             ),
                           ),
+                          if (isLoadingThisMonth)
+                            const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
                         ],
                       ),
                       const SizedBox(height: 10),
@@ -273,11 +494,20 @@ class _MonthlyReportTabState extends State<MonthlyReportTab> {
                           _buildOutlinedButton(
                             'Excel',
                             const Color(0xFF00A651),
+                            index,
+                            isLoadingThisMonth && loadingAction == 'Excel',
                           ),
-                          _buildOutlinedButton('PDF', const Color(0xFFE53935)),
+                          _buildOutlinedButton(
+                            'PDF',
+                            const Color(0xFFE53935),
+                            index,
+                            isLoadingThisMonth && loadingAction == 'PDF',
+                          ),
                           _buildOutlinedButton(
                             'Preview',
                             const Color(0xFF1E88E5),
+                            index,
+                            isLoadingThisMonth && loadingAction == 'Preview',
                           ),
                         ],
                       ),
@@ -292,17 +522,40 @@ class _MonthlyReportTabState extends State<MonthlyReportTab> {
     );
   }
 
-  Widget _buildOutlinedButton(String text, Color color) {
+  Widget _buildOutlinedButton(
+      String text, Color color, int monthIndex, bool isLoadingThis) {
     return OutlinedButton(
-      onPressed: () {},
+      onPressed: isLoading
+          ? null
+          : () {
+              if (text == 'Excel') {
+                _downloadReport('Excel', monthIndex, false);
+              } else if (text == 'PDF') {
+                _downloadReport('PDF', monthIndex, false);
+              } else if (text == 'Preview') {
+                _downloadReport('PDF', monthIndex, true);
+              }
+            },
       style: OutlinedButton.styleFrom(
-        side: BorderSide(color: color),
+        side: BorderSide(color: isLoading ? Colors.grey : color),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        disabledForegroundColor: Colors.grey,
       ),
-      child: Text(
-        text,
-        style: GoogleFonts.poppins(color: color, fontWeight: FontWeight.w500),
-      ),
+      child: isLoadingThis
+          ? SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                valueColor: AlwaysStoppedAnimation<Color>(color),
+              ),
+            )
+          : Text(
+              text,
+              style: GoogleFonts.poppins(
+                  color: isLoading ? Colors.grey : color,
+                  fontWeight: FontWeight.w500),
+            ),
     );
   }
 }
@@ -325,6 +578,9 @@ class _CustomizedReportTabState extends State<CustomizedReportTab> {
   final TextEditingController fromTimeController = TextEditingController();
   final TextEditingController toTimeController = TextEditingController();
 
+  bool isLoading = false;
+  String? loadingAction;
+
   @override
   void dispose() {
     fromDateController.dispose();
@@ -332,6 +588,190 @@ class _CustomizedReportTabState extends State<CustomizedReportTab> {
     fromTimeController.dispose();
     toTimeController.dispose();
     super.dispose();
+  }
+
+  Future<void> _downloadCustomReport(String type, bool isPreview) async {
+    // Validate inputs
+    if (fromDateController.text.isEmpty || toDateController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Please select both dates', style: GoogleFonts.poppins()),
+          backgroundColor: Colors.orange,
+          duration: const Duration(seconds: 2),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      isLoading = true;
+      loadingAction = type;
+    });
+
+    try {
+      // Format dates for API (YYYY-MM-DD)
+      final fromDateFormatted =
+          "${fromDate!.year}-${fromDate!.month.toString().padLeft(2, '0')}-${fromDate!.day.toString().padLeft(2, '0')}";
+      final toDateFormatted =
+          "${toDate!.year}-${toDate!.month.toString().padLeft(2, '0')}-${toDate!.day.toString().padLeft(2, '0')}";
+
+      String endpoint = '';
+      String fileName = '';
+
+      if (type == 'PDF') {
+        endpoint =
+            '/reports/custom-visitor-pdf/?from_date=$fromDateFormatted&to_date=$toDateFormatted${isPreview ? '&preview=true' : ''}';
+        fileName =
+            'Custom_Report_${fromDate!.day}-${fromDate!.month}-${fromDate!.year}_to_${toDate!.day}-${toDate!.month}-${toDate!.year}.pdf';
+      } else if (type == 'Excel') {
+        endpoint =
+            '/reports/custom-visitor-excel/?from_date=$fromDateFormatted&to_date=$toDateFormatted';
+        fileName =
+            'Custom_Report_${fromDate!.day}-${fromDate!.month}-${fromDate!.year}_to_${toDate!.day}-${toDate!.month}-${toDate!.year}.xlsx';
+      }
+
+      // Add time parameters if provided
+      if (fromTime != null) {
+        final fromTimeStr =
+            '${fromTime!.hour.toString().padLeft(2, '0')}:${fromTime!.minute.toString().padLeft(2, '0')}';
+        endpoint += '&from_time=$fromTimeStr';
+      }
+      if (toTime != null) {
+        final toTimeStr =
+            '${toTime!.hour.toString().padLeft(2, '0')}:${toTime!.minute.toString().padLeft(2, '0')}';
+        endpoint += '&to_time=$toTimeStr';
+      }
+
+      if (isPreview) {
+        final baseUrl = ApiService.baseUrl;
+        final prefs = await SharedPreferences.getInstance();
+        final token = prefs.getString('authToken');
+        final previewUrl = '$baseUrl$endpoint';
+        
+        debugPrint('🔍 Preview URL: $previewUrl');
+        
+        if (kIsWeb) {
+          if (await canLaunchUrl(Uri.parse(previewUrl))) {
+            await launchUrl(Uri.parse(previewUrl), mode: LaunchMode.externalApplication);
+          }
+        } else {
+          final tempDir = await getTemporaryDirectory();
+          final tempFile = '${tempDir.path}/preview_$fileName';
+          
+          try {
+            await ApiService().dio.download(
+              endpoint,
+              tempFile,
+              options: Options(
+                responseType: ResponseType.bytes,
+                followRedirects: true,
+                validateStatus: (status) => status! < 500,
+                headers: {
+                  'Authorization': 'Bearer $token',
+                },
+              ),
+            );
+            
+            debugPrint('✅ Preview file downloaded to: $tempFile');
+            final result = await OpenFile.open(tempFile);
+            debugPrint('📂 Open result: ${result.message}');
+            
+            if (result.type != ResultType.done) {
+              throw Exception('Could not open file: ${result.message}');
+            }
+          } catch (e) {
+            debugPrint('❌ Preview error: $e');
+            rethrow;
+          }
+        }
+      } else {
+        await _downloadAndOpenFile(endpoint, fileName, false);
+      }
+
+      if (mounted) {
+        String message = isPreview ? 'Opening preview...' : 'File saved to Downloads folder';
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(message, style: GoogleFonts.poppins()),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    } on DioException catch (e) {
+      debugPrint('❌ DioException: ${e.response?.statusCode} - ${e.message}');
+      debugPrint('❌ Response data: ${e.response?.data}');
+      
+      if (mounted) {
+        String errorMessage = 'Failed to download report';
+        if (e.response?.statusCode == 404) {
+          errorMessage = 'No data available for selected date range';
+        } else if (e.response?.statusCode == 500) {
+          errorMessage = 'Server error. Please try again later';
+        } else if (e.response?.data != null) {
+          errorMessage = ApiService().getErrorMessage(e);
+        } else if (e.type == DioExceptionType.connectionTimeout) {
+          errorMessage = 'Connection timeout. Please check your internet';
+        } else if (e.type == DioExceptionType.receiveTimeout) {
+          errorMessage = 'Download timeout. File might be too large';
+        }
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorMessage, style: GoogleFonts.poppins()),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('❌ General error: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e', style: GoogleFonts.poppins()),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+          loadingAction = null;
+        });
+      }
+    }
+  }
+
+  Future<void> _downloadAndOpenFile(
+      String endpoint, String fileName, bool openFile) async {
+    if (kIsWeb) {
+      final baseUrl = ApiService.baseUrl;
+      final downloadUrl = '$baseUrl$endpoint';
+      if (await canLaunchUrl(Uri.parse(downloadUrl))) {
+        await launchUrl(Uri.parse(downloadUrl), mode: LaunchMode.externalApplication);
+      }
+      return;
+    }
+
+    final directory = await getApplicationDocumentsDirectory();
+    final filePath = '${directory.path}/$fileName';
+
+    await ApiService().dio.download(
+      endpoint,
+      filePath,
+      options: Options(
+        responseType: ResponseType.bytes,
+        followRedirects: false,
+      ),
+    );
+
+    if (openFile) {
+      await OpenFile.open(filePath);
+    }
   }
 
   @override
@@ -367,29 +807,38 @@ class _CustomizedReportTabState extends State<CustomizedReportTab> {
             ),
             const SizedBox(height: 12),
             _buildDateTimePicker(
-              'From Time',
+              'From Time (Optional)',
               Icons.access_time,
               fromTimeController,
               false,
             ),
             const SizedBox(height: 12),
             _buildDateTimePicker(
-              'To Time',
+              'To Time (Optional)',
               Icons.access_time,
               toTimeController,
               false,
             ),
             const SizedBox(height: 20),
-            Wrap(
-              alignment: WrapAlignment.center,
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                _buildButton('Download Excel', const Color(0xFF00A651)),
-                _buildButton('Download PDF', const Color(0xFFE53935)),
-                _buildButton('Preview', const Color(0xFF1E88E5)),
-              ],
-            ),
+            if (isLoading)
+              const Padding(
+                padding: EdgeInsets.all(16.0),
+                child: CircularProgressIndicator(),
+              )
+            else
+              Wrap(
+                alignment: WrapAlignment.center,
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  _buildButton('Download Excel', const Color(0xFF00A651),
+                      'Excel', false),
+                  _buildButton(
+                      'Download PDF', const Color(0xFFE53935), 'PDF', false),
+                  _buildButton(
+                      'Preview', const Color(0xFF1E88E5), 'PDF', true),
+                ],
+              ),
           ],
         ),
       ),
@@ -415,6 +864,11 @@ class _CustomizedReportTabState extends State<CustomizedReportTab> {
           );
           if (picked != null) {
             controller.text = "${picked.day}-${picked.month}-${picked.year}";
+            if (label.contains('From')) {
+              fromDate = picked;
+            } else {
+              toDate = picked;
+            }
           }
         } else {
           TimeOfDay? picked = await showTimePicker(
@@ -423,6 +877,11 @@ class _CustomizedReportTabState extends State<CustomizedReportTab> {
           );
           if (picked != null) {
             controller.text = picked.format(context);
+            if (label.contains('From')) {
+              fromTime = picked;
+            } else {
+              toTime = picked;
+            }
           }
         }
       },
@@ -438,17 +897,19 @@ class _CustomizedReportTabState extends State<CustomizedReportTab> {
     );
   }
 
-  Widget _buildButton(String text, Color color) {
+  Widget _buildButton(String text, Color color, String type, bool isPreview) {
     return OutlinedButton(
-      onPressed: () {},
+      onPressed: isLoading ? null : () => _downloadCustomReport(type, isPreview),
       style: OutlinedButton.styleFrom(
-        side: BorderSide(color: color),
+        side: BorderSide(color: isLoading ? Colors.grey : color),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        disabledForegroundColor: Colors.grey,
       ),
       child: Text(
         text,
-        style: GoogleFonts.poppins(color: color, fontWeight: FontWeight.w500),
+        style: GoogleFonts.poppins(
+            color: isLoading ? Colors.grey : color, fontWeight: FontWeight.w500),
       ),
     );
   }
