@@ -4,6 +4,8 @@ import 'package:gatecheck/Admin_Screens/Dashboard_Screens/custom_appbar.dart';
 import 'package:gatecheck/Admin_Screens/Dashboard_Screens/navigation_drawer.dart';
 import 'package:gatecheck/Services/User_services/user_service.dart';
 import 'package:gatecheck/Services/visitor_service.dart';
+import 'package:gatecheck/User_Screens/Dashboard_Screens/user_custom_appbar.dart';
+import 'package:gatecheck/User_Screens/Dashboard_Screens/user_navigation_drawer.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'models/visitor_model.dart';
 import 'utils/colors.dart';
@@ -155,13 +157,33 @@ class _RegularVisitorsScreenState extends State<RegularVisitorsScreen> {
     String firstLetter = userName.isNotEmpty ? userName[0].toUpperCase() : "?";
     String email = UserService().getUserEmail();
 
+    // decide role
+  final String? role = UserService().getUserRole();  // assume you add this service method
+  final bool isAdmin = (role == null || role == 'admin');
+
     return Scaffold(
-      drawer: const Navigation(),
-      appBar: CustomAppBar(
-        userName: userName,
-        firstLetter: firstLetter,
-        email: email,
-      ),
+      drawer: isAdmin
+        ? const Navigation()  // assume admin drawer
+        : const UserNavigation(),  // you should have a user drawer
+    appBar: isAdmin
+        ? CustomAppBar(
+            userName: userName,
+            firstLetter: firstLetter,
+            email: email,
+          )
+        : UserCustomAppBar(
+            userName: userName,
+            firstLetter: firstLetter,
+            email: email,
+          ),
+
+
+      // drawer: const Navigation(),
+      // appBar: CustomAppBar(
+      //   userName: userName,
+      //   firstLetter: firstLetter,
+      //   email: email,
+      // ),
       body: Column(
         children: [
           Padding(

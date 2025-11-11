@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 class OrganizationCard extends StatelessWidget {
   final Organization organization;
+  final int? userCount; // Add optional userCount parameter
   final VoidCallback onEdit;
   final VoidCallback onDelete;
   final VoidCallback onAddUser;
@@ -13,6 +14,7 @@ class OrganizationCard extends StatelessWidget {
   const OrganizationCard({
     super.key,
     required this.organization,
+    this.userCount, // Optional parameter
     required this.onEdit,
     required this.onDelete,
     required this.onAddUser,
@@ -21,6 +23,9 @@ class OrganizationCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Use passed userCount if available, otherwise fall back to organization.memberCount
+    final displayCount = userCount ?? organization.memberCount;
+    
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
@@ -66,7 +71,7 @@ class OrganizationCard extends StatelessWidget {
                         ),
                       ),
                       Text(
-                        '${organization.memberCount} members',
+                        '$displayCount members',
                         style: GoogleFonts.poppins(
                           fontSize: 14,
                           color: Colors.grey[600],

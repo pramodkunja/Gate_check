@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:gatecheck/Auth_Screens/gatecheck_signin.dart';
+import 'package:gatecheck/routes/app_routes.dart';
 
 void main() {
   runApp(const MyApp());
@@ -11,8 +11,16 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      title: 'Gate Check',
       debugShowCheckedModeBanner: false,
-      home: const GateCheckSignIn(),
+      theme: ThemeData(
+        primarySwatch: Colors.purple,
+        visualDensity: VisualDensity.adaptivePlatformDensity,
+      ),
+      // Set initial route
+      initialRoute: AppRoutes.login,
+      // Use the route generator
+      onGenerateRoute: AppRoutes.generateRoute,
     );
   }
 }

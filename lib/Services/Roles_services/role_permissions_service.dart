@@ -106,14 +106,14 @@ class RolePermissionsApiService {
   Future<bool> updatePermissions({
     required int rolePermissionId,
     required String role,
-    required List<String> permissions,
+    required List<String> permission_id,
   }) async {
     try {
       final response = await _dio.put(
         '/roles/assign-permissions/$rolePermissionId/',
         data: {
           'role': role,
-          'permission': permissions,
+          'permission': permission_id,
         },
       );
       
