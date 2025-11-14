@@ -1,9 +1,11 @@
 // user_roles_management.dart
-// Full, responsive Flutter screen for "User Roles Management" with backend integration.
+// Responsive, full-featured User Roles Management screen.
+// Uses role_id when calling APIs, displays role name in UI.
 
 import 'package:flutter/material.dart';
 import 'package:gatecheck/Admin_Screens/Dashboard_Screens/custom_appbar.dart';
 import 'package:gatecheck/Admin_Screens/Dashboard_Screens/navigation_drawer.dart';
+import 'package:gatecheck/Admin_Screens/User_roles-screen/user_role_model.dart';
 import 'package:gatecheck/Services/Roles_services/user_roles_service.dart';
 import 'package:gatecheck/Services/User_services/user_service.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -20,16 +22,21 @@ class _UserRolesManagementScreenState extends State<UserRolesManagementScreen> {
   final Color primary = const Color(0xFF7E57C2);
   final Color secondaryText = const Color(0xFF757575);
 
+  final UserRoleService _userRoleService = UserRoleService();
+
   List<UserRoleModel> _allUsers = [];
   List<UserRoleModel> _visibleUsers = [];
-  List<String> _availableRoles = [];
 
-  String _selectedRole = 'All Roles';
+  /// Available roles as maps: { 'id': int, 'name': String }
+  List<Map<String, dynamic>> _availableRoles = [];
+
+  /// Selected role id for filtering. 0 == All Roles
+  int _selectedRoleId = 0;
+
   String _searchQuery = '';
   bool _isLoading = false;
 
   final TextEditingController _searchController = TextEditingController();
-  final UserRoleService _userRoleService = UserRoleService();
 
   @override
   void initState() {
@@ -43,17 +50,45 @@ class _UserRolesManagementScreenState extends State<UserRolesManagementScreen> {
     super.dispose();
   }
 
+  // ------------------ Data Loading ------------------
   Future<void> _loadData() async {
     setState(() => _isLoading = true);
 
     try {
-      // Load user roles and available roles
       final userRoles = await _userRoleService.getAllUserRoles();
-      final roles = await _userRoleService.getAvailableRoles();
+      final rolesRaw = await _userRoleService.getAvailableRoles();
+      // rolesRaw expected to be a List of maps from service like:
+      // [{ 'role_id': 1, 'name': 'Admin' }, ...]
+
+      // Normalize roles into List<Map<String, dynamic>> {id, name}
+      final normalizedRoles = <Map<String, dynamic>>[];
+      try {
+        if (rolesRaw is List) {
+          for (var item in rolesRaw) {
+            if (item is Map<String, dynamic>) {
+              final id = (item['role_id'] ?? item['id']) is int
+                  ? (item['role_id'] ?? item['id'])
+                  : int.tryParse((item['role_id'] ?? item['id']).toString());
+              final name = (item['name'] ?? item['role_name'] ?? '').toString();
+              if (id != null && name.isNotEmpty) {
+                normalizedRoles.add({'id': id, 'name': name});
+              }
+            } else if (item is String) {
+              // If service returned names only, try to handle gracefully
+              normalizedRoles.add({'id': null, 'name': item});
+            }
+          }
+        }
+      } catch (e) {
+        // fallback empty
+      }
 
       setState(() {
         _allUsers = userRoles;
-        _availableRoles = ['All Roles', ...roles];
+        _availableRoles = [
+          {'id': 0, 'name': 'All Roles'},
+          ...normalizedRoles,
+        ];
         _applyFilters();
       });
     } catch (e) {
@@ -63,12 +98,23 @@ class _UserRolesManagementScreenState extends State<UserRolesManagementScreen> {
     }
   }
 
+  // ------------------ Filtering ------------------
   void _applyFilters() {
+    String? selectedRoleName;
+    if (_selectedRoleId != 0) {
+      final roleMap = _availableRoles.firstWhere(
+        (r) => r['id'] == _selectedRoleId,
+        orElse: () => {},
+      );
+      selectedRoleName = roleMap['name']?.toString();
+    }
+
     setState(() {
       _visibleUsers = _allUsers.where((u) {
         final matchesRole =
-            _selectedRole == 'All Roles' || u.role == _selectedRole;
-        final matchesSearch = u.user.toLowerCase().contains(
+            (_selectedRoleId == 0) ||
+            (selectedRoleName != null && u.rolename == selectedRoleName);
+        final matchesSearch = u.username.toLowerCase().contains(
           _searchQuery.toLowerCase(),
         );
         return matchesRole && matchesSearch;
@@ -81,23 +127,47 @@ class _UserRolesManagementScreenState extends State<UserRolesManagementScreen> {
     _applyFilters();
   }
 
-  void _onRoleChanged(String? newRole) {
-    if (newRole == null) return;
-    _selectedRole = newRole;
-    _applyFilters();
-  }
-
   void _refresh() {
     _searchController.clear();
     _searchQuery = '';
-    _selectedRole = 'All Roles';
+    _selectedRoleId = 0;
     _loadData();
   }
 
-  void _openEditDialog(UserRoleModel user) async {
-    String tempRole = user.role;
+  // Helper to find role name from id
+  String? _getRoleNameById(int id) {
+    try {
+      final m = _availableRoles.firstWhere(
+        (r) => r['id'] == id,
+        orElse: () => {},
+      );
+      return m.isNotEmpty ? m['name']?.toString() : null;
+    } catch (_) {
+      return null;
+    }
+  }
 
-    final result = await showDialog<String?>(
+  // Helper to find role id by name (returns null if not found)
+  int? _getRoleIdByName(String name) {
+    try {
+      final m = _availableRoles.firstWhere(
+        (r) => r['name']?.toString().toLowerCase() == name.toLowerCase(),
+      );
+      return m['id'] is int ? m['id'] as int : int.tryParse(m['id'].toString());
+    } catch (_) {
+      return null;
+    }
+  }
+
+  // ------------------ Edit Role Dialog ------------------
+  void _openEditDialog(UserRoleModel user) async {
+    // find current role id from user's role name
+    int currentRoleId = _getRoleIdByName(user.rolename) ?? 0;
+    int tempRoleId = currentRoleId == 0
+        ? (_availableRoles.length > 1 ? _availableRoles[1]['id'] ?? 0 : 0)
+        : currentRoleId;
+
+    final selected = await showDialog<int?>(
       context: context,
       builder: (context) {
         return StatefulBuilder(
@@ -107,22 +177,32 @@ class _UserRolesManagementScreenState extends State<UserRolesManagementScreen> {
                 'Edit Role',
                 style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
               ),
-              content: DropdownButtonFormField<String>(
-                value: tempRole,
+              content: DropdownButtonFormField<int>(
+                value: tempRoleId != 0 ? tempRoleId : null,
                 items: _availableRoles
-                    .where((r) => r != 'All Roles')
-                    .map((r) => DropdownMenuItem(value: r, child: Text(r)))
+                    .where((r) => r['id'] != 0)
+                    .map(
+                      (r) => DropdownMenuItem<int>(
+                        value: r['id'] as int,
+                        child: Text(r['name'].toString()),
+                      ),
+                    )
                     .toList(),
                 onChanged: (v) {
                   setDialogState(() {
-                    tempRole = v ?? tempRole;
+                    tempRoleId = v ?? tempRoleId;
                   });
                 },
                 decoration: InputDecoration(
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
                   ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
                 ),
+                isExpanded: true,
               ),
               actions: [
                 TextButton(
@@ -130,7 +210,7 @@ class _UserRolesManagementScreenState extends State<UserRolesManagementScreen> {
                   child: Text('Cancel', style: GoogleFonts.poppins()),
                 ),
                 ElevatedButton(
-                  onPressed: () => Navigator.pop(context, tempRole),
+                  onPressed: () => Navigator.pop(context, tempRoleId),
                   style: ElevatedButton.styleFrom(backgroundColor: primary),
                   child: Text(
                     'Save',
@@ -144,17 +224,19 @@ class _UserRolesManagementScreenState extends State<UserRolesManagementScreen> {
       },
     );
 
-    if (result != null && result != user.role) {
+    if (selected != null && selected != currentRoleId) {
       setState(() => _isLoading = true);
-
       try {
         await _userRoleService.updateUserRole(
           userRoleId: user.userRoleId,
-          role: result,
+          userId: user.username,
+          user: user.username, // existing username
+          roleId: selected,
+          role: _getRoleNameById(selected) ?? '',
         );
 
         _showSuccessSnackBar('Role updated successfully');
-        _loadData();
+        await _loadData();
       } catch (e) {
         _showErrorSnackBar('Failed to update role: $e');
         setState(() => _isLoading = false);
@@ -162,6 +244,7 @@ class _UserRolesManagementScreenState extends State<UserRolesManagementScreen> {
     }
   }
 
+  // ------------------ Delete Role ------------------
   void _openDeleteDialog(UserRoleModel user) async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -171,7 +254,7 @@ class _UserRolesManagementScreenState extends State<UserRolesManagementScreen> {
           style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
         ),
         content: Text(
-          'Are you sure you want to delete the role assignment for ${user.user}?',
+          'Are you sure you want to delete the role assignment for ${user.username}?',
           style: GoogleFonts.poppins(),
         ),
         actions: [
@@ -193,11 +276,10 @@ class _UserRolesManagementScreenState extends State<UserRolesManagementScreen> {
 
     if (confirmed == true) {
       setState(() => _isLoading = true);
-
       try {
         await _userRoleService.deleteUserRole(user.userRoleId);
         _showSuccessSnackBar('User role deleted successfully');
-        _loadData();
+        await _loadData();
       } catch (e) {
         _showErrorSnackBar('Failed to delete role: $e');
         setState(() => _isLoading = false);
@@ -205,14 +287,48 @@ class _UserRolesManagementScreenState extends State<UserRolesManagementScreen> {
     }
   }
 
+  // ------------------ Assign Role Dialog ------------------
   void _openAssignRoleDialog() async {
-    final nameController = TextEditingController();
-    String selectedRole = _availableRoles.length > 1
-        ? _availableRoles[1]
-        : 'employee';
+    setState(() => _isLoading = true);
 
-    final result = await showDialog<Map<String, String>?>(
+    List<Map<String, dynamic>> backendUsers = [];
+    try {
+      backendUsers = await _userRoleService.getAllUsers();
+    } catch (e) {
+      _showErrorSnackBar('Failed to load users: $e');
+      setState(() => _isLoading = false);
+      return;
+    }
+
+    setState(() => _isLoading = false);
+
+    if (backendUsers.isEmpty) {
+      _showErrorSnackBar('No users available to assign roles.');
+      return;
+    }
+
+    // ✅ Filter out users who already have role assignments
+    final assignedUserIds = _allUsers.map((u) => u.userId).toSet();
+
+    final availableUsers = backendUsers.where((user) {
+      final userId = int.tryParse(user['id']?.toString() ?? '');
+      return userId != null && !assignedUserIds.contains(userId);
+    }).toList();
+
+    // ✅ Check if there are any available users after filtering
+    if (availableUsers.isEmpty) {
+      _showErrorSnackBar('All users have already been assigned roles.');
+      return;
+    }
+
+    int? selectedUserId;
+    int selectedRoleId = _availableRoles.length > 1
+        ? (_availableRoles[1]['id'] ?? 0) as int
+        : 0;
+
+    final result = await showDialog<Map<String, dynamic>?>(
       context: context,
+      barrierDismissible: false,
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setDialogState) {
@@ -221,37 +337,67 @@ class _UserRolesManagementScreenState extends State<UserRolesManagementScreen> {
                 'Assign Role',
                 style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
               ),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextField(
-                    controller: nameController,
-                    decoration: InputDecoration(
-                      labelText: 'User Name',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    DropdownButtonFormField<int>(
+                      value: selectedUserId,
+                      hint: Text('Select User', style: GoogleFonts.poppins()),
+                      items: availableUsers.map((u) {
+                        // ✅ Use availableUsers instead of backendUsers
+                        return DropdownMenuItem<int>(
+                          value: int.tryParse(u['id']?.toString() ?? ''),
+                          child: Text(
+                            u['username']?.toString() ??
+                                u['email']?.toString() ??
+                                'Unknown User',
+                          ),
+                        );
+                      }).toList(),
+                      onChanged: (v) =>
+                          setDialogState(() => selectedUserId = v),
+                      decoration: InputDecoration(
+                        labelText: 'User Name',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                      ),
+                      isExpanded: true,
+                    ),
+                    const SizedBox(height: 12),
+                    DropdownButtonFormField<int>(
+                      value: selectedRoleId != 0 ? selectedRoleId : null,
+                      hint: Text('Select Role', style: GoogleFonts.poppins()),
+                      items: _availableRoles
+                          .where((r) => r['id'] != 0)
+                          .map(
+                            (r) => DropdownMenuItem<int>(
+                              value: r['id'] as int,
+                              child: Text(r['name'].toString()),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: (v) => setDialogState(
+                        () => selectedRoleId = v ?? selectedRoleId,
+                      ),
+                      decoration: InputDecoration(
+                        labelText: 'Role',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 12),
-                  DropdownButtonFormField<String>(
-                    value: selectedRole,
-                    items: _availableRoles
-                        .where((r) => r != 'All Roles')
-                        .map((r) => DropdownMenuItem(value: r, child: Text(r)))
-                        .toList(),
-                    onChanged: (v) {
-                      setDialogState(() {
-                        selectedRole = v ?? selectedRole;
-                      });
-                    },
-                    decoration: InputDecoration(
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
               actions: [
                 TextButton(
@@ -260,18 +406,38 @@ class _UserRolesManagementScreenState extends State<UserRolesManagementScreen> {
                 ),
                 ElevatedButton(
                   onPressed: () {
-                    if (nameController.text.trim().isEmpty) {
+                    if (selectedUserId == null) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                          content: Text('Please enter a user name'),
+                          content: Text('Please select a user'),
                           backgroundColor: Colors.red,
                         ),
                       );
                       return;
                     }
+                    if (selectedRoleId == 0) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Please select a role'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                      return;
+                    }
+                    final selectedUser = availableUsers.firstWhere(
+                      // ✅ Use availableUsers
+                      (u) => int.tryParse(u['id'].toString()) == selectedUserId,
+                    );
+
+                    final selectedRole = _availableRoles.firstWhere(
+                      (r) => r['id'] == selectedRoleId,
+                    );
+
                     Navigator.pop(context, {
-                      'user': nameController.text.trim(),
-                      'role': selectedRole,
+                      'userId': selectedUserId,
+                      'userName': selectedUser['username'] ?? '',
+                      'roleId': selectedRoleId,
+                      'roleName': selectedRole['name'] ?? '',
                     });
                   },
                   style: ElevatedButton.styleFrom(backgroundColor: primary),
@@ -289,15 +455,16 @@ class _UserRolesManagementScreenState extends State<UserRolesManagementScreen> {
 
     if (result != null) {
       setState(() => _isLoading = true);
-
       try {
         await _userRoleService.createUserRole(
-          user: result['user']!,
-          role: result['role']!,
+          userId: result['userId'],
+          roleId: result['roleId'],
+          user: result['userName'],
+          role: result['roleName'],
         );
 
         _showSuccessSnackBar('Role assigned successfully');
-        _loadData();
+        await _loadData();
       } catch (e) {
         _showErrorSnackBar('Failed to assign role: $e');
         setState(() => _isLoading = false);
@@ -305,38 +472,30 @@ class _UserRolesManagementScreenState extends State<UserRolesManagementScreen> {
     }
   }
 
+  // ------------------ UI Helpers ------------------
   void _showSuccessSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.green,
-        duration: const Duration(seconds: 2),
-      ),
+      SnackBar(content: Text(message), backgroundColor: Colors.green),
     );
   }
 
   void _showErrorSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.red,
-        duration: const Duration(seconds: 3),
-      ),
+      SnackBar(content: Text(message), backgroundColor: Colors.red),
     );
   }
 
   Map<String, int> _calculateStats() {
-    final uniqueUsers = _allUsers.map((u) => u.user).toSet().length;
-    final uniqueRoles = _allUsers.map((u) => u.role).toSet().length;
-    final totalAssignments = _allUsers.length;
-
+    final uniqueUsers = _allUsers.map((u) => u.username).toSet().length;
+    final uniqueRoles = _allUsers.map((u) => u.rolename).toSet().length;
     return {
       'users': uniqueUsers,
       'roles': uniqueRoles,
-      'assignments': totalAssignments,
+      'assignments': _allUsers.length,
     };
   }
 
+  // ------------------ UI ------------------
   @override
   Widget build(BuildContext context) {
     String userName = UserService().getUserName();
@@ -344,7 +503,7 @@ class _UserRolesManagementScreenState extends State<UserRolesManagementScreen> {
     String email = UserService().getUserEmail();
 
     final mq = MediaQuery.of(context);
-    final isWide = mq.size.width > 600;
+    final isWide = mq.size.width > 720;
     final stats = _calculateStats();
 
     return Scaffold(
@@ -362,7 +521,7 @@ class _UserRolesManagementScreenState extends State<UserRolesManagementScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Header
+                  // header
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
@@ -387,7 +546,6 @@ class _UserRolesManagementScreenState extends State<UserRolesManagementScreen> {
                                     style: GoogleFonts.poppins(
                                       fontSize: 20,
                                       fontWeight: FontWeight.w700,
-                                      color: Colors.black,
                                     ),
                                   ),
                                 ),
@@ -414,11 +572,6 @@ class _UserRolesManagementScreenState extends State<UserRolesManagementScreen> {
                                         color: Color(0xFF7E57C2),
                                       ),
                                     ),
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 10,
-                                      vertical: 10,
-                                    ),
-                                    elevation: 0,
                                   ),
                                 ),
                               ],
@@ -436,10 +589,9 @@ class _UserRolesManagementScreenState extends State<UserRolesManagementScreen> {
                       ),
                     ],
                   ),
-
                   const SizedBox(height: 16),
 
-                  // Statistics cards
+                  // stat cards
                   LayoutBuilder(
                     builder: (context, constraints) {
                       final cardWidth = isWide
@@ -471,22 +623,21 @@ class _UserRolesManagementScreenState extends State<UserRolesManagementScreen> {
                       );
                     },
                   ),
-
                   const SizedBox(height: 18),
 
-                  // Search & Filter row
+                  // search & filter
                   LayoutBuilder(
                     builder: (context, constraints) {
-                      final wide = constraints.maxWidth > 600;
+                      final wideRow = constraints.maxWidth > 600;
                       return Column(
                         children: [
-                          wide
+                          wideRow
                               ? Row(
                                   children: [
                                     Expanded(child: _buildSearchField()),
                                     const SizedBox(width: 12),
                                     SizedBox(
-                                      width: 180,
+                                      width: 220,
                                       child: _buildRoleDropdown(),
                                     ),
                                     const SizedBox(width: 12),
@@ -518,16 +669,14 @@ class _UserRolesManagementScreenState extends State<UserRolesManagementScreen> {
                       );
                     },
                   ),
-
                   const SizedBox(height: 18),
 
-                  // Table header
+                  // header row
                   Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 12,
                       vertical: 10,
                     ),
-                    decoration: BoxDecoration(color: Colors.transparent),
                     child: Row(
                       children: [
                         Expanded(
@@ -560,10 +709,9 @@ class _UserRolesManagementScreenState extends State<UserRolesManagementScreen> {
                       ],
                     ),
                   ),
-
                   const SizedBox(height: 8),
 
-                  // List
+                  // list
                   _visibleUsers.isEmpty
                       ? Center(
                           child: Padding(
@@ -608,8 +756,11 @@ class _UserRolesManagementScreenState extends State<UserRolesManagementScreen> {
                                     child: Row(
                                       children: [
                                         CircleAvatar(
+                                          backgroundColor: primary.withOpacity(
+                                            0.12,
+                                          ),
                                           child: Text(
-                                            u.user
+                                            u.username
                                                 .split(' ')
                                                 .map(
                                                   (e) =>
@@ -619,14 +770,11 @@ class _UserRolesManagementScreenState extends State<UserRolesManagementScreen> {
                                                 .join()
                                                 .toUpperCase(),
                                           ),
-                                          backgroundColor: primary.withOpacity(
-                                            0.12,
-                                          ),
                                         ),
                                         const SizedBox(width: 12),
                                         Flexible(
                                           child: Text(
-                                            u.user,
+                                            u.username,
                                             style: GoogleFonts.poppins(
                                               fontWeight: FontWeight.w600,
                                             ),
@@ -638,7 +786,7 @@ class _UserRolesManagementScreenState extends State<UserRolesManagementScreen> {
                                   Expanded(
                                     flex: 3,
                                     child: Text(
-                                      u.role,
+                                      u.rolename,
                                       style: GoogleFonts.poppins(
                                         color: secondaryText,
                                       ),
@@ -677,7 +825,7 @@ class _UserRolesManagementScreenState extends State<UserRolesManagementScreen> {
               ),
             ),
 
-            // Loading overlay
+            // loading overlay
             if (_isLoading)
               Container(
                 color: Colors.black26,
@@ -693,9 +841,10 @@ class _UserRolesManagementScreenState extends State<UserRolesManagementScreen> {
     );
   }
 
+  // small widgets
   Widget _buildStatCard(
     String title,
-    String count,
+    String value,
     IconData icon,
     double width,
   ) {
@@ -707,11 +856,7 @@ class _UserRolesManagementScreenState extends State<UserRolesManagementScreen> {
           color: const Color(0xFFF3EDFF),
           borderRadius: BorderRadius.circular(14),
           boxShadow: [
-            BoxShadow(
-              color: Colors.black12.withOpacity(0.03),
-              blurRadius: 6,
-              offset: const Offset(0, 2),
-            ),
+            BoxShadow(color: Colors.black12.withOpacity(0.03), blurRadius: 6),
           ],
         ),
         child: Row(
@@ -722,7 +867,7 @@ class _UserRolesManagementScreenState extends State<UserRolesManagementScreen> {
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: Icon(icon, size: 20, color: const Color(0xFF7E57C2)),
+              child: Icon(icon, size: 20, color: primary),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -733,13 +878,13 @@ class _UserRolesManagementScreenState extends State<UserRolesManagementScreen> {
                     title,
                     style: GoogleFonts.poppins(
                       fontSize: 12,
-                      color: const Color(0xFF7E57C2),
+                      color: primary,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    count,
+                    value,
                     style: GoogleFonts.poppins(
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
@@ -760,15 +905,10 @@ class _UserRolesManagementScreenState extends State<UserRolesManagementScreen> {
       onChanged: _onSearchChanged,
       enabled: !_isLoading,
       decoration: InputDecoration(
-        hintText: 'Search users...',
-        hintStyle: GoogleFonts.poppins(color: Colors.grey),
         prefixIcon: const Icon(Icons.search),
+        hintText: 'Search users...',
         filled: true,
         fillColor: Colors.white,
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 12,
-          vertical: 16,
-        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(30),
           borderSide: BorderSide.none,
@@ -778,23 +918,28 @@ class _UserRolesManagementScreenState extends State<UserRolesManagementScreen> {
   }
 
   Widget _buildRoleDropdown() {
-    return DropdownButtonFormField<String>(
-      value: _selectedRole,
-      items: _availableRoles
-          .map((r) => DropdownMenuItem(value: r, child: Text(r)))
-          .toList(),
-      onChanged: _isLoading ? null : _onRoleChanged,
+    return DropdownButtonFormField<int>(
+      value: _selectedRoleId,
+      items: _availableRoles.map((r) {
+        return DropdownMenuItem<int>(
+          value: r['id'] as int,
+          child: Text(r['name'].toString()),
+        );
+      }).toList(),
+      onChanged: (value) {
+        if (value == null) return;
+        setState(() {
+          _selectedRoleId = value;
+          _applyFilters();
+        });
+      },
       decoration: InputDecoration(
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 12,
-          vertical: 16,
-        ),
+        filled: true,
+        fillColor: Colors.white,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(30),
           borderSide: BorderSide.none,
         ),
-        filled: true,
-        fillColor: Colors.white,
       ),
     );
   }

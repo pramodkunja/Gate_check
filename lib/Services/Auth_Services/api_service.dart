@@ -35,27 +35,43 @@ class ApiService {
             options.headers['Authorization'] = 'Bearer $token';
           }
 
-          debugPrint('╔════════════════════════════════════════════════════════');
+          debugPrint(
+            '╔════════════════════════════════════════════════════════',
+          );
           debugPrint('║ REQUEST[${options.method}] => ${options.path}');
           debugPrint('║ Headers: ${options.headers}');
           debugPrint('║ Data: ${options.data}');
-          debugPrint('╚════════════════════════════════════════════════════════');
+          debugPrint(
+            '╚════════════════════════════════════════════════════════',
+          );
 
           return handler.next(options);
         },
         onResponse: (response, handler) {
-          debugPrint('╔════════════════════════════════════════════════════════');
-          debugPrint('║ RESPONSE[${response.statusCode}] => ${response.requestOptions.path}');
+          debugPrint(
+            '╔════════════════════════════════════════════════════════',
+          );
+          debugPrint(
+            '║ RESPONSE[${response.statusCode}] => ${response.requestOptions.path}',
+          );
           debugPrint('║ Data: ${response.data}');
-          debugPrint('╚════════════════════════════════════════════════════════');
+          debugPrint(
+            '╚════════════════════════════════════════════════════════',
+          );
           return handler.next(response);
         },
         onError: (error, handler) async {
-          debugPrint('╔════════════════════════════════════════════════════════');
-          debugPrint('║ ERROR[${error.response?.statusCode}] => ${error.requestOptions.path}');
+          debugPrint(
+            '╔════════════════════════════════════════════════════════',
+          );
+          debugPrint(
+            '║ ERROR[${error.response?.statusCode}] => ${error.requestOptions.path}',
+          );
           debugPrint('║ Message: ${error.message}');
           debugPrint('║ Response Data: ${error.response?.data}');
-          debugPrint('╚════════════════════════════════════════════════════════');
+          debugPrint(
+            '╚════════════════════════════════════════════════════════',
+          );
 
           // 🔄 Auto-refresh token if expired
           if (error.response?.statusCode == 401) {
@@ -86,7 +102,10 @@ class ApiService {
 
   // -------------------- Validate User --------------------
   Future<Response> validateUser(String identifier) async {
-    return await _dio.post('/login/validate/', data: {'identifier': identifier});
+    return await _dio.post(
+      '/login/validate/',
+      data: {'identifier': identifier},
+    );
   }
 
   // -------------------- Login --------------------
@@ -106,19 +125,25 @@ class ApiService {
         final data = response.data['data'];
         final accessToken = data?['access']?.toString();
         final refreshToken = data?['refresh']?.toString();
+        final user = data?['user'];
+
+        // ✅ Extract company_id and store it
+        final companyId = user?['company_id']?.toString();
+        if (companyId != null && companyId.isNotEmpty) {
+          await prefs.setString('companyId', companyId);
+          debugPrint('🏢 Company ID saved: $companyId');
+        } else {
+          debugPrint('⚠️ No company_id found in login response');
+        }
 
         if (accessToken != null && accessToken.isNotEmpty) {
           await prefs.setString('authToken', accessToken);
           debugPrint('✅ Access token saved: $accessToken');
-        } else {
-          debugPrint('⚠️ No access token found in response');
         }
 
         if (refreshToken != null && refreshToken.isNotEmpty) {
           await prefs.setString('refreshToken', refreshToken);
           debugPrint('✅ Refresh token saved: $refreshToken');
-        } else {
-          debugPrint('⚠️ No refresh token found in response');
         }
       }
 
@@ -131,12 +156,18 @@ class ApiService {
 
   // -------------------- Forgot Password --------------------
   Future<Response> forgotPassword(String identifier) async {
-    return await _dio.post('/login/forgot-password/', data: {'identifier': identifier});
+    return await _dio.post(
+      '/login/forgot-password/',
+      data: {'identifier': identifier},
+    );
   }
 
   // -------------------- Verify OTP --------------------
   Future<Response> verifyOtp(String identifier, String otp) async {
-    return await _dio.post('/login/verify-otp/', data: {'identifier': identifier, 'otp': otp});
+    return await _dio.post(
+      '/login/verify-otp/',
+      data: {'identifier': identifier, 'otp': otp},
+    );
   }
 
   // -------------------- Set New Password --------------------
@@ -145,11 +176,14 @@ class ApiService {
     required String newPassword,
     required String confirmPassword,
   }) async {
-    return await _dio.post('/login/set-new-password/', data: {
-      'identifier': identifier,
-      'new_password': newPassword,
-      'confirm_password': confirmPassword,
-    });
+    return await _dio.post(
+      '/login/set-new-password/',
+      data: {
+        'identifier': identifier,
+        'new_password': newPassword,
+        'confirm_password': confirmPassword,
+      },
+    );
   }
 
   // -------------------- Get User Profile --------------------
