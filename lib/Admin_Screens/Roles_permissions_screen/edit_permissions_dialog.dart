@@ -1,7 +1,7 @@
 // edit_permissions_dialog.dart
 
 import 'package:flutter/material.dart';
-import 'package:gatecheck/Services/Roles_services/role_permissions_service.dart';
+import 'package:gatecheck/Services/Roles_permission_services/role_permissions_service.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class EditPermissionsDialog extends StatefulWidget {

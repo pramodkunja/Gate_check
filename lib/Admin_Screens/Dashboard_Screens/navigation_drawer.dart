@@ -4,8 +4,8 @@ import 'package:gatecheck/Admin_Screens/Categories/Screens/categories_management
 import 'package:gatecheck/Admin_Screens/Dashboard_Screens/dashboard_screen.dart';
 import 'package:gatecheck/Admin_Screens/Organization_Management_Screens/organization_screen.dart';
 import 'package:gatecheck/Admin_Screens/Profile_Screen/profile_screen.dart';
-import 'package:gatecheck/Admin_Screens/Roles_screens/permissions_management.dart';
-import 'package:gatecheck/Admin_Screens/Roles_screens/role_permission_management.dart';
+import 'package:gatecheck/Admin_Screens/Permission_screens/permissions_management.dart';
+import 'package:gatecheck/Admin_Screens/Roles_permissions_screen/role_permission_management.dart';
 import 'package:gatecheck/Admin_Screens/Roles_screens/roles_management.dart';
 import 'package:gatecheck/Admin_Screens/User_roles-screen/user_role_management.dart';
 import 'package:gatecheck/Admin_Screens/Visitors_Screen/visitors_screen.dart';

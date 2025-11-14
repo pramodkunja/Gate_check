@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:gatecheck/Services/Auth_Services/api_service.dart';
-import 'package:gatecheck/Services/Roles_services/permission_service.dart';
-import 'package:gatecheck/Services/Roles_services/role_permissions_service.dart';
-import 'package:gatecheck/Services/Roles_services/user_roles_service.dart';
+import 'package:gatecheck/Services/Permission_services/permission_service.dart';
+import 'package:gatecheck/Services/Roles_permission_services/role_permissions_service.dart';
+import 'package:gatecheck/Services/User_roles_services/user_roles_service.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class AssignPermissionsDialog extends StatefulWidget {

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:gatecheck/Admin_Screens/Dashboard_Screens/custom_appbar.dart';
 import 'package:gatecheck/Admin_Screens/Dashboard_Screens/navigation_drawer.dart';
-import 'package:gatecheck/Admin_Screens/Roles_screens/permission_add_user_dialog.dart';
-import 'package:gatecheck/Services/Roles_services/permission_service.dart';
+import 'package:gatecheck/Admin_Screens/Permission_screens/permission_add_user_dialog.dart';
+import 'package:gatecheck/Services/Permission_services/permission_service.dart';
 import 'package:gatecheck/Services/User_services/user_service.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';

@@ -4,9 +4,9 @@
 import 'package:flutter/material.dart';
 import 'package:gatecheck/Admin_Screens/Dashboard_Screens/custom_appbar.dart';
 import 'package:gatecheck/Admin_Screens/Dashboard_Screens/navigation_drawer.dart';
-import 'package:gatecheck/Admin_Screens/Roles_screens/assign_permissions_dialog.dart';
-import 'package:gatecheck/Admin_Screens/Roles_screens/edit_permissions_dialog.dart';
-import 'package:gatecheck/Services/Roles_services/role_permissions_service.dart';
+import 'package:gatecheck/Admin_Screens/Roles_permissions_screen/assign_permissions_dialog.dart';
+import 'package:gatecheck/Admin_Screens/Roles_permissions_screen/edit_permissions_dialog.dart';
+import 'package:gatecheck/Services/Roles_permission_services/role_permissions_service.dart';
 import 'package:gatecheck/Services/User_services/user_service.dart';
 import 'package:google_fonts/google_fonts.dart';
 
