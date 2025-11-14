@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:dio/dio.dart';
 import '../utils/colors.dart';
 import '../utils/constants.dart';
+import 'package:gatecheck/Services/visitor_service.dart';
 
 class FilterDropdown extends StatefulWidget {
   final String selectedStatus;
@@ -22,6 +24,63 @@ class FilterDropdown extends StatefulWidget {
 }
 
 class _FilterDropdownState extends State<FilterDropdown> {
+  List<String> _categories = [];
+  bool _isCategoryLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchCategories();
+  }
+
+  Future<void> _fetchCategories() async {
+    setState(() {
+      _isCategoryLoading = true;
+    });
+
+    try {
+      final resp = await VisitorApiService().getCategories();
+      final data = resp.data;
+
+      if (data is List && data.isNotEmpty) {
+        // Map API items to string names and ensure they are unique
+        final fetched = data
+            .whereType<Map>()
+            .map((e) => (e['name'] ?? '').toString())
+            .where((name) => name.isNotEmpty)
+            .toSet()
+            .toList();
+
+        // Always include "All Categories" at the top
+        _categories = ['All Categories', ...fetched];
+      } else {
+        // Fallback to local constant list
+        _categories = AppConstants.categories;
+      }
+    } on DioException catch (e) {
+      debugPrint('Failed to fetch categories: ${e.message}');
+      _categories = AppConstants.categories;
+      // Optional: show snack if desired
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to load categories, using defaults.'),
+            backgroundColor: AppColors.rejected,
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('Unexpected error loading categories: $e');
+      _categories = AppConstants.categories;
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isCategoryLoading = false;
+        });
+      }
+    }
+  }
+
   void _showFilterDialog() {
     showDialog(
       context: context,
@@ -32,6 +91,8 @@ class _FilterDropdownState extends State<FilterDropdown> {
         selectedPassType: widget.selectedPassType,
         selectedCategory: widget.selectedCategory,
         onFilterChanged: widget.onFilterChanged,
+        categories: _categories,
+        isCategoryLoading: _isCategoryLoading,
       ),
     );
   }
@@ -86,12 +147,16 @@ class _FilterDialog extends StatefulWidget {
   final String selectedPassType;
   final String selectedCategory;
   final Function(String, String, String) onFilterChanged;
+  final List<String> categories;
+  final bool isCategoryLoading;
 
   const _FilterDialog({
     required this.selectedStatus,
     required this.selectedPassType,
     required this.selectedCategory,
     required this.onFilterChanged,
+    required this.categories,
+    required this.isCategoryLoading,
   });
 
   @override
@@ -176,7 +241,10 @@ class _FilterDialogState extends State<_FilterDialog> {
                     const SizedBox(height: 20),
                     _buildFilterSection(
                       'Category',
-                      AppConstants.categories,
+                      // If categories from backend are empty, fallback to constants
+                      widget.categories.isNotEmpty
+                          ? widget.categories
+                          : AppConstants.categories,
                       _tempCategory,
                       (value) {
                         setState(() {
@@ -184,6 +252,21 @@ class _FilterDialogState extends State<_FilterDialog> {
                         });
                       },
                     ),
+                    if (widget.isCategoryLoading)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                        child: Row(
+                          children: const [
+                            SizedBox(
+                              height: 16,
+                              width: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                            SizedBox(width: 8),
+                            Text('Loading categories...'),
+                          ],
+                        ),
+                      ),
                     const SizedBox(height: 24),
                   ],
                 ),
@@ -370,21 +453,15 @@ class _FilterDialogState extends State<_FilterDialog> {
                             vertical: 2,
                           ),
                           decoration: BoxDecoration(
-                            color: isSelected
-                                ? AppColors.primary
-                                : Colors.transparent,
+                            color: isSelected ? AppColors.primary : Colors.transparent,
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
                             item,
                             style: GoogleFonts.inter(
                               fontSize: 15,
-                              color: isSelected
-                                  ? Colors.white
-                                  : const Color(0xFF111827),
-                              fontWeight: isSelected
-                                  ? FontWeight.w600
-                                  : FontWeight.w500,
+                              color: isSelected ? Colors.white : const Color(0xFF111827),
+                              fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
                             ),
                           ),
                         ),

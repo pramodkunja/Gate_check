@@ -24,7 +24,7 @@ class _EntryOtpScreenState extends State<EntryOtpScreen> {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _otpController = TextEditingController();
   final VisitorApiService _visitorService = VisitorApiService();
-  
+
   bool isVerifying = false;
 
   @override
@@ -42,7 +42,7 @@ class _EntryOtpScreenState extends State<EntryOtpScreen> {
 
     try {
       final Response response;
-      
+
       if (widget.action == EntryExitAction.entry) {
         response = await _visitorService.checkInVisitor(
           passId: widget.visitor.passId,
@@ -71,7 +71,9 @@ class _EntryOtpScreenState extends State<EntryOtpScreen> {
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Invalid OTP or verification failed'),
+              content: Text(
+                'Visitor cannot check in before the scheduled visiting date.',
+              ),
               backgroundColor: Colors.redAccent,
             ),
           );
@@ -80,15 +82,16 @@ class _EntryOtpScreenState extends State<EntryOtpScreen> {
     } on DioException catch (e) {
       if (mounted) {
         String errorMessage = 'Invalid OTP';
-        
+
         if (e.response?.data != null) {
           if (e.response!.data is Map) {
-            errorMessage = e.response!.data['message'] ??
+            errorMessage =
+                e.response!.data['message'] ??
                 e.response!.data['error'] ??
                 'Invalid OTP';
           }
         }
-        
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(errorMessage),
@@ -199,7 +202,7 @@ class _EntryOtpScreenState extends State<EntryOtpScreen> {
                       ),
                     ),
                     SizedBox(height: height * 0.01),
-                    
+
                     // Pass ID
                     Text(
                       'Pass ID: ${widget.visitor.passId}',
@@ -250,9 +253,7 @@ class _EntryOtpScreenState extends State<EntryOtpScreen> {
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide(
-                            color: Colors.grey[300]!,
-                          ),
+                          borderSide: BorderSide(color: Colors.grey[300]!),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
@@ -263,9 +264,7 @@ class _EntryOtpScreenState extends State<EntryOtpScreen> {
                         ),
                         errorBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
-                          borderSide: const BorderSide(
-                            color: Colors.red,
-                          ),
+                          borderSide: const BorderSide(color: Colors.red),
                         ),
                       ),
                       validator: (value) {
@@ -329,8 +328,7 @@ class _EntryOtpScreenState extends State<EntryOtpScreen> {
                                     width: 20,
                                     child: CircularProgressIndicator(
                                       strokeWidth: 2,
-                                      valueColor:
-                                          AlwaysStoppedAnimation<Color>(
+                                      valueColor: AlwaysStoppedAnimation<Color>(
                                         Colors.white,
                                       ),
                                     ),

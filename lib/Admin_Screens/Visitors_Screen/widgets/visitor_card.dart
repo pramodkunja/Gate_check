@@ -34,13 +34,13 @@ class VisitorCard extends StatelessWidget {
   }
 
   bool _isScheduledForToday() {
+    // Use local times to avoid timezone mismatches
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
-    final visitDate = DateTime(
-      visitor.visitingDate.year,
-      visitor.visitingDate.month,
-      visitor.visitingDate.day,
-    );
+
+    final localVisit = visitor.visitingDate.toLocal();
+    final visitDate = DateTime(localVisit.year, localVisit.month, localVisit.day);
+
     return visitDate.isAtSameMomentAs(today);
   }
 
@@ -202,8 +202,73 @@ class VisitorCard extends StatelessWidget {
       ),
     );
 
-    if (result == true && onRefresh != null) {
-      onRefresh!();
+    // If entry_otp reported success, update status to "visited" and refresh list
+    if (result == true) {
+      final visitorService = VisitorApiService();
+
+      // Optional: show small loading dialog while updating status
+      if (context.mounted) {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (_) => const Center(child: CircularProgressIndicator()),
+        );
+      }
+
+      try {
+        // NOTE: choose the exact status string your backend expects.
+        // I'm using 'visited' here — change to 'VISITED' or other if backend requires uppercase.
+        final resp = await visitorService.updateVisitorStatus(
+          visitorId: visitor.id,
+          status: 'visited',
+        );
+
+        if (context.mounted) {
+          Navigator.pop(context); // remove loading
+
+          if (resp.statusCode == 200 || resp.statusCode == 201) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('${visitor.name} marked as visited'),
+                backgroundColor: AppColors.approved,
+                duration: const Duration(seconds: 2),
+              ),
+            );
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Checked out but failed to update status'),
+                backgroundColor: AppColors.rejected,
+                duration: const Duration(seconds: 2),
+              ),
+            );
+          }
+
+          if (onRefresh != null) onRefresh!();
+        }
+      } on DioException catch (e) {
+        if (context.mounted) {
+          Navigator.pop(context); // remove loading
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(visitorService.getErrorMessage(e)),
+              backgroundColor: Colors.red,
+            ),
+          );
+          if (onRefresh != null) onRefresh!();
+        }
+      } catch (e) {
+        if (context.mounted) {
+          Navigator.pop(context); // remove loading
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Unexpected error updating status'),
+              backgroundColor: Colors.red,
+            ),
+          );
+          if (onRefresh != null) onRefresh!();
+        }
+      }
     }
   }
 
@@ -228,9 +293,11 @@ class VisitorCard extends StatelessWidget {
     final screenWidth = size.width;
     final screenHeight = size.height;
 
-    final isPast = visitor.isPast;
+    // Change: don't mark as "Past" if visitor has already checked out.
+    // This keeps the post-checkout display consistent even on subsequent days.
+    final isPast = visitor.isPast && !visitor.isCheckedOut;
     final isToday = _isScheduledForToday();
-    final formattedDate = DateFormat('yyyy-MM-dd').format(visitor.visitingDate);
+    final formattedDate = DateFormat('yyyy-MM-dd').format(visitor.visitingDate.toLocal());
 
     return Container(
       margin: EdgeInsets.only(bottom: screenHeight * 0.02),
@@ -289,6 +356,8 @@ class VisitorCard extends StatelessWidget {
                     ],
                   ),
                 ),
+
+                // Show "Past" badge only when isPast == true
                 if (isPast)
                   Container(
                     padding: EdgeInsets.symmetric(
@@ -308,25 +377,31 @@ class VisitorCard extends StatelessWidget {
                       ),
                     ),
                   )
-                else if (!visitor.isCheckedOut)
+                else
+                  // For non-past visitors, show status badge.
+                  // If visitor has checked out, show "Visited" explicitly.
                   Container(
                     padding: EdgeInsets.symmetric(
                       horizontal: screenWidth * 0.03,
                       vertical: screenHeight * 0.008,
                     ),
                     decoration: BoxDecoration(
-                      color: visitor.status.color.withOpacity(0.1),
+                      color: (visitor.isCheckedOut
+                              ? AppColors.approved
+                              : visitor.status.color)
+                          .withOpacity(0.1),
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
-                      visitor.status.displayName,
+                      visitor.isCheckedOut ? 'Visited' : visitor.status.displayName,
                       style: GoogleFonts.inter(
                         fontSize: screenWidth * 0.03,
                         fontWeight: FontWeight.w500,
-                        color: visitor.status.color,
+                        color: visitor.isCheckedOut ? AppColors.approved : visitor.status.color,
                       ),
                     ),
                   ),
+
                 SizedBox(width: screenWidth * 0.02),
                 ActionMenu(
                   visitor: visitor,
@@ -558,6 +633,3 @@ class VisitorCard extends StatelessWidget {
     );
   }
 }
-
-
-

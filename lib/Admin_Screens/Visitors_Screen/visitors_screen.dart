@@ -177,13 +177,6 @@ class _RegularVisitorsScreenState extends State<RegularVisitorsScreen> {
             email: email,
           ),
 
-
-      // drawer: const Navigation(),
-      // appBar: CustomAppBar(
-      //   userName: userName,
-      //   firstLetter: firstLetter,
-      //   email: email,
-      // ),
       body: Column(
         children: [
           Padding(
