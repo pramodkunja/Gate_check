@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../utils/colors.dart';
 import '../utils/constants.dart';
+import 'package:gatecheck/Services/visitor_service.dart';
+import 'package:dio/dio.dart';
 
 class AddVisitorDialog extends StatefulWidget {
   final Function(Map<String, dynamic>) onAdd;
@@ -29,21 +32,96 @@ class _AddVisitorDialogState extends State<AddVisitorDialog> {
 
   String selectedGender = 'Select gender';
   String selectedPassType = 'One Time';
-  int? selectedCategoryId;
+
+  // categories loaded from backend
+  List<Map<String, dynamic>> categories = [];
+  Map<String, int> categoryMap = {}; // name -> id
   String selectedCategory = 'Select category';
+  int? selectedCategoryId;
+
   String selectedVehicleType = 'Select vehicle type';
   DateTime? selectedDate;
   TimeOfDay? selectedTime;
   DateTime? _validUntilDate;
 
   bool isSubmitting = false;
+  bool isCategoryLoading = false;
 
-  // Map category names to IDs (update these based on your API)
-  final Map<String, int> categoryMap = {
-    'Vendor': 9,
-    'Walk-In': 10,
-    'Contractor': 11,
-  };
+  // default fallback if API returns none (optional)
+  final List<Map<String, dynamic>> fallbackCategories = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchCategories();
+  }
+
+  Future<void> _fetchCategories() async {
+    setState(() {
+      isCategoryLoading = true;
+    });
+
+    try {
+      final resp = await VisitorApiService().getCategories();
+      // Expecting a list of objects like [{"id":15,"name":"Vendor",...}, ...]
+      final data = resp.data;
+      if (data is List) {
+        categories = data
+            .map<Map<String, dynamic>>((e) {
+              // Normalize to map with keys 'id' and 'name'
+              if (e is Map<String, dynamic>) {
+                return {'id': e['id'], 'name': e['name']?.toString() ?? ''};
+              }
+              return {'id': null, 'name': e.toString()};
+            })
+            .where((m) => m['id'] != null && (m['name'] as String).isNotEmpty)
+            .toList();
+      }
+
+      // If API returned empty or unexpected, fallback to default categories
+      if (categories.isEmpty) {
+        categories = fallbackCategories;
+      }
+
+      // Build lookup map name -> id (use the display name as key)
+      categoryMap = {
+        for (var c in categories) (c['name'] as String): (c['id'] as int),
+      };
+
+      // Prepare dropdown selected value (keep 'Select category' until user picks)
+      setState(() {
+        isCategoryLoading = false;
+      });
+    // ignore: unused_catch_clause
+    } on DioException catch (e) {
+      // On error, fallback and show a friendly message
+      setState(() {
+        categories = fallbackCategories;
+        categoryMap = {
+          for (var c in categories) (c['name'] as String): (c['id'] as int),
+        };
+        isCategoryLoading = false;
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to load categories. Using defaults.'),
+            backgroundColor: AppColors.rejected,
+          ),
+        );
+      }
+    } catch (e) {
+      // Generic fallback
+      setState(() {
+        categories = fallbackCategories;
+        categoryMap = {
+          for (var c in categories) (c['name'] as String): (c['id'] as int),
+        };
+        isCategoryLoading = false;
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -109,7 +187,8 @@ class _AddVisitorDialogState extends State<AddVisitorDialog> {
     // Basic validations
     final bool basicValid = _formKey.currentState!.validate();
     final bool dateTimeSelected = selectedDate != null && selectedTime != null;
-    final bool categorySelected = selectedCategory != 'Select category';
+    final bool categorySelected =
+        selectedCategory != 'Select category' && selectedCategoryId != null;
 
     if (!basicValid || !dateTimeSelected || !categorySelected) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -167,7 +246,8 @@ class _AddVisitorDialogState extends State<AddVisitorDialog> {
       'visiting_time':
           '${selectedTime!.hour.toString().padLeft(2, '0')}:${selectedTime!.minute.toString().padLeft(2, '0')}:00',
       'purpose_of_visit': _purposeController.text.trim(),
-      'category': selectedCategoryId ?? categoryMap[selectedCategory],
+      // Use selectedCategoryId that comes from backend
+      'category': selectedCategoryId,
       'allowing_hours': int.tryParse(_allowingHoursController.text) ?? 8,
     };
 
@@ -204,15 +284,14 @@ class _AddVisitorDialogState extends State<AddVisitorDialog> {
 
     // Recurring pass specific
     if (selectedPassType == 'Recurring') {
-      visitorData['recurring_days'] =
-          int.tryParse(_recurringDaysController.text.trim());
+      visitorData['recurring_days'] = int.tryParse(
+        _recurringDaysController.text.trim(),
+      );
     }
 
     // Vehicle information (if you have vehicle API endpoint)
     if (_vehicleNumberController.text.trim().isNotEmpty &&
         selectedVehicleType != 'Select vehicle type') {
-      // You might need to create vehicle first and get its ID
-      // For now, we'll just send vehicle number in notes
       final vehicleInfo =
           'Vehicle: $selectedVehicleType - ${_vehicleNumberController.text.trim()}';
       if (visitorData['security_notes'] != null) {
@@ -267,7 +346,9 @@ class _AddVisitorDialogState extends State<AddVisitorDialog> {
                   const Spacer(),
                   IconButton(
                     icon: const Icon(Icons.close),
-                    onPressed: isSubmitting ? null : () => Navigator.pop(context),
+                    onPressed: isSubmitting
+                        ? null
+                        : () => Navigator.pop(context),
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(),
                   ),
@@ -363,23 +444,39 @@ class _AddVisitorDialogState extends State<AddVisitorDialog> {
                         const SizedBox(height: 12),
                       ],
 
+                      // Category dropdown is based on backend
                       _buildDropdown(
                         label: 'Category',
                         value: selectedCategory,
-                        items: const [
+                        items: [
                           'Select category',
-                          'Vendor',
-                          'Walk-In',
-                          'Contractor',
+                          ...categories.map((c) => c['name'].toString()),
                         ],
                         onChanged: (value) {
                           setState(() {
                             selectedCategory = value!;
-                            selectedCategoryId = categoryMap[value];
+                            selectedCategoryId = categoryMap[selectedCategory];
                           });
                         },
                         isRequired: true,
                       ),
+                      if (isCategoryLoading)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 8.0),
+                          child: Row(
+                            children: const [
+                              SizedBox(
+                                height: 16,
+                                width: 16,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              ),
+                              SizedBox(width: 8),
+                              Text('Loading categories...'),
+                            ],
+                          ),
+                        ),
                       const SizedBox(height: 12),
 
                       _buildDatePicker(
@@ -497,7 +594,9 @@ class _AddVisitorDialogState extends State<AddVisitorDialog> {
                 children: [
                   Expanded(
                     child: OutlinedButton(
-                      onPressed: isSubmitting ? null : () => Navigator.pop(context),
+                      onPressed: isSubmitting
+                          ? null
+                          : () => Navigator.pop(context),
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         side: BorderSide(color: AppColors.border),
@@ -533,8 +632,9 @@ class _AddVisitorDialogState extends State<AddVisitorDialog> {
                               width: 20,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
-                                valueColor:
-                                    AlwaysStoppedAnimation<Color>(Colors.white),
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  Colors.white,
+                                ),
                               ),
                             )
                           : Text(
@@ -575,6 +675,29 @@ class _AddVisitorDialogState extends State<AddVisitorDialog> {
     TextInputType? keyboardType,
     int maxLines = 1,
   }) {
+    // Helper: email regex
+    final emailRegex = RegExp(
+      r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$',
+    );
+
+    // Input formatters
+    List<TextInputFormatter>? inputFormatters;
+    if (keyboardType == TextInputType.phone) {
+      inputFormatters = <TextInputFormatter>[
+        FilteringTextInputFormatter.digitsOnly,
+        LengthLimitingTextInputFormatter(10),
+      ];
+    } else if (keyboardType == TextInputType.number) {
+      inputFormatters = <TextInputFormatter>[
+        FilteringTextInputFormatter.digitsOnly,
+      ];
+    } else if (keyboardType == TextInputType.emailAddress) {
+      // prevent spaces in email
+      inputFormatters = <TextInputFormatter>[
+        FilteringTextInputFormatter.deny(RegExp(r'\s')),
+      ];
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -604,6 +727,7 @@ class _AddVisitorDialogState extends State<AddVisitorDialog> {
           keyboardType: keyboardType,
           maxLines: maxLines,
           enabled: !isSubmitting,
+          inputFormatters: inputFormatters,
           decoration: InputDecoration(
             hintText: hint,
             hintStyle: GoogleFonts.poppins(
@@ -627,14 +751,45 @@ class _AddVisitorDialogState extends State<AddVisitorDialog> {
               vertical: 12,
             ),
           ),
-          validator: isRequired
-              ? (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'This field is required';
-                  }
-                  return null;
-                }
-              : null,
+
+          // Combined validator supporting required, phone and email rules
+          validator: (value) {
+            final text = value?.trim() ?? '';
+
+            // Required validation
+            if (isRequired && text.isEmpty) {
+              return 'This field is required';
+            }
+
+            // Phone validation
+            if (keyboardType == TextInputType.phone) {
+              if (text.isEmpty) return 'Mobile number is required';
+              if (text.length != 10) return 'Mobile number must be 10 digits';
+              if (!RegExp(r'^[0-9]+$').hasMatch(text)) {
+                return 'Mobile number must contain only digits';
+              }
+              if (!RegExp(r'^[6-9]\d{9}$').hasMatch(text)) {
+                return 'Enter a valid Indian mobile number';
+              }
+            }
+
+            // Email validation
+            if (keyboardType == TextInputType.emailAddress) {
+              if (text.isEmpty) return 'Email is required';
+              if (!emailRegex.hasMatch(text)) {
+                return 'Enter a valid email address';
+              }
+            }
+
+            // Number field basic check (e.g., Allowing Hours, Recurring Days)
+            if (keyboardType == TextInputType.number && text.isNotEmpty) {
+              if (!RegExp(r'^[0-9]+$').hasMatch(text)) {
+                return 'Enter a valid number';
+              }
+            }
+
+            return null;
+          },
         ),
       ],
     );

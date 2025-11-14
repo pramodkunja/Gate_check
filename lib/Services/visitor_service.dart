@@ -69,6 +69,19 @@ class VisitorApiService {
     }
   }
 
+  /// Get categories from backend
+  Future<Response> getCategories() async {
+    try {
+      debugPrint('🔍 Fetching visitor categories');
+      final response = await _apiService.dio.get('/visitors/categories/');
+      debugPrint('✅ Categories fetched: ${response.data}');
+      return response;
+    } on DioException catch (e) {
+      debugPrint('❌ Error fetching categories: ${e.message}');
+      rethrow;
+    }
+  }
+
   // Approve visitor
   Future<Response> approveVisitor(String visitorId) async {
     try {
