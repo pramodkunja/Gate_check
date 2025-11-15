@@ -1,4 +1,4 @@
-// edit_permissions_dialog.dart
+// edit_permissions_dialog.dart - FIXED VERSION
 
 import 'package:flutter/material.dart';
 import 'package:gatecheck/Services/Roles_permission_services/role_permissions_service.dart';
@@ -21,11 +21,12 @@ class EditPermissionsDialog extends StatefulWidget {
 class _EditPermissionsDialogState extends State<EditPermissionsDialog> {
   final RolePermissionsApiService _apiService = RolePermissionsApiService();
 
-  // ✅ Changed to store permission IDs instead of names
-  late Set<int> selectedPermissionIds;
+  // ✅ Store permission NAMES (strings) since backend uses names
+  late Set<String> selectedPermissionNames;
 
   // ✅ Dynamic permissions from backend
   List<Map<String, dynamic>> allPermissions = [];
+  List<Map<String, dynamic>> allRoles = []; // ✅ Store all roles to get IDs
 
   bool _isSubmitting = false;
   bool _isLoadingPermissions = true;
@@ -34,9 +35,22 @@ class _EditPermissionsDialogState extends State<EditPermissionsDialog> {
   @override
   void initState() {
     super.initState();
-    // Initialize with current role permission IDs
-    selectedPermissionIds = Set<int>.from(widget.role.permissionIds);
+    // ✅ Initialize with current role permission NAMES (not IDs)
+    selectedPermissionNames = Set<String>.from(widget.role.permissions);
+    debugPrint('🔍 Initial selected permissions: $selectedPermissionNames');
     _loadAllPermissions();
+    _loadAllRoles(); // ✅ Load roles to get proper IDs
+  }
+
+  // ✅ Load all roles to get the correct role ID
+  Future<void> _loadAllRoles() async {
+    try {
+      allRoles = await _apiService.getAllRoles();
+      debugPrint('✅ Loaded ${allRoles.length} roles');
+    } catch (e) {
+      debugPrint('⚠️ Could not fetch roles: $e');
+      // Continue anyway - we might still have roleId from widget.role
+    }
   }
 
   // ✅ Fetch all available permissions from backend
@@ -49,18 +63,27 @@ class _EditPermissionsDialogState extends State<EditPermissionsDialog> {
     try {
       List<Map<String, dynamic>> permissions = [];
 
-      // Try to get permissions from dedicated endpoint
       try {
         permissions = await _apiService.getAllPermissions();
       } catch (e) {
         debugPrint('⚠️ Could not fetch from permissions endpoint: $e');
-        debugPrint('Trying to extract from role assignments...');
-
-        // Fallback: Extract from existing role permissions
-        permissions = await _apiService.getAllPermissions();
+        
+        // Fallback: Extract unique permissions from all roles
+        final allRoles = await _apiService.getRolePermissions();
+        final uniquePerms = <String>{};
+        
+        for (var role in allRoles) {
+          uniquePerms.addAll(role.permissions);
+        }
+        
+        // Convert to expected format
+        permissions = uniquePerms.map((name) => {
+          'id': name.hashCode, // Generate a consistent ID from name
+          'name': name,
+        }).toList();
+        
+        debugPrint('✅ Extracted ${permissions.length} unique permissions from roles');
       }
-
-      // If still no permissions, use hardcoded list as last resort
 
       setState(() {
         allPermissions = permissions;
@@ -68,7 +91,7 @@ class _EditPermissionsDialogState extends State<EditPermissionsDialog> {
       });
 
       debugPrint('✅ Loaded ${allPermissions.length} permissions');
-      debugPrint('✅ Currently selected permission IDs: $selectedPermissionIds');
+      debugPrint('✅ Currently selected: $selectedPermissionNames');
     } catch (e) {
       setState(() {
         _errorMessage = 'Failed to load permissions: $e';
@@ -78,32 +101,35 @@ class _EditPermissionsDialogState extends State<EditPermissionsDialog> {
     }
   }
 
-  void _togglePermission(int permissionId) {
+  void _togglePermission(String permissionName) {
     setState(() {
-      if (selectedPermissionIds.contains(permissionId)) {
-        selectedPermissionIds.remove(permissionId);
+      if (selectedPermissionNames.contains(permissionName)) {
+        selectedPermissionNames.remove(permissionName);
       } else {
-        selectedPermissionIds.add(permissionId);
+        selectedPermissionNames.add(permissionName);
       }
     });
+    debugPrint('📝 Selected permissions: $selectedPermissionNames');
   }
 
   void _toggleSelectAll() {
     setState(() {
       if (isAllSelected) {
-        selectedPermissionIds.clear();
+        selectedPermissionNames.clear();
       } else {
-        selectedPermissionIds.clear();
-        selectedPermissionIds.addAll(allPermissions.map((p) => p['id'] as int));
+        selectedPermissionNames.clear();
+        selectedPermissionNames.addAll(
+          allPermissions.map((p) => p['name'] as String)
+        );
       }
     });
   }
 
   bool get isAllSelected =>
-      selectedPermissionIds.length == allPermissions.length;
+      selectedPermissionNames.length == allPermissions.length;
 
   Future<void> _savePermissions() async {
-    if (selectedPermissionIds.isEmpty) {
+    if (selectedPermissionNames.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Please select at least one permission'),
@@ -116,11 +142,28 @@ class _EditPermissionsDialogState extends State<EditPermissionsDialog> {
     setState(() => _isSubmitting = true);
 
     try {
-      // ✅ Send permission IDs to backend
+      debugPrint('💾 Saving permissions: $selectedPermissionNames');
+      
+      // ✅ Convert permission NAMES to IDs before sending
+      final selectedPermissionIds = <int>[];
+      for (var name in selectedPermissionNames) {
+        final permission = allPermissions.firstWhere(
+          (p) => p['name'] == name,
+          orElse: () => {'id': 0, 'name': ''},
+        );
+        if (permission['id'] != 0) {
+          selectedPermissionIds.add(permission['id'] as int);
+        }
+      }
+      
+      debugPrint('📤 Sending permission IDs: $selectedPermissionIds');
+      debugPrint('📤 Sending role ID: ${widget.role.roleId}');
+      
+      // ✅ Send permission IDs (integers) to backend
       final success = await _apiService.updatePermissions(
         rolePermissionId: widget.role.rolePermissionId,
         roleId: widget.role.roleId,
-        permissionIds: selectedPermissionIds.toList(),
+        permissions: selectedPermissionIds,
         role: widget.role.role,
       );
 
@@ -321,7 +364,7 @@ class _EditPermissionsDialogState extends State<EditPermissionsDialog> {
 
                           const SizedBox(height: 12),
 
-                          // ✅ Dynamic Permissions List
+                          // ✅ Dynamic Permissions List with NAMES
                           Container(
                             height: 300,
                             decoration: BoxDecoration(
@@ -342,17 +385,16 @@ class _EditPermissionsDialogState extends State<EditPermissionsDialog> {
                                     itemCount: allPermissions.length,
                                     itemBuilder: (context, index) {
                                       final permission = allPermissions[index];
-                                      final permId = permission['id'] as int;
-                                      final permName =
-                                          permission['name'] as String;
-                                      final isSelected = selectedPermissionIds
-                                          .contains(permId);
+                                      final permName = permission['name'] as String;
+                                      
+                                      // ✅ Check if permission NAME is selected
+                                      final isSelected = selectedPermissionNames.contains(permName);
 
                                       return CheckboxListTile(
                                         value: isSelected,
                                         onChanged: _isSubmitting
                                             ? null
-                                            : (_) => _togglePermission(permId),
+                                            : (_) => _togglePermission(permName),
                                         title: Text(
                                           permName,
                                           style: GoogleFonts.poppins(
@@ -375,7 +417,7 @@ class _EditPermissionsDialogState extends State<EditPermissionsDialog> {
 
                           // Selection counter
                           Text(
-                            '${selectedPermissionIds.length} of ${allPermissions.length} permissions selected',
+                            '${selectedPermissionNames.length} of ${allPermissions.length} permissions selected',
                             style: GoogleFonts.poppins(
                               fontSize: 13,
                               color: Colors.grey[600],

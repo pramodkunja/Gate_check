@@ -11,7 +11,7 @@ import 'package:gatecheck/Services/User_services/user_service.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class RolePermissionsScreen extends StatefulWidget {
-  const RolePermissionsScreen({Key? key}) : super(key: key);
+  const RolePermissionsScreen({super.key});
 
   @override
   State<RolePermissionsScreen> createState() => _RolePermissionsScreenState();
@@ -41,25 +41,32 @@ class _RolePermissionsScreenState extends State<RolePermissionsScreen> {
   }
 
   Future<void> _loadRolePermissions() async {
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
+  setState(() {
+    _isLoading = true;
+    _errorMessage = null;
+  });
 
-    try {
-      final roles = await _apiService.getRolePermissions();
-      setState(() {
-        _allRoles = roles;
-        _filteredRoles = roles;
-        _isLoading = false;
-      });
-    } catch (e) {
-      setState(() {
-        _errorMessage = 'Failed to load role permissions: $e';
-        _isLoading = false;
-      });
+  try {
+    final roles = await _apiService.getRolePermissions();
+    
+    // 🔍 DEBUG: Print the parsed roles
+    debugPrint('📦 Loaded ${roles.length} roles');
+    for (var role in roles) {
+      debugPrint('Role: ${role.role}, Permissions: ${role.permissions}');
     }
+    
+    setState(() {
+      _allRoles = roles;
+      _filteredRoles = roles;
+      _isLoading = false;
+    });
+  } catch (e) {
+    setState(() {
+      _errorMessage = 'Failed to load role permissions: $e';
+      _isLoading = false;
+    });
   }
+}
 
   void _applySearchFilter() {
     final q = _searchController.text.trim().toLowerCase();

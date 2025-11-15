@@ -83,9 +83,9 @@ class _AssignPermissionsDialogState extends State<AssignPermissionsDialog> {
     setState(() => _isSubmitting = true);
 
     final success = await _apiService.assignPermissions(
-      roleId: selectedRoleId!,
-      permissionIds: selectedPermissionIds.toList(),
-    );
+  roleId: selectedRoleId!,
+  permissions: selectedPermissionIds.toList(),  // ✅ Correct parameter name
+);
 
     setState(() => _isSubmitting = false);
 
