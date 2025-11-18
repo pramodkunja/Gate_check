@@ -54,7 +54,10 @@ class _ReportsScreenState extends State<ReportsScreen>
 
     return Scaffold(
       appBar: CustomAppBar(
-          userName: userName, firstLetter: firstLetter, email: email),
+        userName: userName,
+        firstLetter: firstLetter,
+        email: email,
+      ),
       drawer: const Navigation(),
       backgroundColor: const Color(0xFFF8F9FA),
       body: SafeArea(
@@ -65,8 +68,11 @@ class _ReportsScreenState extends State<ReportsScreen>
             children: [
               Row(
                 children: [
-                  const Icon(Icons.insert_drive_file,
-                      color: Colors.blue, size: 28),
+                  const Icon(
+                    Icons.insert_drive_file,
+                    color: Colors.blue,
+                    size: 28,
+                  ),
                   const SizedBox(width: 8),
                   Text(
                     'Reports',
@@ -172,7 +178,10 @@ class _MonthlyReportTabState extends State<MonthlyReportTab> {
   int? loadingMonth;
 
   Future<void> _downloadReport(
-      String type, int monthIndex, bool isPreview) async {
+    String type,
+    int monthIndex,
+    bool isPreview,
+  ) async {
     setState(() {
       isLoading = true;
       loadingAction = type;
@@ -200,19 +209,22 @@ class _MonthlyReportTabState extends State<MonthlyReportTab> {
         final prefs = await SharedPreferences.getInstance();
         final token = prefs.getString('authToken');
         final previewUrl = '$baseUrl$endpoint';
-        
+
         debugPrint('🔍 Preview URL: $previewUrl');
-        
+
         if (kIsWeb) {
           // On web, open in new tab
           if (await canLaunchUrl(Uri.parse(previewUrl))) {
-            await launchUrl(Uri.parse(previewUrl), mode: LaunchMode.externalApplication);
+            await launchUrl(
+              Uri.parse(previewUrl),
+              mode: LaunchMode.externalApplication,
+            );
           }
         } else {
           // On mobile, download to temp and open
           final tempDir = await getTemporaryDirectory();
           final tempFile = '${tempDir.path}/preview_$fileName';
-          
+
           try {
             await ApiService().dio.download(
               endpoint,
@@ -221,16 +233,14 @@ class _MonthlyReportTabState extends State<MonthlyReportTab> {
                 responseType: ResponseType.bytes,
                 followRedirects: true,
                 validateStatus: (status) => status! < 500,
-                headers: {
-                  'Authorization': 'Bearer $token',
-                },
+                headers: {'Authorization': 'Bearer $token'},
               ),
             );
-            
+
             debugPrint('✅ Preview file downloaded to: $tempFile');
             final result = await OpenFile.open(tempFile);
             debugPrint('📂 Open result: ${result.message}');
-            
+
             if (result.type != ResultType.done) {
               throw Exception('Could not open file: ${result.message}');
             }
@@ -245,7 +255,9 @@ class _MonthlyReportTabState extends State<MonthlyReportTab> {
       }
 
       if (mounted) {
-        String message = isPreview ? 'Opening preview...' : 'File saved to Downloads folder';
+        String message = isPreview
+            ? 'Opening preview...'
+            : 'File saved to Downloads folder';
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(message, style: GoogleFonts.poppins()),
@@ -258,11 +270,12 @@ class _MonthlyReportTabState extends State<MonthlyReportTab> {
     } on DioException catch (e) {
       debugPrint('❌ DioException: ${e.response?.statusCode} - ${e.message}');
       debugPrint('❌ Response data: ${e.response?.data}');
-      
+
       if (mounted) {
         String errorMessage = 'Failed to download report';
         if (e.response?.statusCode == 404) {
-          errorMessage = 'No data available for ${months[monthIndex]} $selectedYear';
+          errorMessage =
+              'No data available for ${months[monthIndex]} $selectedYear';
         } else if (e.response?.statusCode == 500) {
           errorMessage = 'Server error. Please try again later';
         } else if (e.response?.data != null) {
@@ -306,13 +319,19 @@ class _MonthlyReportTabState extends State<MonthlyReportTab> {
   }
 
   Future<void> _downloadAndOpenFile(
-      String endpoint, String fileName, bool openFile) async {
+    String endpoint,
+    String fileName,
+    bool openFile,
+  ) async {
     if (kIsWeb) {
       // For web, construct download URL
       final baseUrl = ApiService.baseUrl;
       final downloadUrl = '$baseUrl$endpoint';
       if (await canLaunchUrl(Uri.parse(downloadUrl))) {
-        await launchUrl(Uri.parse(downloadUrl), mode: LaunchMode.externalApplication);
+        await launchUrl(
+          Uri.parse(downloadUrl),
+          mode: LaunchMode.externalApplication,
+        );
       }
       return;
     }
@@ -342,7 +361,9 @@ class _MonthlyReportTabState extends State<MonthlyReportTab> {
       ),
       onReceiveProgress: (received, total) {
         if (total != -1) {
-          debugPrint('Download progress: ${(received / total * 100).toStringAsFixed(0)}%');
+          debugPrint(
+            'Download progress: ${(received / total * 100).toStringAsFixed(0)}%',
+          );
         }
       },
     );
@@ -487,30 +508,60 @@ class _MonthlyReportTabState extends State<MonthlyReportTab> {
                         ],
                       ),
                       const SizedBox(height: 10),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: [
-                          _buildOutlinedButton(
-                            'Excel',
-                            const Color(0xFF00A651),
-                            index,
-                            isLoadingThisMonth && loadingAction == 'Excel',
-                          ),
-                          _buildOutlinedButton(
-                            'PDF',
-                            const Color(0xFFE53935),
-                            index,
-                            isLoadingThisMonth && loadingAction == 'PDF',
-                          ),
-                          _buildOutlinedButton(
-                            'Preview',
-                            const Color(0xFF1E88E5),
-                            index,
-                            isLoadingThisMonth && loadingAction == 'Preview',
-                          ),
-                        ],
+
+                      // --- START: REPLACED WRAP (Option A: force three buttons same line) ---
+                      LayoutBuilder(
+                        builder: (context, constraints) {
+                          const double gap = 8; // same as your Wrap spacing
+                          final double available = constraints.maxWidth;
+
+                          // Compute width for each button so 3 buttons fit on one line when possible.
+                          // We subtract gaps between buttons (2 gaps for 3 buttons).
+                          double buttonWidth = (available - (gap * 2)) / 3;
+
+                          // Clamp to sensible min/max so buttons don't become too small or too wide.
+                          if (buttonWidth < 84) buttonWidth = 84;
+                          if (buttonWidth > 220) buttonWidth = 220;
+
+                          return Wrap(
+                            spacing: gap,
+                            runSpacing: 8,
+                            children: [
+                              SizedBox(
+                                width: buttonWidth,
+                                child: _buildOutlinedButton(
+                                  'Excel',
+                                  const Color(0xFF00A651),
+                                  index,
+                                  isLoadingThisMonth &&
+                                      loadingAction == 'Excel',
+                                ),
+                              ),
+                              SizedBox(
+                                width: buttonWidth,
+                                child: _buildOutlinedButton(
+                                  'PDF',
+                                  const Color(0xFFE53935),
+                                  index,
+                                  isLoadingThisMonth && loadingAction == 'PDF',
+                                ),
+                              ),
+                              SizedBox(
+                                width: buttonWidth,
+                                child: _buildOutlinedButton(
+                                  'Preview',
+                                  const Color(0xFF1E88E5),
+                                  index,
+                                  isLoadingThisMonth &&
+                                      loadingAction == 'Preview',
+                                ),
+                              ),
+                            ],
+                          );
+                        },
                       ),
+
+                      // --- END: REPLACED WRAP ---
                     ],
                   ),
                 ),
@@ -523,39 +574,103 @@ class _MonthlyReportTabState extends State<MonthlyReportTab> {
   }
 
   Widget _buildOutlinedButton(
-      String text, Color color, int monthIndex, bool isLoadingThis) {
-    return OutlinedButton(
-      onPressed: isLoading
-          ? null
-          : () {
-              if (text == 'Excel') {
-                _downloadReport('Excel', monthIndex, false);
-              } else if (text == 'PDF') {
-                _downloadReport('PDF', monthIndex, false);
-              } else if (text == 'Preview') {
-                _downloadReport('PDF', monthIndex, true);
-              }
-            },
-      style: OutlinedButton.styleFrom(
-        side: BorderSide(color: isLoading ? Colors.grey : color),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        disabledForegroundColor: Colors.grey,
-      ),
-      child: isLoadingThis
-          ? SizedBox(
-              width: 16,
-              height: 16,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                valueColor: AlwaysStoppedAnimation<Color>(color),
+    String text,
+    Color color,
+    int monthIndex,
+    bool isLoadingThis,
+  ) {
+    // Responsive OutlinedButton with icon + spinner while loading.
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // Determine available width per button: if infinite, fallback to screen fraction.
+        final screenWidth = MediaQuery.of(context).size.width;
+        double available =
+            constraints.maxWidth.isFinite && constraints.maxWidth > 0
+            ? constraints.maxWidth
+            : screenWidth * 0.3;
+
+        // Some Wrap items may be small; clamp sensible icon/text sizes.
+        double iconSize = (available * 0.08);
+        if (iconSize < 14) iconSize = 14;
+        if (iconSize > 22) iconSize = 22;
+
+        double fontSize = (available * 0.07);
+        if (fontSize < 12) fontSize = 12;
+        if (fontSize > 16) fontSize = 16;
+
+        IconData? iconData;
+        if (text == 'Excel' || text == 'PDF') {
+          iconData = Icons.download_rounded;
+        } else if (text == 'Preview') {
+          iconData = Icons.remove_red_eye_outlined;
+        }
+
+        return ConstrainedBox(
+          constraints: BoxConstraints(
+            minWidth: 84,
+            maxWidth: available < 120 ? 160 : available,
+          ),
+          child: OutlinedButton(
+            onPressed: isLoading
+                ? null
+                : () {
+                    if (text == 'Excel') {
+                      _downloadReport('Excel', monthIndex, false);
+                    } else if (text == 'PDF') {
+                      _downloadReport('PDF', monthIndex, false);
+                    } else if (text == 'Preview') {
+                      _downloadReport('PDF', monthIndex, true);
+                    }
+                  },
+            style: OutlinedButton.styleFrom(
+              side: BorderSide(color: isLoading ? Colors.grey : color),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
               ),
-            )
-          : Text(
-              text,
-              style: GoogleFonts.poppins(
-                  color: isLoading ? Colors.grey : color,
-                  fontWeight: FontWeight.w500),
+              disabledForegroundColor: Colors.grey,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              foregroundColor: color,
             ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (iconData != null)
+                  SizedBox(
+                    width: iconSize + 6,
+                    height: iconSize,
+                    child: Center(
+                      child: isLoadingThis
+                          ? SizedBox(
+                              width: iconSize,
+                              height: iconSize,
+                              child: CircularProgressIndicator(
+                                strokeWidth: (iconSize * 0.12).clamp(1.2, 3.0),
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  color,
+                                ),
+                              ),
+                            )
+                          : Icon(iconData, size: iconSize),
+                    ),
+                  ),
+                if (iconData != null) const SizedBox(width: 8),
+                Flexible(
+                  child: Text(
+                    text,
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                    style: GoogleFonts.poppins(
+                      color: isLoading ? Colors.grey : color,
+                      fontWeight: FontWeight.w500,
+                      fontSize: fontSize,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }
@@ -595,7 +710,10 @@ class _CustomizedReportTabState extends State<CustomizedReportTab> {
     if (fromDateController.text.isEmpty || toDateController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Please select both dates', style: GoogleFonts.poppins()),
+          content: Text(
+            'Please select both dates',
+            style: GoogleFonts.poppins(),
+          ),
           backgroundColor: Colors.orange,
           duration: const Duration(seconds: 2),
           behavior: SnackBarBehavior.floating,
@@ -648,17 +766,20 @@ class _CustomizedReportTabState extends State<CustomizedReportTab> {
         final prefs = await SharedPreferences.getInstance();
         final token = prefs.getString('authToken');
         final previewUrl = '$baseUrl$endpoint';
-        
+
         debugPrint('🔍 Preview URL: $previewUrl');
-        
+
         if (kIsWeb) {
           if (await canLaunchUrl(Uri.parse(previewUrl))) {
-            await launchUrl(Uri.parse(previewUrl), mode: LaunchMode.externalApplication);
+            await launchUrl(
+              Uri.parse(previewUrl),
+              mode: LaunchMode.externalApplication,
+            );
           }
         } else {
           final tempDir = await getTemporaryDirectory();
           final tempFile = '${tempDir.path}/preview_$fileName';
-          
+
           try {
             await ApiService().dio.download(
               endpoint,
@@ -667,16 +788,14 @@ class _CustomizedReportTabState extends State<CustomizedReportTab> {
                 responseType: ResponseType.bytes,
                 followRedirects: true,
                 validateStatus: (status) => status! < 500,
-                headers: {
-                  'Authorization': 'Bearer $token',
-                },
+                headers: {'Authorization': 'Bearer $token'},
               ),
             );
-            
+
             debugPrint('✅ Preview file downloaded to: $tempFile');
             final result = await OpenFile.open(tempFile);
             debugPrint('📂 Open result: ${result.message}');
-            
+
             if (result.type != ResultType.done) {
               throw Exception('Could not open file: ${result.message}');
             }
@@ -690,7 +809,9 @@ class _CustomizedReportTabState extends State<CustomizedReportTab> {
       }
 
       if (mounted) {
-        String message = isPreview ? 'Opening preview...' : 'File saved to Downloads folder';
+        String message = isPreview
+            ? 'Opening preview...'
+            : 'File saved to Downloads folder';
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(message, style: GoogleFonts.poppins()),
@@ -702,7 +823,7 @@ class _CustomizedReportTabState extends State<CustomizedReportTab> {
     } on DioException catch (e) {
       debugPrint('❌ DioException: ${e.response?.statusCode} - ${e.message}');
       debugPrint('❌ Response data: ${e.response?.data}');
-      
+
       if (mounted) {
         String errorMessage = 'Failed to download report';
         if (e.response?.statusCode == 404) {
@@ -747,12 +868,18 @@ class _CustomizedReportTabState extends State<CustomizedReportTab> {
   }
 
   Future<void> _downloadAndOpenFile(
-      String endpoint, String fileName, bool openFile) async {
+    String endpoint,
+    String fileName,
+    bool openFile,
+  ) async {
     if (kIsWeb) {
       final baseUrl = ApiService.baseUrl;
       final downloadUrl = '$baseUrl$endpoint';
       if (await canLaunchUrl(Uri.parse(downloadUrl))) {
-        await launchUrl(Uri.parse(downloadUrl), mode: LaunchMode.externalApplication);
+        await launchUrl(
+          Uri.parse(downloadUrl),
+          mode: LaunchMode.externalApplication,
+        );
       }
       return;
     }
@@ -831,12 +958,19 @@ class _CustomizedReportTabState extends State<CustomizedReportTab> {
                 spacing: 8,
                 runSpacing: 8,
                 children: [
-                  _buildButton('Download Excel', const Color(0xFF00A651),
-                      'Excel', false),
                   _buildButton(
-                      'Download PDF', const Color(0xFFE53935), 'PDF', false),
+                    'Download Excel',
+                    const Color(0xFF00A651),
+                    'Excel',
+                    false,
+                  ),
                   _buildButton(
-                      'Preview', const Color(0xFF1E88E5), 'PDF', true),
+                    'Download PDF',
+                    const Color(0xFFE53935),
+                    'PDF',
+                    false,
+                  ),
+                  _buildButton('Preview', const Color(0xFF1E88E5), 'PDF', true),
                 ],
               ),
           ],
@@ -898,19 +1032,93 @@ class _CustomizedReportTabState extends State<CustomizedReportTab> {
   }
 
   Widget _buildButton(String text, Color color, String type, bool isPreview) {
-    return OutlinedButton(
-      onPressed: isLoading ? null : () => _downloadCustomReport(type, isPreview),
-      style: OutlinedButton.styleFrom(
-        side: BorderSide(color: isLoading ? Colors.grey : color),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        disabledForegroundColor: Colors.grey,
-      ),
-      child: Text(
-        text,
-        style: GoogleFonts.poppins(
-            color: isLoading ? Colors.grey : color, fontWeight: FontWeight.w500),
-      ),
+    // Responsive OutlinedButton with icon + spinner while loading.
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final screenWidth = MediaQuery.of(context).size.width;
+        double available =
+            constraints.maxWidth.isFinite && constraints.maxWidth > 0
+            ? constraints.maxWidth
+            : screenWidth * 0.28;
+
+        double iconSize = (available * 0.08);
+        if (iconSize < 14) iconSize = 14;
+        if (iconSize > 22) iconSize = 22;
+
+        double fontSize = (available * 0.065);
+        if (fontSize < 12) fontSize = 12;
+        if (fontSize > 16) fontSize = 16;
+
+        IconData? iconData;
+        if (text.toLowerCase().contains('excel') ||
+            text.toLowerCase().contains('pdf') ||
+            type == 'Excel') {
+          iconData = Icons.download_rounded;
+        } else if (text.toLowerCase().contains('preview') ||
+            type == 'PDF' && isPreview) {
+          iconData = Icons.remove_red_eye_outlined;
+        }
+
+        final isLoadingThis = isLoading && loadingAction == type;
+
+        return ConstrainedBox(
+          constraints: BoxConstraints(
+            minWidth: 100,
+            maxWidth: available < 140 ? 200 : available,
+          ),
+          child: OutlinedButton(
+            onPressed: isLoading
+                ? null
+                : () => _downloadCustomReport(type, isPreview),
+            style: OutlinedButton.styleFrom(
+              side: BorderSide(color: isLoading ? Colors.grey : color),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              disabledForegroundColor: Colors.grey,
+              foregroundColor: color,
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (iconData != null)
+                  SizedBox(
+                    width: iconSize + 6,
+                    height: iconSize,
+                    child: Center(
+                      child: isLoadingThis
+                          ? SizedBox(
+                              width: iconSize,
+                              height: iconSize,
+                              child: CircularProgressIndicator(
+                                strokeWidth: (iconSize * 0.12).clamp(1.2, 3.0),
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  color,
+                                ),
+                              ),
+                            )
+                          : Icon(iconData, size: iconSize),
+                    ),
+                  ),
+                if (iconData != null) const SizedBox(width: 8),
+                Flexible(
+                  child: Text(
+                    text,
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                    style: GoogleFonts.poppins(
+                      color: isLoading ? Colors.grey : color,
+                      fontWeight: FontWeight.w500,
+                      fontSize: fontSize,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }

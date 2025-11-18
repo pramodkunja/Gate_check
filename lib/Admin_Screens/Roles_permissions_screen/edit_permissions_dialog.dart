@@ -1,4 +1,4 @@
-// edit_permissions_dialog.dart - FIXED VERSION
+// edit_permissions_dialog.dart - UPDATED WITH ACTIVE CHECKBOX
 
 import 'package:flutter/material.dart';
 import 'package:gatecheck/Services/Roles_permission_services/role_permissions_service.dart';
@@ -21,12 +21,11 @@ class EditPermissionsDialog extends StatefulWidget {
 class _EditPermissionsDialogState extends State<EditPermissionsDialog> {
   final RolePermissionsApiService _apiService = RolePermissionsApiService();
 
-  // ✅ Store permission NAMES (strings) since backend uses names
   late Set<String> selectedPermissionNames;
+  late bool isActive; // ✅ Active checkbox state
 
-  // ✅ Dynamic permissions from backend
   List<Map<String, dynamic>> allPermissions = [];
-  List<Map<String, dynamic>> allRoles = []; // ✅ Store all roles to get IDs
+  List<Map<String, dynamic>> allRoles = [];
 
   bool _isSubmitting = false;
   bool _isLoadingPermissions = true;
@@ -35,25 +34,18 @@ class _EditPermissionsDialogState extends State<EditPermissionsDialog> {
   @override
   void initState() {
     super.initState();
-    // ✅ Initialize with current role permission NAMES (not IDs)
     selectedPermissionNames = Set<String>.from(widget.role.permissions);
-    debugPrint('🔍 Initial selected permissions: $selectedPermissionNames');
+    isActive = widget.role.isActive; // ✅ Load active status from model
     _loadAllPermissions();
-    _loadAllRoles(); // ✅ Load roles to get proper IDs
+    _loadAllRoles();
   }
 
-  // ✅ Load all roles to get the correct role ID
   Future<void> _loadAllRoles() async {
     try {
       allRoles = await _apiService.getAllRoles();
-      debugPrint('✅ Loaded ${allRoles.length} roles');
-    } catch (e) {
-      debugPrint('⚠️ Could not fetch roles: $e');
-      // Continue anyway - we might still have roleId from widget.role
-    }
+    } catch (_) {}
   }
 
-  // ✅ Fetch all available permissions from backend
   Future<void> _loadAllPermissions() async {
     setState(() {
       _isLoadingPermissions = true;
@@ -61,55 +53,25 @@ class _EditPermissionsDialogState extends State<EditPermissionsDialog> {
     });
 
     try {
-      List<Map<String, dynamic>> permissions = [];
+      allPermissions = await _apiService.getAllPermissions();
 
-      try {
-        permissions = await _apiService.getAllPermissions();
-      } catch (e) {
-        debugPrint('⚠️ Could not fetch from permissions endpoint: $e');
-        
-        // Fallback: Extract unique permissions from all roles
-        final allRoles = await _apiService.getRolePermissions();
-        final uniquePerms = <String>{};
-        
-        for (var role in allRoles) {
-          uniquePerms.addAll(role.permissions);
-        }
-        
-        // Convert to expected format
-        permissions = uniquePerms.map((name) => {
-          'id': name.hashCode, // Generate a consistent ID from name
-          'name': name,
-        }).toList();
-        
-        debugPrint('✅ Extracted ${permissions.length} unique permissions from roles');
-      }
-
-      setState(() {
-        allPermissions = permissions;
-        _isLoadingPermissions = false;
-      });
-
-      debugPrint('✅ Loaded ${allPermissions.length} permissions');
-      debugPrint('✅ Currently selected: $selectedPermissionNames');
+      setState(() => _isLoadingPermissions = false);
     } catch (e) {
       setState(() {
-        _errorMessage = 'Failed to load permissions: $e';
+        _errorMessage = "Failed to load permissions: $e";
         _isLoadingPermissions = false;
       });
-      debugPrint('❌ Error loading permissions: $e');
     }
   }
 
-  void _togglePermission(String permissionName) {
+  void _togglePermission(String name) {
     setState(() {
-      if (selectedPermissionNames.contains(permissionName)) {
-        selectedPermissionNames.remove(permissionName);
+      if (selectedPermissionNames.contains(name)) {
+        selectedPermissionNames.remove(name);
       } else {
-        selectedPermissionNames.add(permissionName);
+        selectedPermissionNames.add(name);
       }
     });
-    debugPrint('📝 Selected permissions: $selectedPermissionNames');
   }
 
   void _toggleSelectAll() {
@@ -117,10 +79,9 @@ class _EditPermissionsDialogState extends State<EditPermissionsDialog> {
       if (isAllSelected) {
         selectedPermissionNames.clear();
       } else {
-        selectedPermissionNames.clear();
-        selectedPermissionNames.addAll(
-          allPermissions.map((p) => p['name'] as String)
-        );
+        selectedPermissionNames = allPermissions
+            .map((p) => p['name'] as String)
+            .toSet();
       }
     });
   }
@@ -132,7 +93,7 @@ class _EditPermissionsDialogState extends State<EditPermissionsDialog> {
     if (selectedPermissionNames.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Please select at least one permission'),
+          content: Text("Select at least one permission"),
           backgroundColor: Colors.red,
         ),
       );
@@ -141,58 +102,54 @@ class _EditPermissionsDialogState extends State<EditPermissionsDialog> {
 
     setState(() => _isSubmitting = true);
 
-    try {
-      debugPrint('💾 Saving permissions: $selectedPermissionNames');
-      
-      // ✅ Convert permission NAMES to IDs before sending
-      final selectedPermissionIds = <int>[];
-      for (var name in selectedPermissionNames) {
-        final permission = allPermissions.firstWhere(
-          (p) => p['name'] == name,
-          orElse: () => {'id': 0, 'name': ''},
-        );
-        if (permission['id'] != 0) {
-          selectedPermissionIds.add(permission['id'] as int);
-        }
-      }
-      
-      debugPrint('📤 Sending permission IDs: $selectedPermissionIds');
-      debugPrint('📤 Sending role ID: ${widget.role.roleId}');
-      
-      // ✅ Send permission IDs (integers) to backend
-      final success = await _apiService.updatePermissions(
-        rolePermissionId: widget.role.rolePermissionId,
-        roleId: widget.role.roleId,
-        permissions: selectedPermissionIds,
-        role: widget.role.role,
+    final selectedPermissionIds = <int>[];
+    for (var name in selectedPermissionNames) {
+      final perm = allPermissions.firstWhere(
+        (p) => p['name'] == name,
+        orElse: () => {'id': 0},
       );
 
-      setState(() => _isSubmitting = false);
+      if (perm['id'] != 0) selectedPermissionIds.add(perm['id']);
+    }
 
-      if (success && mounted) {
-        Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Permissions updated for ${widget.role.role}'),
-            backgroundColor: Colors.green,
-          ),
-        );
-        widget.onUpdate();
-      } else if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Failed to update permissions. Please try again.'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    } catch (e) {
-      setState(() => _isSubmitting = false);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
-        );
-      }
+    // roleId fix
+    int finalRoleId = widget.role.roleId;
+    if (finalRoleId == 0 && allRoles.isNotEmpty) {
+      final match = allRoles.firstWhere(
+        (r) =>
+            r['name'].toString().toLowerCase() ==
+            widget.role.role.toLowerCase(),
+        orElse: () => {},
+      );
+      if (match.containsKey('id')) finalRoleId = match['id'];
+    }
+
+    final success = await _apiService.updatePermissions(
+      rolePermissionId: widget.role.rolePermissionId,
+      roleId: finalRoleId,
+      permissions: selectedPermissionIds,
+      role: widget.role.role,
+      isActive: isActive, // ✅ include active flag
+    );
+
+    setState(() => _isSubmitting = false);
+
+    if (success && mounted) {
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Permissions updated for ${widget.role.role}'),
+          backgroundColor: Colors.green,
+        ),
+      );
+      widget.onUpdate();
+    } else if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Failed to update permissions'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
@@ -214,9 +171,7 @@ class _EditPermissionsDialogState extends State<EditPermissionsDialog> {
           maxHeight: size.height * 0.9,
         ),
         child: Column(
-          mainAxisSize: MainAxisSize.min,
           children: [
-            // Header
             Padding(
               padding: const EdgeInsets.all(20),
               child: Row(
@@ -225,7 +180,7 @@ class _EditPermissionsDialogState extends State<EditPermissionsDialog> {
                     child: Text(
                       'Edit Permissions',
                       style: GoogleFonts.poppins(
-                        fontSize: isSmallScreen ? 18 : 20,
+                        fontSize: 20,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -234,9 +189,7 @@ class _EditPermissionsDialogState extends State<EditPermissionsDialog> {
                     onPressed: _isSubmitting
                         ? null
                         : () => Navigator.pop(context),
-                    icon: const Icon(Icons.close, color: Colors.grey),
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
+                    icon: const Icon(Icons.close),
                   ),
                 ],
               ),
@@ -244,66 +197,27 @@ class _EditPermissionsDialogState extends State<EditPermissionsDialog> {
 
             const Divider(height: 1),
 
-            // Content
             Expanded(
               child: _isLoadingPermissions
                   ? const Center(child: CircularProgressIndicator())
-                  : _errorMessage != null
-                  ? Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.error_outline,
-                            size: 48,
-                            color: Colors.red[300],
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            _errorMessage!,
-                            style: const TextStyle(color: Colors.red),
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: 16),
-                          ElevatedButton(
-                            onPressed: _loadAllPermissions,
-                            child: const Text('Retry'),
-                          ),
-                        ],
-                      ),
-                    )
                   : SingleChildScrollView(
                       padding: EdgeInsets.all(isSmallScreen ? 16 : 20),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // Role Section
-                          Row(
-                            children: [
-                              const Icon(
-                                Icons.radio_button_checked,
-                                size: 20,
-                                color: Colors.grey,
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                'Role',
-                                style: GoogleFonts.poppins(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ],
+                          // SECTION: Role
+                          Text(
+                            "Role",
+                            style: GoogleFonts.poppins(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w500,
+                            ),
                           ),
                           const SizedBox(height: 12),
 
-                          // Role Display (non-editable)
                           Container(
                             width: double.infinity,
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 14,
-                            ),
+                            padding: const EdgeInsets.all(14),
                             decoration: BoxDecoration(
                               color: Colors.grey[100],
                               borderRadius: BorderRadius.circular(8),
@@ -311,11 +225,7 @@ class _EditPermissionsDialogState extends State<EditPermissionsDialog> {
                             ),
                             child: Row(
                               children: [
-                                Icon(
-                                  Icons.shield,
-                                  size: 18,
-                                  color: Colors.grey[700],
-                                ),
+                                Icon(Icons.shield, color: Colors.grey[700]),
                                 const SizedBox(width: 8),
                                 Text(
                                   widget.role.role,
@@ -328,19 +238,34 @@ class _EditPermissionsDialogState extends State<EditPermissionsDialog> {
                             ),
                           ),
 
-                          const SizedBox(height: 24),
+                          const SizedBox(height: 16),
 
-                          // Permissions Section
+                          // ✅ Active checkbox
                           Row(
                             children: [
-                              const Icon(
-                                Icons.vpn_key,
-                                size: 20,
-                                color: Colors.grey,
+                              Checkbox(
+                                value: isActive,
+                                onChanged: (value) {
+                                  setState(() => isActive = value ?? false);
+                                },
                               ),
-                              const SizedBox(width: 8),
                               Text(
-                                'Permissions',
+                                "Active",
+                                style: GoogleFonts.poppins(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+
+                          const SizedBox(height: 24),
+
+                          // SECTION: Permissions
+                          Row(
+                            children: [
+                              Text(
+                                "Permissions",
                                 style: GoogleFonts.poppins(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w500,
@@ -348,80 +273,45 @@ class _EditPermissionsDialogState extends State<EditPermissionsDialog> {
                               ),
                               const Spacer(),
                               TextButton(
-                                onPressed: _isSubmitting
-                                    ? null
-                                    : _toggleSelectAll,
+                                onPressed: _toggleSelectAll,
                                 child: Text(
-                                  isAllSelected ? 'Deselect All' : 'Select All',
-                                  style: GoogleFonts.poppins(
-                                    color: const Color(0xFF7E57C2),
-                                    fontWeight: FontWeight.w500,
+                                  isAllSelected ? "Deselect All" : "Select All",
+                                  style: const TextStyle(
+                                    color: Color(0xFF7E57C2),
                                   ),
                                 ),
                               ),
                             ],
                           ),
 
-                          const SizedBox(height: 12),
-
-                          // ✅ Dynamic Permissions List with NAMES
                           Container(
                             height: 300,
                             decoration: BoxDecoration(
-                              border: Border.all(color: Colors.grey[300]!),
                               borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.grey[300]!),
                             ),
-                            child: allPermissions.isEmpty
-                                ? Center(
-                                    child: Text(
-                                      'No permissions available',
-                                      style: GoogleFonts.poppins(
-                                        color: Colors.grey[600],
-                                      ),
-                                    ),
-                                  )
-                                : ListView.builder(
-                                    padding: const EdgeInsets.all(8),
-                                    itemCount: allPermissions.length,
-                                    itemBuilder: (context, index) {
-                                      final permission = allPermissions[index];
-                                      final permName = permission['name'] as String;
-                                      
-                                      // ✅ Check if permission NAME is selected
-                                      final isSelected = selectedPermissionNames.contains(permName);
+                            child: ListView.builder(
+                              itemCount: allPermissions.length,
+                              itemBuilder: (context, index) {
+                                final p = allPermissions[index];
+                                final name = p['name'] as String;
 
-                                      return CheckboxListTile(
-                                        value: isSelected,
-                                        onChanged: _isSubmitting
-                                            ? null
-                                            : (_) => _togglePermission(permName),
-                                        title: Text(
-                                          permName,
-                                          style: GoogleFonts.poppins(
-                                            fontSize: 14,
-                                          ),
-                                        ),
-                                        controlAffinity:
-                                            ListTileControlAffinity.leading,
-                                        contentPadding:
-                                            const EdgeInsets.symmetric(
-                                              horizontal: 8,
-                                            ),
-                                        dense: true,
-                                      );
-                                    },
-                                  ),
+                                return CheckboxListTile(
+                                  value: selectedPermissionNames.contains(name),
+                                  onChanged: (_) => _togglePermission(name),
+                                  title: Text(name),
+                                  dense: true,
+                                  controlAffinity:
+                                      ListTileControlAffinity.leading,
+                                );
+                              },
+                            ),
                           ),
 
                           const SizedBox(height: 12),
-
-                          // Selection counter
                           Text(
-                            '${selectedPermissionNames.length} of ${allPermissions.length} permissions selected',
-                            style: GoogleFonts.poppins(
-                              fontSize: 13,
-                              color: Colors.grey[600],
-                            ),
+                            "${selectedPermissionNames.length} of ${allPermissions.length} selected",
+                            style: GoogleFonts.poppins(fontSize: 13),
                           ),
                         ],
                       ),
@@ -430,9 +320,8 @@ class _EditPermissionsDialogState extends State<EditPermissionsDialog> {
 
             const Divider(height: 1),
 
-            // Footer Buttons
             Padding(
-              padding: EdgeInsets.all(isSmallScreen ? 16 : 20),
+              padding: const EdgeInsets.all(20),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
@@ -440,23 +329,7 @@ class _EditPermissionsDialogState extends State<EditPermissionsDialog> {
                     onPressed: _isSubmitting
                         ? null
                         : () => Navigator.pop(context),
-                    style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: Colors.grey),
-                      padding: EdgeInsets.symmetric(
-                        horizontal: isSmallScreen ? 20 : 24,
-                        vertical: 12,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                    child: Text(
-                      'Cancel',
-                      style: GoogleFonts.poppins(
-                        color: Colors.grey[700],
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
+                    child: const Text("Cancel"),
                   ),
                   const SizedBox(width: 12),
                   ElevatedButton(
@@ -465,33 +338,17 @@ class _EditPermissionsDialogState extends State<EditPermissionsDialog> {
                         : _savePermissions,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF7E57C2),
-                      padding: EdgeInsets.symmetric(
-                        horizontal: isSmallScreen ? 20 : 24,
-                        vertical: 12,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      elevation: 0,
                     ),
                     child: _isSubmitting
                         ? const SizedBox(
                             width: 20,
                             height: 20,
                             child: CircularProgressIndicator(
+                              color: Colors.white,
                               strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                Colors.white,
-                              ),
                             ),
                           )
-                        : Text(
-                            'Update Permissions',
-                            style: GoogleFonts.poppins(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
+                        : const Text("Update Permissions"),
                   ),
                 ],
               ),

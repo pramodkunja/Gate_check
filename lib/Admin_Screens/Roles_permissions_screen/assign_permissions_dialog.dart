@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:gatecheck/Services/Auth_Services/api_service.dart';
 import 'package:gatecheck/Services/Permission_services/permission_service.dart';
 import 'package:gatecheck/Services/Roles_permission_services/role_permissions_service.dart';
 import 'package:gatecheck/Services/User_roles_services/user_roles_service.dart';
@@ -22,6 +21,7 @@ class _AssignPermissionsDialogState extends State<AssignPermissionsDialog> {
 
   int? selectedRoleId;
   bool _isSubmitting = false;
+  bool isActive = true; // ✅ Active flag to send with assignment
 
   List<Map<String, dynamic>> roles = []; // {id, name}
   List<Map<String, dynamic>> permissionList = []; // {permission_id, name}
@@ -83,9 +83,10 @@ class _AssignPermissionsDialogState extends State<AssignPermissionsDialog> {
     setState(() => _isSubmitting = true);
 
     final success = await _apiService.assignPermissions(
-  roleId: selectedRoleId!,
-  permissions: selectedPermissionIds.toList(),  // ✅ Correct parameter name
-);
+      roleId: selectedRoleId!,
+      permissions: selectedPermissionIds.toList(), // ✅ Correct parameter name
+      isActive: isActive,
+    );
 
     setState(() => _isSubmitting = false);
 
@@ -223,6 +224,27 @@ class _AssignPermissionsDialogState extends State<AssignPermissionsDialog> {
                           ),
 
                           const SizedBox(height: 24),
+
+                          // ✅ Active checkbox for new assignment
+                          Row(
+                            children: [
+                              Checkbox(
+                                value: isActive,
+                                onChanged: _isSubmitting
+                                    ? null
+                                    : (val) => setState(
+                                        () => isActive = val ?? false,
+                                      ),
+                              ),
+                              Text(
+                                'Active',
+                                style: GoogleFonts.poppins(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
 
                           // Permissions
                           Row(

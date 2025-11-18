@@ -41,32 +41,32 @@ class _RolePermissionsScreenState extends State<RolePermissionsScreen> {
   }
 
   Future<void> _loadRolePermissions() async {
-  setState(() {
-    _isLoading = true;
-    _errorMessage = null;
-  });
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
 
-  try {
-    final roles = await _apiService.getRolePermissions();
-    
-    // 🔍 DEBUG: Print the parsed roles
-    debugPrint('📦 Loaded ${roles.length} roles');
-    for (var role in roles) {
-      debugPrint('Role: ${role.role}, Permissions: ${role.permissions}');
+    try {
+      final roles = await _apiService.getRolePermissions();
+
+      // 🔍 DEBUG: Print the parsed roles
+      debugPrint('📦 Loaded ${roles.length} roles');
+      for (var role in roles) {
+        debugPrint('Role: ${role.role}, Permissions: ${role.permissions}');
+      }
+
+      setState(() {
+        _allRoles = roles;
+        _filteredRoles = roles;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'Failed to load role permissions: $e';
+        _isLoading = false;
+      });
     }
-    
-    setState(() {
-      _allRoles = roles;
-      _filteredRoles = roles;
-      _isLoading = false;
-    });
-  } catch (e) {
-    setState(() {
-      _errorMessage = 'Failed to load role permissions: $e';
-      _isLoading = false;
-    });
   }
-}
 
   void _applySearchFilter() {
     final q = _searchController.text.trim().toLowerCase();
@@ -404,7 +404,7 @@ class _RolePermissionsScreenState extends State<RolePermissionsScreen> {
                                   (r) => _RoleCard(
                                     role: r,
                                     onEdit: () => _openEdit(r),
-                                    onDelete: () => _confirmDelete(r),
+                                    //onDelete: () => _confirmDelete(r),
                                   ),
                                 )
                                 .toList(),
@@ -485,13 +485,9 @@ class _StatCard extends StatelessWidget {
 class _RoleCard extends StatelessWidget {
   final RolePermissionModel role;
   final VoidCallback onEdit;
-  final VoidCallback onDelete;
-  const _RoleCard({
-    required this.role,
-    required this.onEdit,
-    required this.onDelete,
-    Key? key,
-  }) : super(key: key);
+
+  const _RoleCard({required this.role, required this.onEdit, Key? key})
+    : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -525,19 +521,63 @@ class _RoleCard extends StatelessWidget {
                 ),
               ),
               const Spacer(),
+
+              // Status tag (replaces toggle). Shows Active/Inactive and related date.
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: role.isActive
+                          ? Colors.green.withOpacity(0.08)
+                          : Colors.red.withOpacity(0.06),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      role.isActive ? 'Active' : 'Inactive',
+                      style: GoogleFonts.poppins(
+                        fontSize: 11,
+                        color: role.isActive ? Colors.green : Colors.red,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  // Show related date (modified or created) if available
+                  if (role.modifiedAt != null)
+                    Text(
+                      'Updated: ${role.modifiedAt!.toLocal().toIso8601String().split('T').first}',
+                      style: GoogleFonts.poppins(
+                        fontSize: 11,
+                        color: Colors.grey[600],
+                      ),
+                    )
+                  else if (role.createdAt != null)
+                    Text(
+                      'Created: ${role.createdAt!.toLocal().toIso8601String().split('T').first}',
+                      style: GoogleFonts.poppins(
+                        fontSize: 11,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                ],
+              ),
+
+              // EDIT BUTTON
               IconButton(
                 onPressed: onEdit,
                 icon: const Icon(Icons.edit_outlined),
                 color: const Color(0xFF7E57C2),
               ),
-              IconButton(
-                onPressed: onDelete,
-                icon: const Icon(Icons.delete_outline),
-                color: Colors.redAccent,
-              ),
             ],
           ),
+
           const SizedBox(height: 10),
+
           Wrap(
             spacing: 8,
             runSpacing: 8,
@@ -567,6 +607,7 @@ class _RoleCard extends StatelessWidget {
                 ),
             ],
           ),
+
           const SizedBox(height: 8),
           Text(
             '${role.permissions.length} permissions',

@@ -81,7 +81,6 @@ class RolePermissionsApiService {
     );
   }
 
-  
   // Fetch all role permissions
   Future<List<RolePermissionModel>> getRolePermissions() async {
     try {
@@ -100,163 +99,171 @@ class RolePermissionsApiService {
     }
   }
 
- // Updated API methods for role_permissions_service.dart
-// Replace the corresponding methods in your RolePermissionsApiService class
+  // Updated API methods for role_permissions_service.dart
+  // Replace the corresponding methods in your RolePermissionsApiService class
 
-// Add these methods to your RolePermissionsApiService class
-// in role_permissions_service.dart
+  // Add these methods to your RolePermissionsApiService class
+  // in role_permissions_service.dart
 
-// ✅ Add this method to fetch all roles with their IDs
-Future<List<Map<String, dynamic>>> getAllRoles() async {
-  try {
-    debugPrint('🔍 Fetching all roles...');
-    
-    final response = await _dio.get('/roles/create/');
-    
-    if (response.statusCode != 200) {
-      throw Exception('Failed to fetch roles: ${response.statusCode}');
-    }
+  // ✅ Add this method to fetch all roles with their IDs
+  Future<List<Map<String, dynamic>>> getAllRoles() async {
+    try {
+      debugPrint('🔍 Fetching all roles...');
 
-    debugPrint('💡 Roles Response: ${response.data}');
+      final response = await _dio.get('/roles/create/');
 
-    List<dynamic> dataList = [];
-    
-    if (response.data is List) {
-      dataList = response.data;
-    } else if (response.data is Map<String, dynamic>) {
-      final map = response.data as Map<String, dynamic>;
-      dataList = map['data'] ?? map['roles'] ?? map['results'] ?? [];
-    }
-
-    final roles = <Map<String, dynamic>>[];
-
-    for (var item in dataList) {
-      if (item is! Map<String, dynamic>) continue;
-
-      // Extract ID and name
-      dynamic roleId = item['role_id'] ?? item['id'];
-      String? roleName = item['role']?.toString() ?? 
-                        item['name']?.toString() ?? 
-                        item['role_name']?.toString();
-
-      if (roleId != null && roleName != null && roleName.isNotEmpty) {
-        roles.add({
-          'id': roleId is int ? roleId : int.tryParse(roleId.toString()) ?? 0,
-          'name': roleName,
-        });
+      if (response.statusCode != 200) {
+        throw Exception('Failed to fetch roles: ${response.statusCode}');
       }
-    }
 
-    debugPrint('✅ Fetched ${roles.length} roles');
-    return roles;
-  } on DioException catch (e) {
-    debugPrint('❌ Error fetching roles: ${e.response?.data}');
-    throw Exception(getErrorMessage(e));
-  }
-}
+      debugPrint('💡 Roles Response: ${response.data}');
 
-// ✅ Update this method to use List<int> for permissions
-Future<bool> updatePermissions({
-  required int rolePermissionId,
-  required int roleId,
-  required List<int> permissions, // ✅ Now expects List<int>
-  required String role,
-}) async {
-  try {
-    debugPrint('📤 Updating permissions for role $roleId');
-    debugPrint('📤 Role Permission ID: $rolePermissionId');
-    debugPrint('📤 Permission IDs: $permissions');
-    
-    final response = await _dio.put(
-      '/roles/assign-permissions/$rolePermissionId/',
-      data: {
-        'role': roleId,
-        'permission': permissions, // Send as 'permission' with IDs
-      },
-    );
+      List<dynamic> dataList = [];
 
-    debugPrint('✅ Update Permissions Response: ${response.statusCode}');
-    debugPrint('✅ Response Data: ${response.data}');
-    return response.statusCode == 200;
-  } on DioException catch (e) {
-    debugPrint('❌ Error updating permissions: ${e.response?.data}');
-    return false;
-  }
-}
-
-// ✅ Update assignPermissions as well
-Future<bool> assignPermissions({
-  required int roleId,
-  required List<int> permissions, // ✅ Now expects List<int>
-}) async {
-  try {
-    debugPrint('📤 Assigning permissions for role $roleId');
-    debugPrint('📤 Permission IDs: $permissions');
-    
-    final response = await _dio.post(
-      '/roles/assign-permissions/',
-      data: {
-        "role": roleId,
-        "permission": permissions, // List<int>
-      },
-    );
-
-    debugPrint('✅ Assign Permissions Response: ${response.statusCode}');
-    return response.statusCode == 200 || response.statusCode == 201;
-  } on DioException catch (e) {
-    debugPrint('❌ Error assigning permissions: ${e.response?.data}');
-    return false;
-  }
-}
-
-// Updated getAllPermissions - simplified version
-Future<List<Map<String, dynamic>>> getAllPermissions() async {
-  try {
-    debugPrint('🔍 Fetching all available permissions...');
-    
-    final response = await _dio.get('/roles/permissions/');
-    
-    if (response.statusCode != 200) {
-      throw Exception('Failed to fetch permissions: ${response.statusCode}');
-    }
-
-    debugPrint('💡 Permissions Response: ${response.data}');
-
-    List<dynamic> dataList = [];
-    
-    if (response.data is List) {
-      dataList = response.data;
-    } else if (response.data is Map<String, dynamic>) {
-      final map = response.data as Map<String, dynamic>;
-      dataList = map['data'] ?? map['permissions'] ?? map['results'] ?? [];
-    }
-
-    final permissions = <Map<String, dynamic>>[];
-
-    for (var item in dataList) {
-      if (item is! Map<String, dynamic>) continue;
-
-      // Extract ID and name
-      dynamic permId = item['permission_id'] ?? item['id'];
-      String? permName = item['name']?.toString() ?? 
-                        item['permission_name']?.toString() ?? 
-                        item['permission']?.toString();
-
-      if (permId != null && permName != null && permName.isNotEmpty) {
-        permissions.add({
-          'id': permId is int ? permId : int.tryParse(permId.toString()) ?? 0,
-          'name': permName,
-        });
+      if (response.data is List) {
+        dataList = response.data;
+      } else if (response.data is Map<String, dynamic>) {
+        final map = response.data as Map<String, dynamic>;
+        dataList = map['data'] ?? map['roles'] ?? map['results'] ?? [];
       }
-    }
 
-    debugPrint('✅ Fetched ${permissions.length} permissions');
-    return permissions;
-  } on DioException catch (e) {
-    debugPrint('❌ Error fetching permissions: ${e.response?.data}');
-    throw Exception(getErrorMessage(e));
+      final roles = <Map<String, dynamic>>[];
+
+      for (var item in dataList) {
+        if (item is! Map<String, dynamic>) continue;
+
+        // Extract ID and name
+        dynamic roleId = item['role_id'] ?? item['id'];
+        String? roleName =
+            item['role']?.toString() ??
+            item['name']?.toString() ??
+            item['role_name']?.toString();
+
+        if (roleId != null && roleName != null && roleName.isNotEmpty) {
+          roles.add({
+            'id': roleId is int ? roleId : int.tryParse(roleId.toString()) ?? 0,
+            'name': roleName,
+          });
+        }
+      }
+
+      debugPrint('✅ Fetched ${roles.length} roles');
+      return roles;
+    } on DioException catch (e) {
+      debugPrint('❌ Error fetching roles: ${e.response?.data}');
+      throw Exception(getErrorMessage(e));
+    }
   }
-}
+
+  // ✅ Update this method to use List<int> for permissions
+  Future<bool> updatePermissions({
+    required int rolePermissionId,
+    required int roleId,
+    required List<int> permissions, // ✅ Now expects List<int>
+    required String role,
+    required bool isActive,
+  }) async {
+    try {
+      debugPrint('📤 Updating permissions for role $roleId');
+      debugPrint('📤 Role Permission ID: $rolePermissionId');
+      debugPrint('📤 Permission IDs: $permissions');
+
+      final response = await _dio.put(
+        '/roles/assign-permissions/$roleId/',
+        data: {
+          'role': roleId,
+          'permission': permissions, // Send as 'permission' with IDs
+          'is_active': isActive,
+        },
+      );
+
+      debugPrint('✅ Update Permissions Response: ${response.statusCode}');
+      debugPrint('✅ Response Data: ${response.data}');
+      return response.statusCode == 200;
+    } on DioException catch (e) {
+      debugPrint('❌ Error updating permissions: ${e.response?.data}');
+      return false;
+    }
+  }
+
+  // ✅ Assign permissions (create new assignment)
+  Future<bool> assignPermissions({
+    required int roleId,
+    required List<int> permissions, // List<int>
+    required bool isActive,
+  }) async {
+    try {
+      debugPrint('📤 Assigning permissions for role $roleId');
+      debugPrint('📤 Permission IDs: $permissions');
+      debugPrint('📤 isActive: $isActive');
+
+      final response = await _dio.post(
+        '/roles/assign-permissions/',
+        data: {
+          'role': roleId,
+          'permission': permissions,
+          'is_active': isActive,
+        },
+      );
+
+      debugPrint('✅ Assign Permissions Response: ${response.statusCode}');
+      return response.statusCode == 200 || response.statusCode == 201;
+    } on DioException catch (e) {
+      debugPrint('❌ Error assigning permissions: ${e.response?.data}');
+      return false;
+    }
+  }
+
+  // Updated getAllPermissions - simplified version
+  Future<List<Map<String, dynamic>>> getAllPermissions() async {
+    try {
+      debugPrint('🔍 Fetching all available permissions...');
+
+      final response = await _dio.get('/roles/permissions/');
+
+      if (response.statusCode != 200) {
+        throw Exception('Failed to fetch permissions: ${response.statusCode}');
+      }
+
+      debugPrint('💡 Permissions Response: ${response.data}');
+
+      List<dynamic> dataList = [];
+
+      if (response.data is List) {
+        dataList = response.data;
+      } else if (response.data is Map<String, dynamic>) {
+        final map = response.data as Map<String, dynamic>;
+        dataList = map['data'] ?? map['permissions'] ?? map['results'] ?? [];
+      }
+
+      final permissions = <Map<String, dynamic>>[];
+
+      for (var item in dataList) {
+        if (item is! Map<String, dynamic>) continue;
+
+        // Extract ID and name
+        dynamic permId = item['permission_id'] ?? item['id'];
+        String? permName =
+            item['name']?.toString() ??
+            item['permission_name']?.toString() ??
+            item['permission']?.toString();
+
+        if (permId != null && permName != null && permName.isNotEmpty) {
+          permissions.add({
+            'id': permId is int ? permId : int.tryParse(permId.toString()) ?? 0,
+            'name': permName,
+          });
+        }
+      }
+
+      debugPrint('✅ Fetched ${permissions.length} permissions');
+      return permissions;
+    } on DioException catch (e) {
+      debugPrint('❌ Error fetching permissions: ${e.response?.data}');
+      throw Exception(getErrorMessage(e));
+    }
+  }
+
   // Delete role permissions
   Future<bool> deleteRolePermissions(int rolePermissionId) async {
     try {
@@ -309,8 +316,12 @@ class RolePermissionModel {
   final int rolePermissionId;
   final int roleId;
   final String role; // role name
-  final List<int> permissionIds; // backend sends IDs (may be empty if not provided)
+  final List<int>
+  permissionIds; // backend sends IDs (may be empty if not provided)
   final List<String> permissions; // permission names for display
+  final bool isActive;
+  final DateTime? createdAt;
+  final DateTime? modifiedAt;
 
   RolePermissionModel({
     required this.rolePermissionId,
@@ -318,18 +329,21 @@ class RolePermissionModel {
     required this.role,
     required this.permissionIds,
     required this.permissions,
+    required this.isActive,
+    this.createdAt,
+    this.modifiedAt,
   });
 
   factory RolePermissionModel.fromJson(Map<String, dynamic> json) {
     debugPrint('🔍 Parsing RolePermissionModel from JSON: $json');
-    
+
     List<int> permIds = [];
     List<String> permNames = [];
 
     // The backend sends permission NAMES as strings, not IDs
     if (json['permission'] is List) {
       final permList = json['permission'] as List;
-      
+
       // Check if it's a list of strings (permission names) or integers (IDs)
       if (permList.isNotEmpty) {
         if (permList.first is String) {
@@ -345,14 +359,18 @@ class RolePermissionModel {
           for (var p in permList) {
             if (p is Map<String, dynamic>) {
               if (p['id'] != null) {
-                permIds.add(p['id'] is int ? p['id'] : int.parse(p['id'].toString()));
+                permIds.add(
+                  p['id'] is int ? p['id'] : int.parse(p['id'].toString()),
+                );
               }
               if (p['name'] != null) {
                 permNames.add(p['name'].toString());
               }
             }
           }
-          debugPrint('✅ Extracted from objects: ${permIds.length} IDs, ${permNames.length} names');
+          debugPrint(
+            '✅ Extracted from objects: ${permIds.length} IDs, ${permNames.length} names',
+          );
         }
       }
     }
@@ -368,7 +386,7 @@ class RolePermissionModel {
     // Parse role information
     int roleIdValue = 0;
     String roleName = '';
-    
+
     // Backend might send 'role' as either ID (int) or name (string)
     if (json['role'] is int) {
       roleIdValue = json['role'];
@@ -383,7 +401,7 @@ class RolePermissionModel {
         roleIdValue = json['role_id'];
       }
     }
-    
+
     // Additional fallback checks
     if (roleIdValue == 0 && json['role_id'] is int) {
       roleIdValue = json['role_id'];
@@ -391,9 +409,20 @@ class RolePermissionModel {
     if (roleName.isEmpty && json['role_name'] != null) {
       roleName = json['role_name'].toString();
     }
-    
-    debugPrint('🔍 Parsed Role: ID=$roleIdValue, Name="$roleName"');
 
+    // Parse creation/modification dates if present
+    DateTime? createdAt;
+    DateTime? modifiedAt;
+    try {
+      final ca = json['created_at'] ?? json['createdAt'];
+      if (ca != null) createdAt = DateTime.tryParse(ca.toString());
+    } catch (_) {}
+    try {
+      final ma = json['modified_at'] ?? json['modifiedAt'];
+      if (ma != null) modifiedAt = DateTime.tryParse(ma.toString());
+    } catch (_) {}
+
+    debugPrint('🔍 Parsed Role: ID=$roleIdValue, Name="$roleName"');
     debugPrint('✅ Parsed: Role="$roleName", Permissions=${permNames.length}');
 
     return RolePermissionModel(
@@ -402,6 +431,9 @@ class RolePermissionModel {
       role: roleName,
       permissionIds: permIds,
       permissions: permNames,
+      isActive: json['is_active'] ?? json['isActive'] ?? true,
+      createdAt: createdAt,
+      modifiedAt: modifiedAt,
     );
   }
 
@@ -412,6 +444,9 @@ class RolePermissionModel {
       'role_name': role,
       'permissions': permissionIds.isNotEmpty ? permissionIds : permissions,
       'permission_names': permissions,
+      'is_active': isActive,
+      'created_at': createdAt?.toIso8601String(),
+      'modified_at': modifiedAt?.toIso8601String(),
     };
   }
 }
