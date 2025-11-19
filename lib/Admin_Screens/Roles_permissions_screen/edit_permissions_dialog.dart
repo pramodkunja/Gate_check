@@ -1,4 +1,4 @@
-// edit_permissions_dialog.dart 
+// edit_permissions_dialog.dart
 
 import 'package:flutter/material.dart';
 import 'package:gatecheck/Services/Roles_permission_services/role_permissions_service.dart';
@@ -348,7 +348,13 @@ class _EditPermissionsDialogState extends State<EditPermissionsDialog> {
                               strokeWidth: 2,
                             ),
                           )
-                        : const Text("Update Permissions"),
+                        : Text(
+                            'Update Permissions',
+                            style: GoogleFonts.poppins(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
                   ),
                 ],
               ),
