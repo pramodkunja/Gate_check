@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:gatecheck/Admin_Screens/Visitors_Screen/models/visitor_model.dart';
-import 'package:gatecheck/Services/visitor_service.dart';
+import 'package:gatecheck/Services/Visitor_service/visitor_service.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:dio/dio.dart';
 

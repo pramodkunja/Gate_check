@@ -3,7 +3,7 @@ import 'package:dio/dio.dart';
 import 'package:gatecheck/Admin_Screens/Dashboard_Screens/custom_appbar.dart';
 import 'package:gatecheck/Admin_Screens/Dashboard_Screens/navigation_drawer.dart';
 import 'package:gatecheck/Services/User_services/user_service.dart';
-import 'package:gatecheck/Services/visitor_service.dart';
+import 'package:gatecheck/Services/Visitor_service/visitor_service.dart';
 import 'package:gatecheck/User_Screens/Dashboard_Screens/user_custom_appbar.dart';
 import 'package:gatecheck/User_Screens/Dashboard_Screens/user_navigation_drawer.dart';
 import 'package:google_fonts/google_fonts.dart';
