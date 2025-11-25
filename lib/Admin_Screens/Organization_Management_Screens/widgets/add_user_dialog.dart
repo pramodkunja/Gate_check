@@ -186,9 +186,7 @@ class _AddUserDialogState extends State<AddUserDialog> {
     final isSmallScreen = screenWidth < 400;
 
     return Dialog(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       insetPadding: EdgeInsets.symmetric(
         horizontal: screenWidth > 600 ? 40 : 16,
         vertical: 24,
@@ -446,10 +444,7 @@ class _AddUserDialogState extends State<AddUserDialog> {
                 children: [
                   TextButton(
                     onPressed: () => Navigator.pop(context),
-                    child: Text(
-                      'Cancel',
-                      style: GoogleFonts.poppins(),
-                    ),
+                    child: Text('Cancel', style: GoogleFonts.poppins()),
                   ),
                   const SizedBox(width: 12),
                   Flexible(
