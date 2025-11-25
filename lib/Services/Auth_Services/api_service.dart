@@ -234,12 +234,78 @@ class ApiService {
 
   // -------------------- Error Message Helper --------------------
   String getErrorMessage(DioException error) {
-    if (error.response?.data != null) {
-      final data = error.response!.data;
-      if (data is Map<String, dynamic> && data.containsKey('message')) {
-        return data['message'].toString();
+    final response = error.response;
+
+    if (response?.data != null) {
+      final data = response!.data;
+
+      // If backend returned a plain string
+      if (data is String && data.isNotEmpty) return data;
+
+      // If backend returned a map, try common keys first
+      if (data is Map<String, dynamic>) {
+        if (data.containsKey('message')) return data['message'].toString();
+        if (data.containsKey('error')) return data['error'].toString();
+        if (data.containsKey('detail')) return data['detail'].toString();
+        if (data.containsKey('non_field_errors')) {
+          final v = data['non_field_errors'];
+          if (v is List) return v.map((e) => e.toString()).join('; ');
+          return v.toString();
+        }
+
+        // Validation style errors: { field: ["err"] }
+        if (data.containsKey('errors')) {
+          final v = data['errors'];
+          if (v is String) return v;
+          if (v is Map) {
+            final messages = <String>[];
+            v.forEach((key, val) {
+              if (val is List)
+                messages.add('$key: ${val.join(", ")}');
+              else
+                messages.add('$key: ${val.toString()}');
+            });
+            return messages.join('; ');
+          }
+          if (v is List) return v.map((e) => e.toString()).join('; ');
+        }
+
+        // Fallback: collect first-level values into a readable string
+        final messages = <String>[];
+        data.forEach((k, v) {
+          if (v == null) return;
+          if (v is List) {
+            messages.add('$k: ${v.map((e) => e.toString()).join(", ")}');
+          } else {
+            messages.add('$k: ${v.toString()}');
+          }
+        });
+        if (messages.isNotEmpty) return messages.join('; ');
+      }
+
+      // If backend returned an array
+      if (data is List && data.isNotEmpty) {
+        return data.map((e) => e.toString()).join('; ');
       }
     }
-    return 'Unexpected error. Please try again.';
+
+    // Network / Dio level errors
+    switch (error.type) {
+      case DioExceptionType.connectionTimeout:
+        return 'Connection timeout. Please check your internet connection.';
+      case DioExceptionType.receiveTimeout:
+        return 'Server response timeout. Please try again.';
+      case DioExceptionType.sendTimeout:
+        return 'Request send timeout. Please try again.';
+      case DioExceptionType.connectionError:
+        return 'Connection error. Please check your internet connection.';
+      case DioExceptionType.cancel:
+        return 'Request was cancelled.';
+      case DioExceptionType.badResponse:
+        // If we reach here but didn't parse data above, include status code
+        return 'Server error (${response?.statusCode ?? 'unknown'}). Please try again.';
+      default:
+        return 'An unexpected error occurred. Please try again.';
+    }
   }
 }

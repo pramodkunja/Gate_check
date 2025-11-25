@@ -106,13 +106,13 @@ class UserCard extends StatelessWidget {
           ],
           if (user.dateAdded != null) ...[
             const SizedBox(height: 4),
-            Text(
-              'Added: ${DateFormat('yyyy-MM-dd').format(user.dateAdded!)}',
-              style: GoogleFonts.poppins(
-                fontSize: 13,
-                color: Colors.grey[600],
-              ),
-            ),
+            // Text(
+            //   'Added: ${DateFormat('yyyy-MM-dd').format(user.dateAdded!)}',
+            //   style: GoogleFonts.poppins(
+            //     fontSize: 13,
+            //     color: Colors.grey[600],
+            //   ),
+            // ),
           ],
           const SizedBox(height: 12),
           Row(

@@ -30,20 +30,20 @@ class _AddUserDialogState extends State<AddUserDialog> {
   final _blockController = TextEditingController();
   final _floorController = TextEditingController();
   final OrganizationService _orgService = OrganizationService();
-  
-  String? _selectedRole;
+
+  // String? _selectedRole;
   String _companyNameFromAPI = '';
   bool _isLoadingCompany = false;
 
-  final List<String> _roles = [
-    'Admin',
-    'Manager',
-    'Developer',
-    'Designer',
-    'Tester',
-    'HR',
-    'Sales',
-  ];
+  // final List<String> _roles = [
+  //   'Admin',
+  //   'Manager',
+  //   'Developer',
+  //   'Designer',
+  //   'Tester',
+  //   'HR',
+  //   'Sales',
+  // ];
 
   @override
   void initState() {
@@ -62,13 +62,14 @@ class _AddUserDialogState extends State<AddUserDialog> {
 
     try {
       final response = await _orgService.getOrganizationById(widget.companyId!);
-      
+
       debugPrint('📦 Company details response: ${response.data}');
 
       if (response.statusCode == 200) {
         final data = response.data;
         setState(() {
-          _companyNameFromAPI = data['company_name']?.toString() ?? widget.companyName;
+          _companyNameFromAPI =
+              data['company_name']?.toString() ?? widget.companyName;
           _isLoadingCompany = false;
         });
       }
@@ -99,37 +100,46 @@ class _AddUserDialogState extends State<AddUserDialog> {
   }
 
   void _submit() {
-  if (_formKey.currentState!.validate()) {
-    if (_selectedRole == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select a role'))
-      );
-      return;
-    }
-    if (widget.companyId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Company ID is missing'))
-      );
-      return;
-    }
+    if (_formKey.currentState!.validate()) {
+      // if (_selectedRole == null) {
+      //   ScaffoldMessenger.of(context).showSnackBar(
+      //     const SnackBar(content: Text('Please select a role'))
+      //   );
+      //   return;
+      // }
+      if (widget.companyId == null) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Company ID is missing')));
+        return;
+      }
 
-    final user = User(
-      id: '', // Will be assigned by API
-      name: _nameController.text.trim(),
-      email: _emailController.text.trim(),
-      mobileNumber: _mobileController.text.trim(),
-      companyName: _companyNameFromAPI,
-      role: _selectedRole!,
-      aliasName: _aliasController.text.trim().isEmpty ? null : _aliasController.text.trim(),
-      block: _blockController.text.trim().isEmpty ? null : _blockController.text.trim(),
-      floor: _floorController.text.trim().isEmpty ? null : _floorController.text.trim(),
-      dateAdded: DateTime.now(),
-    );
-    widget.onAdd(user, widget.companyId!);  // pass companyId as extra parameter
-    Navigator.pop(context);
+      final user = User(
+        id: '', // Will be assigned by API
+        name: _nameController.text.trim(),
+        email: _emailController.text.trim(),
+        mobileNumber: _mobileController.text.trim(),
+        companyName: _companyNameFromAPI,
+        //role: _selectedRole!,
+        aliasName: _aliasController.text.trim().isEmpty
+            ? null
+            : _aliasController.text.trim(),
+        block: _blockController.text.trim().isEmpty
+            ? null
+            : _blockController.text.trim(),
+        floor: _floorController.text.trim().isEmpty
+            ? null
+            : _floorController.text.trim(),
+        dateAdded: DateTime.now(),
+        role: '',
+      );
+      widget.onAdd(
+        user,
+        widget.companyId!,
+      ); // pass companyId as extra parameter
+      Navigator.pop(context);
+    }
   }
-}
-
 
   @override
   Widget build(BuildContext context) {
@@ -137,9 +147,7 @@ class _AddUserDialogState extends State<AddUserDialog> {
     final screenWidth = MediaQuery.of(context).size.width;
 
     return Dialog(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       insetPadding: EdgeInsets.symmetric(
         horizontal: screenWidth > 600 ? 40 : 16,
         vertical: 24,
@@ -221,7 +229,9 @@ class _AddUserDialogState extends State<AddUserDialog> {
                           if (value == null || value.trim().isEmpty) {
                             return 'Please enter email address';
                           }
-                          if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
+                          if (!RegExp(
+                            r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+                          ).hasMatch(value)) {
                             return 'Please enter a valid email';
                           }
                           return null;
@@ -249,18 +259,22 @@ class _AddUserDialogState extends State<AddUserDialog> {
                       ),
                       const SizedBox(height: 16),
                       TextFormField(
-                        initialValue: _isLoadingCompany ? 'Loading...' : _companyNameFromAPI,
+                        initialValue: _isLoadingCompany
+                            ? 'Loading...'
+                            : _companyNameFromAPI,
                         style: GoogleFonts.poppins(fontSize: 16),
                         decoration: InputDecoration(
                           labelText: 'Company Name *',
                           labelStyle: GoogleFonts.poppins(fontSize: 18),
-                          prefixIcon: _isLoadingCompany 
+                          prefixIcon: _isLoadingCompany
                               ? const Padding(
                                   padding: EdgeInsets.all(12),
                                   child: SizedBox(
                                     width: 20,
                                     height: 20,
-                                    child: CircularProgressIndicator(strokeWidth: 2),
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
                                   ),
                                 )
                               : const Icon(Icons.business_outlined),
@@ -269,40 +283,40 @@ class _AddUserDialogState extends State<AddUserDialog> {
                         enabled: false,
                       ),
                       const SizedBox(height: 16),
-                      DropdownButtonFormField<String>(
-                        value: _selectedRole,
-                        style: GoogleFonts.poppins(fontSize: 16, color: Colors.black87),
-                        decoration: InputDecoration(
-                          labelText: 'Role *',
-                          labelStyle: GoogleFonts.poppins(fontSize: 18),
-                          prefixIcon: const Icon(Icons.work_outline),
-                          border: const OutlineInputBorder(),
-                        ),
-                        hint: Text(
-                          'Select a role',
-                          style: GoogleFonts.poppins(fontSize: 16),
-                        ),
-                        items: _roles.map((role) {
-                          return DropdownMenuItem(
-                            value: role,
-                            child: Text(
-                              role,
-                              style: GoogleFonts.poppins(fontSize: 16),
-                            ),
-                          );
-                        }).toList(),
-                        onChanged: (value) {
-                          setState(() {
-                            _selectedRole = value;
-                          });
-                        },
-                        validator: (value) {
-                          if (value == null) {
-                            return 'Please select a role';
-                          }
-                          return null;
-                        },
-                      ),
+                      // DropdownButtonFormField<String>(
+                      //   value: _selectedRole,
+                      //   style: GoogleFonts.poppins(fontSize: 16, color: Colors.black87),
+                      //   decoration: InputDecoration(
+                      //     labelText: 'Role *',
+                      //     labelStyle: GoogleFonts.poppins(fontSize: 18),
+                      //     prefixIcon: const Icon(Icons.work_outline),
+                      //     border: const OutlineInputBorder(),
+                      //   ),
+                      //   hint: Text(
+                      //     'Select a role',
+                      //     style: GoogleFonts.poppins(fontSize: 16),
+                      //   ),
+                      //   items: _roles.map((role) {
+                      //     return DropdownMenuItem(
+                      //       value: role,
+                      //       child: Text(
+                      //         role,
+                      //         style: GoogleFonts.poppins(fontSize: 16),
+                      //       ),
+                      //     );
+                      //   }).toList(),
+                      //   onChanged: (value) {
+                      //     setState(() {
+                      //       _selectedRole = value;
+                      //     });
+                      //   },
+                      //   validator: (value) {
+                      //     if (value == null) {
+                      //       return 'Please select a role';
+                      //     }
+                      //     return null;
+                      //   },
+                      // ),
                       const SizedBox(height: 16),
                       TextFormField(
                         controller: _aliasController,
@@ -356,10 +370,7 @@ class _AddUserDialogState extends State<AddUserDialog> {
                 children: [
                   TextButton(
                     onPressed: () => Navigator.pop(context),
-                    child: Text(
-                      'Cancel',
-                      style: GoogleFonts.poppins(),
-                    ),
+                    child: Text('Cancel', style: GoogleFonts.poppins()),
                   ),
                   const SizedBox(width: 12),
                   Flexible(

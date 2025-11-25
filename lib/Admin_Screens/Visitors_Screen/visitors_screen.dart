@@ -56,6 +56,13 @@ class _RegularVisitorsScreenState extends State<RegularVisitorsScreen> {
         final List<dynamic> data = response.data as List<dynamic>;
         setState(() {
           visitors = data.map((json) => Visitor.fromJson(json)).toList();
+          // Sort by most recent first (updatedAt or createdAt, descending)
+          visitors.sort((a, b) {
+            final aDate = a.updatedAt ?? a.createdAt;
+            final bDate = b.updatedAt ?? b.createdAt;
+            if (aDate == null || bDate == null) return 0;
+            return bDate.compareTo(aDate); // descending (newest first)
+          });
           _applyFilters();
           isLoading = false;
         });

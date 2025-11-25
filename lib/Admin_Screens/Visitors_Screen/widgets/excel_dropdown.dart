@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../utils/colors.dart';
-import '../utils/excel_helper.dart';
 
 class ExcelDropdown extends StatefulWidget {
   const ExcelDropdown({super.key});
@@ -75,7 +74,12 @@ class _ExcelDropdownState extends State<ExcelDropdown> {
                       InkWell(
                         onTap: () async {
                           _closeDropdown();
-                          await ExcelHelper.importExcel(context);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Import will be implemented soon'),
+                              duration: Duration(seconds: 3),
+                            ),
+                          );
                         },
                         borderRadius: BorderRadius.circular(12),
                         child: Padding(
