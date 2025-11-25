@@ -514,7 +514,7 @@ class _UserRolesManagementScreenState extends State<UserRolesManagementScreen> {
         firstLetter: firstLetter,
         email: email,
       ),
-      drawer: Navigation(),
+      drawer: Navigation(currentRoute: 'User Roles'),
       body: SafeArea(
         child: Stack(
           children: [

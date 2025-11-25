@@ -17,18 +17,18 @@ import 'package:gatecheck/User_Screens/Reports_screens/reports.dart';
 
 class AppRoutes {
   // Route Names
-  
+
   // Auth Routes
   static const String login = '/login';
   static const String signIn = '/signin';
-  
+
   // Admin Routes
   static const String adminDashboard = '/admin/dashboard';
   static const String adminProfile = '/admin/profile';
   static const String adminOrganization = '/admin/organization';
   static const String adminReports = '/admin/reports';
   static const String adminVisitors = '/admin/visitors';
-  
+
   // User Routes
   static const String userDashboard = '/user/dashboard';
   static const String userProfile = '/user/profile';
@@ -41,7 +41,7 @@ class AppRoutes {
       // Auth Routes
       case login:
         return MaterialPageRoute(builder: (_) => const GateCheckSignIn());
-      
+
       case signIn:
         final args = settings.arguments as String?;
         return MaterialPageRoute(
@@ -51,29 +51,31 @@ class AppRoutes {
       // Admin Routes
       case adminDashboard:
         return MaterialPageRoute(builder: (_) => const DashboardScreen());
-      
+
       case adminProfile:
         return MaterialPageRoute(builder: (_) => const ProfileScreen());
-      
+
       case adminOrganization:
-        return MaterialPageRoute(builder: (_) => const OrganizationManagementScreen());
-      
+        return MaterialPageRoute(
+          builder: (_) => const OrganizationManagementScreen(),
+        );
+
       case adminReports:
         return MaterialPageRoute(builder: (_) => const ReportsScreen());
-      
+
       case adminVisitors:
         return MaterialPageRoute(builder: (_) => const RegularVisitorsScreen());
 
       // User Routes
       case userDashboard:
         return MaterialPageRoute(builder: (_) => const UserDashboardScreen());
-      
+
       case userProfile:
         return MaterialPageRoute(builder: (_) => const ProfileScreen());
-      
+
       case userVisitors:
         return MaterialPageRoute(builder: (_) => const RegularVisitorsScreen());
-      
+
       case userReports:
         return MaterialPageRoute(builder: (_) => const UserReportsScreen());
 
@@ -81,16 +83,17 @@ class AppRoutes {
       default:
         return MaterialPageRoute(
           builder: (_) => Scaffold(
-            body: Center(
-              child: Text('No route defined for ${settings.name}'),
-            ),
+            body: Center(child: Text('No route defined for ${settings.name}')),
           ),
         );
     }
   }
 
   // Navigation Helpers for Admin
-  static void navigateToAdminDashboard(BuildContext context, {bool replace = false}) {
+  static void navigateToAdminDashboard(
+    BuildContext context, {
+    bool replace = false,
+  }) {
     if (replace) {
       Navigator.pushReplacementNamed(context, adminDashboard);
     } else {
@@ -115,7 +118,10 @@ class AppRoutes {
   }
 
   // Navigation Helpers for User
-  static void navigateToUserDashboard(BuildContext context, {bool replace = false}) {
+  static void navigateToUserDashboard(
+    BuildContext context, {
+    bool replace = false,
+  }) {
     if (replace) {
       Navigator.pushReplacementNamed(context, userDashboard);
     } else {

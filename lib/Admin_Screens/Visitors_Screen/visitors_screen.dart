@@ -172,7 +172,7 @@ class _RegularVisitorsScreenState extends State<RegularVisitorsScreen> {
 
     return Scaffold(
       drawer: isAdmin
-          ? const Navigation() // assume admin drawer
+          ? const Navigation(currentRoute: 'GateCheck') // assume admin drawer
           : const UserNavigation(), // you should have a user drawer
       appBar: isAdmin
           ? CustomAppBar(

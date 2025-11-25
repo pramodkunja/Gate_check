@@ -8,7 +8,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 class RolesManagementScreen extends StatefulWidget {
-  const RolesManagementScreen({Key? key}) : super(key: key);
+  const RolesManagementScreen({super.key});
 
   @override
   State<RolesManagementScreen> createState() => _RolesManagementScreenState();
@@ -231,7 +231,7 @@ class _RolesManagementScreenState extends State<RolesManagementScreen> {
         firstLetter: firstLetter,
         email: email,
       ),
-      drawer: Navigation(),
+      drawer: Navigation(currentRoute: 'Roles'),
       backgroundColor: greyColor,
       body: SafeArea(
         child: Padding(

@@ -3,6 +3,7 @@ import 'package:gatecheck/Admin_Screens/Dashboard_Screens/custom_appbar.dart';
 import 'package:gatecheck/Admin_Screens/Dashboard_Screens/navigation_drawer.dart';
 import 'package:gatecheck/Services/User_services/user_service.dart';
 import 'package:gatecheck/Services/Auth_Services/api_service.dart';
+import 'package:gatecheck/routes/app_routes.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:dio/dio.dart';
 import 'package:path_provider/path_provider.dart';
@@ -58,7 +59,7 @@ class _ReportsScreenState extends State<ReportsScreen>
         firstLetter: firstLetter,
         email: email,
       ),
-      drawer: const Navigation(),
+      drawer: const Navigation(currentRoute: AppRoutes.adminReports,),
       backgroundColor: const Color(0xFFF8F9FA),
       body: SafeArea(
         child: Padding(

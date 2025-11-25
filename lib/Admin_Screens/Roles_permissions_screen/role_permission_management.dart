@@ -179,7 +179,7 @@ class _RolePermissionsScreenState extends State<RolePermissionsScreen> {
         firstLetter: firstLetter,
         email: email,
       ),
-      drawer: Navigation(),
+      drawer: Navigation(currentRoute: 'Roles & Permissions'),
       body: SafeArea(
         child: _isLoading
             ? const Center(child: CircularProgressIndicator())

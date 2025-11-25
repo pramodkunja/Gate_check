@@ -83,7 +83,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         firstLetter: firstLetter,
         email: email,
       ),
-      drawer: const Navigation(),
+      drawer: const Navigation(currentRoute: 'Dashboard'),
       body: RefreshIndicator(
         onRefresh: _fetchVisitorCount,
         child: LayoutBuilder(
@@ -179,7 +179,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(
-                                      builder: (context) => const ReportsScreen(),
+                                      builder: (context) =>
+                                          const ReportsScreen(),
                                     ),
                                   );
                                 },
@@ -287,9 +288,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     icon: Icon(Icons.refresh, size: isSmall ? 16 : 18),
                     label: Text(
                       "Retry",
-                      style: GoogleFonts.poppins(
-                        fontSize: isSmall ? 12 : 14,
-                      ),
+                      style: GoogleFonts.poppins(fontSize: isSmall ? 12 : 14),
                     ),
                   ),
                 ],
@@ -350,11 +349,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(
-                icon,
-                color: iconColor,
-                size: isSmall ? 20 : 24,
-              ),
+              Icon(icon, color: iconColor, size: isSmall ? 20 : 24),
               SizedBox(width: isSmall ? 6 : 8),
               Flexible(
                 child: Text(

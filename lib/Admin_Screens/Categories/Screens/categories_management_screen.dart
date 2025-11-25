@@ -21,7 +21,7 @@ class _CategoriesManagementScreenState
     extends State<CategoriesManagementScreen> {
   final TextEditingController _searchController = TextEditingController();
   final CategoryService _categoryService = CategoryService();
-  
+
   String _filterStatus = 'All';
   List<Category> allCategories = [];
   bool _isLoading = false;
@@ -35,11 +35,13 @@ class _CategoriesManagementScreenState
   // Load categories from API
   Future<void> _loadCategories() async {
     setState(() => _isLoading = true);
-    
+
     try {
       final categoriesData = await _categoryService.getAllCategories();
       setState(() {
-        allCategories = categoriesData.map((json) => Category.fromJson(json)).toList();
+        allCategories = categoriesData
+            .map((json) => Category.fromJson(json))
+            .toList();
         _isLoading = false;
       });
     } catch (e) {
@@ -72,8 +74,8 @@ class _CategoriesManagementScreenState
   int get totalCategories => allCategories.length;
   int get activeCategories => allCategories.where((c) => c.isActive).length;
   int get inactiveCategories => allCategories.where((c) => !c.isActive).length;
-  String get activeRate => totalCategories > 0 
-      ? '${((activeCategories / totalCategories) * 100).toStringAsFixed(0)}%' 
+  String get activeRate => totalCategories > 0
+      ? '${((activeCategories / totalCategories) * 100).toStringAsFixed(0)}%'
       : '0%';
 
   void _addCategory() {
@@ -87,7 +89,7 @@ class _CategoriesManagementScreenState
               description: category.description,
               isActive: category.isActive,
             );
-            
+
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
@@ -96,7 +98,7 @@ class _CategoriesManagementScreenState
                 ),
               );
             }
-            
+
             _loadCategories(); // Reload categories
           } catch (e) {
             if (mounted) {
@@ -126,7 +128,7 @@ class _CategoriesManagementScreenState
               description: updatedCategory.description,
               isActive: updatedCategory.isActive,
             );
-            
+
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
@@ -135,7 +137,7 @@ class _CategoriesManagementScreenState
                 ),
               );
             }
-            
+
             _loadCategories(); // Reload categories
           } catch (e) {
             if (mounted) {
@@ -173,7 +175,9 @@ class _CategoriesManagementScreenState
             ),
             const SizedBox(height: 4),
             Text(
-              category.description.isEmpty ? 'No description' : category.description,
+              category.description.isEmpty
+                  ? 'No description'
+                  : category.description,
               style: GoogleFonts.poppins(color: Colors.grey[700]),
             ),
             const SizedBox(height: 12),
@@ -217,10 +221,10 @@ class _CategoriesManagementScreenState
           TextButton(
             onPressed: () async {
               Navigator.pop(context);
-              
+
               try {
                 await _categoryService.deleteCategory(category.id);
-                
+
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
@@ -229,7 +233,7 @@ class _CategoriesManagementScreenState
                     ),
                   );
                 }
-                
+
                 _loadCategories(); // Reload categories
               } catch (e) {
                 if (mounted) {
@@ -261,7 +265,7 @@ class _CategoriesManagementScreenState
         firstLetter: firstLetter,
         email: email,
       ),
-      drawer: Navigation(),
+      drawer: Navigation(currentRoute: 'Categories'),
       body: SafeArea(
         child: _isLoading
             ? const Center(child: CircularProgressIndicator())
@@ -276,7 +280,11 @@ class _CategoriesManagementScreenState
                       children: [
                         Row(
                           children: [
-                            const Icon(Icons.category, color: Colors.blue, size: 28),
+                            const Icon(
+                              Icons.category,
+                              color: Colors.blue,
+                              size: 28,
+                            ),
                             const SizedBox(width: 8),
                             Text(
                               'Categories\nManagement',
@@ -378,7 +386,8 @@ class _CategoriesManagementScreenState
                               )
                               .toList(),
                           onChanged: (value) {
-                            if (value != null) setState(() => _filterStatus = value);
+                            if (value != null)
+                              setState(() => _filterStatus = value);
                           },
                         ),
                         const SizedBox(width: 8),

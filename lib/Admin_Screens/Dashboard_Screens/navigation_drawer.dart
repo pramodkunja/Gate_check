@@ -11,7 +11,13 @@ import 'package:gatecheck/Admin_Screens/User_roles-screen/user_role_management.d
 import 'package:gatecheck/Admin_Screens/Visitors_Screen/visitors_screen.dart';
 
 class Navigation extends StatefulWidget {
-  const Navigation({super.key});
+  /// 🚩 Name of the current screen, e.g. "Dashboard", "Profile", "Roles"
+  final String currentRoute;
+
+  const Navigation({
+    super.key,
+    required this.currentRoute,
+  });
 
   @override
   State<Navigation> createState() => _NavigationState();
@@ -19,7 +25,34 @@ class Navigation extends StatefulWidget {
 
 class _NavigationState extends State<Navigation> {
   bool isRolesExpanded = false;
-  String selectedRoute = '';
+  late String selectedRoute;
+
+  @override
+  void initState() {
+    super.initState();
+    selectedRoute = widget.currentRoute;
+
+    // Auto-expand roles group if current screen is one of them
+    isRolesExpanded = _isRolesGroup(selectedRoute);
+  }
+
+  @override
+  void didUpdateWidget(covariant Navigation oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.currentRoute != widget.currentRoute) {
+      setState(() {
+        selectedRoute = widget.currentRoute;
+        isRolesExpanded = _isRolesGroup(selectedRoute);
+      });
+    }
+  }
+
+  bool _isRolesGroup(String route) {
+    return route == 'Roles' ||
+        route == 'Permissions' ||
+        route == 'Roles & Permissions' ||
+        route == 'User Roles';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -225,9 +258,8 @@ class _NavigationState extends State<Navigation> {
                   style: GoogleFonts.poppins(
                     color: Colors.white,
                     fontSize: screenWidth * 0.042,
-                    fontWeight: isSelected
-                        ? FontWeight.w500
-                        : FontWeight.normal,
+                    fontWeight:
+                        isSelected ? FontWeight.w500 : FontWeight.normal,
                   ),
                 ),
               ),
@@ -331,9 +363,8 @@ class _NavigationState extends State<Navigation> {
                   style: GoogleFonts.poppins(
                     color: isSelected ? Colors.white : const Color(0xFFCBD5E1),
                     fontSize: screenWidth * 0.038,
-                    fontWeight: isSelected
-                        ? FontWeight.w500
-                        : FontWeight.normal,
+                    fontWeight:
+                        isSelected ? FontWeight.w500 : FontWeight.normal,
                   ),
                 ),
               ),
@@ -347,7 +378,9 @@ class _NavigationState extends State<Navigation> {
   void _handleNavigation(String route) {
     setState(() {
       selectedRoute = route;
+      isRolesExpanded = _isRolesGroup(route);
     });
+
     Navigator.pop(context);
 
     if (route == 'Dashboard') {
@@ -360,7 +393,8 @@ class _NavigationState extends State<Navigation> {
     if (route == 'GateCheck') {
       Navigator.push(
         context,
-        MaterialPageRoute(builder: (context) => const RegularVisitorsScreen()),
+        MaterialPageRoute(
+            builder: (context) => const RegularVisitorsScreen()),
       );
     }
 

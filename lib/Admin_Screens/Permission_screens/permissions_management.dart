@@ -243,7 +243,7 @@ class _PermissionManagementScreenState
         firstLetter: firstLetter,
         email: email,
       ),
-      drawer: Navigation(),
+      drawer: Navigation(currentRoute: 'Permissions'),
       backgroundColor: greyColor,
       body: SafeArea(
         child: _isLoading
