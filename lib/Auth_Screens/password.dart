@@ -153,7 +153,7 @@ class _SignInScreenState extends State<SignInScreen> {
 
           // Step 3: extract role (note: backend key typo 'roles ' is handled)
           String rawRole =
-              userMap['roles ']?.toString() ??
+              userMap['roles']?.toString() ??
               userMap['role']?.toString() ??
               userMap['user_type']?.toString() ??
               '';
@@ -208,10 +208,7 @@ class _SignInScreenState extends State<SignInScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(
-                backendMsg,
-                style: GoogleFonts.poppins(),
-              ),
+              content: Text(backendMsg, style: GoogleFonts.poppins()),
               backgroundColor: Colors.red,
               duration: const Duration(seconds: 4),
             ),
@@ -511,10 +508,10 @@ class _SignInScreenState extends State<SignInScreen> {
                             ),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFF6A1B9A),
-                              disabledBackgroundColor:
-                                  const Color(0xFF6A1B9A).withOpacity(0.6),
-                              padding:
-                                  const EdgeInsets.symmetric(vertical: 14),
+                              disabledBackgroundColor: const Color(
+                                0xFF6A1B9A,
+                              ).withOpacity(0.6),
+                              padding: const EdgeInsets.symmetric(vertical: 14),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(10),
                               ),
