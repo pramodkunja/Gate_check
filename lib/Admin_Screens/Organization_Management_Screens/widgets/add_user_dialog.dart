@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:gatecheck/Admin_Screens/Organization_Management_Screens/models/models.dart';
 import 'package:gatecheck/Services/Admin_Services/organization_services.dart';
+import 'package:gatecheck/Services/Roles_services/roles_service.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:dio/dio.dart';
 
@@ -23,35 +24,39 @@ class AddUserDialog extends StatefulWidget {
 
 class _AddUserDialogState extends State<AddUserDialog> {
   final _formKey = GlobalKey<FormState>();
+
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _mobileController = TextEditingController();
   final _aliasController = TextEditingController();
   final _blockController = TextEditingController();
   final _floorController = TextEditingController();
-  final OrganizationService _orgService = OrganizationService();
 
-  // String? _selectedRole;
-  String _companyNameFromAPI = '';
+  // ✅ New: company name controller (so UI updates when API returns)
+  final _companyController = TextEditingController();
+
+  final OrganizationService _orgService = OrganizationService();
+  final RoleService _roleService = RoleService();
+
+  String? _selectedRole;
   bool _isLoadingCompany = false;
 
-  // final List<String> _roles = [
-  //   'Admin',
-  //   'Manager',
-  //   'Developer',
-  //   'Designer',
-  //   'Tester',
-  //   'HR',
-  //   'Sales',
-  // ];
+  // ✅ Roles from backend
+  List<Map<String, dynamic>> _rolesFromApi = [];
+  bool _isLoadingRoles = false;
+  String? _rolesError;
 
   @override
   void initState() {
     super.initState();
-    _companyNameFromAPI = widget.companyName;
+
+    // Start showing whatever name we already have
+    _companyController.text = widget.companyName;
+
     if (widget.companyId != null) {
       _loadCompanyDetails();
     }
+    _loadRoles();
   }
 
   // Load company details from API
@@ -67,23 +72,58 @@ class _AddUserDialogState extends State<AddUserDialog> {
 
       if (response.statusCode == 200) {
         final data = response.data;
+        final nameFromApi = data['company_name']?.toString();
         setState(() {
-          _companyNameFromAPI =
-              data['company_name']?.toString() ?? widget.companyName;
+          if (nameFromApi != null && nameFromApi.isNotEmpty) {
+            _companyController.text = nameFromApi;
+          } else {
+            _companyController.text = widget.companyName;
+          }
+          _isLoadingCompany = false;
+        });
+      } else {
+        setState(() {
+          _companyController.text = widget.companyName;
           _isLoadingCompany = false;
         });
       }
     } on DioException catch (e) {
       debugPrint('❌ Load company error: ${e.message}');
       setState(() {
-        _companyNameFromAPI = widget.companyName;
+        _companyController.text = widget.companyName;
         _isLoadingCompany = false;
       });
     } catch (e) {
       debugPrint('❌ Unexpected error: $e');
       setState(() {
-        _companyNameFromAPI = widget.companyName;
+        _companyController.text = widget.companyName;
         _isLoadingCompany = false;
+      });
+    }
+  }
+
+  // ✅ Load roles from backend
+  Future<void> _loadRoles() async {
+    setState(() {
+      _isLoadingRoles = true;
+      _rolesError = null;
+    });
+
+    try {
+      final fetchedRoles = await _roleService.getAllRoles();
+      setState(() {
+        // Keep only active roles (adjust if you want all)
+        _rolesFromApi =
+            fetchedRoles.where((r) => r['is_active'] == true).toList();
+        _isLoadingRoles = false;
+      });
+
+      debugPrint('✅ Loaded roles for AddUserDialog: $_rolesFromApi');
+    } catch (e) {
+      debugPrint('❌ Error loading roles: $e');
+      setState(() {
+        _rolesError = 'Failed to load roles';
+        _isLoadingRoles = false;
       });
     }
   }
@@ -96,21 +136,22 @@ class _AddUserDialogState extends State<AddUserDialog> {
     _aliasController.dispose();
     _blockController.dispose();
     _floorController.dispose();
+    _companyController.dispose();
     super.dispose();
   }
 
   void _submit() {
     if (_formKey.currentState!.validate()) {
-      // if (_selectedRole == null) {
-      //   ScaffoldMessenger.of(context).showSnackBar(
-      //     const SnackBar(content: Text('Please select a role'))
-      //   );
-      //   return;
-      // }
+      if (_selectedRole == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please select a role')),
+        );
+        return;
+      }
       if (widget.companyId == null) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Company ID is missing')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Company ID is missing')),
+        );
         return;
       }
 
@@ -119,8 +160,9 @@ class _AddUserDialogState extends State<AddUserDialog> {
         name: _nameController.text.trim(),
         email: _emailController.text.trim(),
         mobileNumber: _mobileController.text.trim(),
-        companyName: _companyNameFromAPI,
-        //role: _selectedRole!,
+        // ✅ Use current controller text (updated from API)
+        companyName: _companyController.text.trim(),
+        role: _selectedRole!,
         aliasName: _aliasController.text.trim().isEmpty
             ? null
             : _aliasController.text.trim(),
@@ -130,13 +172,9 @@ class _AddUserDialogState extends State<AddUserDialog> {
         floor: _floorController.text.trim().isEmpty
             ? null
             : _floorController.text.trim(),
-        dateAdded: DateTime.now(),
-        role: '',
+        dateAdded: null,
       );
-      widget.onAdd(
-        user,
-        widget.companyId!,
-      ); // pass companyId as extra parameter
+      widget.onAdd(user, widget.companyId!); // pass companyId as extra parameter
       Navigator.pop(context);
     }
   }
@@ -145,6 +183,7 @@ class _AddUserDialogState extends State<AddUserDialog> {
   Widget build(BuildContext context) {
     final screenHeight = MediaQuery.of(context).size.height;
     final screenWidth = MediaQuery.of(context).size.width;
+    final isSmallScreen = screenWidth < 400;
 
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -169,7 +208,7 @@ class _AddUserDialogState extends State<AddUserDialog> {
                     child: Text(
                       'Add New User',
                       style: GoogleFonts.poppins(
-                        fontSize: 20,
+                        fontSize: isSmallScreen ? 18 : 20,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -184,6 +223,7 @@ class _AddUserDialogState extends State<AddUserDialog> {
               ),
             ),
             const Divider(height: 1),
+
             // Form content
             Flexible(
               child: SingleChildScrollView(
@@ -229,9 +269,8 @@ class _AddUserDialogState extends State<AddUserDialog> {
                           if (value == null || value.trim().isEmpty) {
                             return 'Please enter email address';
                           }
-                          if (!RegExp(
-                            r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
-                          ).hasMatch(value)) {
+                          if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
+                              .hasMatch(value)) {
                             return 'Please enter a valid email';
                           }
                           return null;
@@ -258,10 +297,10 @@ class _AddUserDialogState extends State<AddUserDialog> {
                         },
                       ),
                       const SizedBox(height: 16),
+
+                      // ✅ Company name (read-only, updated by controller)
                       TextFormField(
-                        initialValue: _isLoadingCompany
-                            ? 'Loading...'
-                            : _companyNameFromAPI,
+                        controller: _companyController,
                         style: GoogleFonts.poppins(fontSize: 16),
                         decoration: InputDecoration(
                           labelText: 'Company Name *',
@@ -280,43 +319,77 @@ class _AddUserDialogState extends State<AddUserDialog> {
                               : const Icon(Icons.business_outlined),
                           border: const OutlineInputBorder(),
                         ),
-                        enabled: false,
+                        enabled: false, // read-only field
                       ),
                       const SizedBox(height: 16),
-                      // DropdownButtonFormField<String>(
-                      //   value: _selectedRole,
-                      //   style: GoogleFonts.poppins(fontSize: 16, color: Colors.black87),
-                      //   decoration: InputDecoration(
-                      //     labelText: 'Role *',
-                      //     labelStyle: GoogleFonts.poppins(fontSize: 18),
-                      //     prefixIcon: const Icon(Icons.work_outline),
-                      //     border: const OutlineInputBorder(),
-                      //   ),
-                      //   hint: Text(
-                      //     'Select a role',
-                      //     style: GoogleFonts.poppins(fontSize: 16),
-                      //   ),
-                      //   items: _roles.map((role) {
-                      //     return DropdownMenuItem(
-                      //       value: role,
-                      //       child: Text(
-                      //         role,
-                      //         style: GoogleFonts.poppins(fontSize: 16),
-                      //       ),
-                      //     );
-                      //   }).toList(),
-                      //   onChanged: (value) {
-                      //     setState(() {
-                      //       _selectedRole = value;
-                      //     });
-                      //   },
-                      //   validator: (value) {
-                      //     if (value == null) {
-                      //       return 'Please select a role';
-                      //     }
-                      //     return null;
-                      //   },
-                      // ),
+
+                      // ✅ Role dropdown from API
+                      DropdownButtonFormField<String>(
+                        initialValue: _selectedRole,
+                        style: GoogleFonts.poppins(
+                          fontSize: 16,
+                          color: Colors.black87,
+                        ),
+                        decoration: InputDecoration(
+                          labelText: 'Role *',
+                          labelStyle: GoogleFonts.poppins(fontSize: 18),
+                          prefixIcon: const Icon(Icons.work_outline),
+                          border: const OutlineInputBorder(),
+                          suffixIcon: _isLoadingRoles
+                              ? const Padding(
+                                  padding: EdgeInsets.all(12),
+                                  child: SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  ),
+                                )
+                              : null,
+                        ),
+                        hint: Text(
+                          _isLoadingRoles
+                              ? 'Loading roles...'
+                              : 'Select a role',
+                          style: GoogleFonts.poppins(fontSize: 16),
+                        ),
+                        items: _rolesFromApi.map((roleMap) {
+                          final roleName =
+                              roleMap['name']?.toString() ?? 'Unnamed role';
+                          return DropdownMenuItem<String>(
+                            value: roleName,
+                            child: Text(
+                              roleName,
+                              style: GoogleFonts.poppins(fontSize: 16),
+                            ),
+                          );
+                        }).toList(),
+                        onChanged: _isLoadingRoles || _rolesFromApi.isEmpty
+                            ? null
+                            : (value) {
+                                setState(() {
+                                  _selectedRole = value;
+                                });
+                              },
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please select a role';
+                          }
+                          return null;
+                        },
+                      ),
+                      if (_rolesError != null) ...[
+                        const SizedBox(height: 8),
+                        Text(
+                          _rolesError!,
+                          style: GoogleFonts.poppins(
+                            fontSize: 13,
+                            color: Colors.red,
+                          ),
+                        ),
+                      ],
+
                       const SizedBox(height: 16),
                       TextFormField(
                         controller: _aliasController,
@@ -361,6 +434,7 @@ class _AddUserDialogState extends State<AddUserDialog> {
                 ),
               ),
             ),
+
             // Action buttons
             const Divider(height: 1),
             Padding(

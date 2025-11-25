@@ -63,8 +63,10 @@ class _UserRolesManagementScreenState extends State<UserRolesManagementScreen> {
       // Normalize roles into List<Map<String, dynamic>> {id, name}
       final normalizedRoles = <Map<String, dynamic>>[];
       try {
+        // ignore: unnecessary_type_check
         if (rolesRaw is List) {
           for (var item in rolesRaw) {
+            // ignore: unnecessary_type_check
             if (item is Map<String, dynamic>) {
               final id = (item['role_id'] ?? item['id']) is int
                   ? (item['role_id'] ?? item['id'])

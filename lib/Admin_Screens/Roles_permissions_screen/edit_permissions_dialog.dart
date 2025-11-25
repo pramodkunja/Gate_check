@@ -29,6 +29,7 @@ class _EditPermissionsDialogState extends State<EditPermissionsDialog> {
 
   bool _isSubmitting = false;
   bool _isLoadingPermissions = true;
+  // ignore: unused_field
   String? _errorMessage;
 
   @override
