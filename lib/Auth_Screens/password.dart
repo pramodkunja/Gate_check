@@ -7,7 +7,6 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:dio/dio.dart';
 import 'package:gatecheck/Auth_Screens/forgot_password.dart';
 import 'package:gatecheck/User_Screens/Dashboard_Screens/user_dashboard.dart';
-//import 'package:gatecheck/Admin_Screens/Dashboard_Screens/dashboard.dart';
 
 class SignInScreen extends StatefulWidget {
   final String? email;
@@ -52,6 +51,51 @@ class _SignInScreenState extends State<SignInScreen> {
         'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
     final rnd = Random();
     return List.generate(5, (_) => chars[rnd.nextInt(chars.length)]).join();
+  }
+
+  /// 🔹 Helper: extract a readable error message from backend response body
+  String _extractBackendErrorMessage(dynamic data) {
+    if (data == null) {
+      return 'Login failed. Please try again.';
+    }
+
+    // if backend just returns a plain string
+    if (data is String) {
+      if (data.trim().isNotEmpty) return data.trim();
+    }
+
+    // if backend returns a JSON object
+    if (data is Map<String, dynamic>) {
+      // common keys
+      for (final key in ['message', 'error', 'detail', 'description']) {
+        final v = data[key];
+        if (v is String && v.trim().isNotEmpty) return v.trim();
+      }
+
+      // DRF / field-based errors: { "password": ["Incorrect password."] }
+      for (final value in data.values) {
+        if (value is String && value.trim().isNotEmpty) {
+          return value.trim();
+        }
+        if (value is List && value.isNotEmpty) {
+          final first = value.first;
+          if (first is String && first.trim().isNotEmpty) {
+            return first.trim();
+          }
+        }
+      }
+    }
+
+    // array of errors
+    if (data is List && data.isNotEmpty) {
+      final first = data.first;
+      if (first is String && first.trim().isNotEmpty) {
+        return first.trim();
+      }
+    }
+
+    // fallback
+    return 'Login failed. Please check your credentials and try again.';
   }
 
   Future<void> _onSignIn() async {
@@ -107,7 +151,7 @@ class _SignInScreenState extends State<SignInScreen> {
               userMap['name']?.toString() ??
               'User';
 
-          // Step 3: extract role (correct field ‘roles’)
+          // Step 3: extract role (note: backend key typo 'roles ' is handled)
           String rawRole =
               userMap['roles ']?.toString() ??
               userMap['role']?.toString() ??
@@ -128,7 +172,7 @@ class _SignInScreenState extends State<SignInScreen> {
 
         debugPrint('Determined userRole: $userRole');
 
-        // Persist user info in the in-memory UserService so other screens can access it
+        // Persist user info so other screens can access it
         UserService().setCurrentUser({
           'name': userName,
           'username': userName,
@@ -154,38 +198,28 @@ class _SignInScreenState extends State<SignInScreen> {
         }
         debugPrint('\n\n\n\n\n');
         debugPrint('Extracted userRole: $userRole');
-        debugPrint('Extracted userRole: $userName');
+        debugPrint('Extracted userName: $userName');
         debugPrint('\n\n\n\n\n');
         debugPrint('Login response data: ${response.data}');
-      } else if (response.statusCode == 400) {
-        final errorMsg = _apiService.getErrorMessage(
-          DioException(
-            requestOptions: response.requestOptions,
-            response: response,
-          ),
-        );
+      } else {
+        // 🔴 Any non-success (400 incorrect password, 401 unauthorized, etc.)
+        final backendMsg = _extractBackendErrorMessage(response.data);
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(errorMsg, style: GoogleFonts.poppins()),
+              content: Text(
+                backendMsg,
+                style: GoogleFonts.poppins(),
+              ),
               backgroundColor: Colors.red,
               duration: const Duration(seconds: 4),
             ),
           );
         }
-      } else {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                'Login failed. Status: ${response.statusCode}',
-                style: GoogleFonts.poppins(),
-              ),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
+        // Refresh captcha on failed login
+        _regenerateCaptcha();
+        _captchaController.clear();
       }
     } on DioException catch (e) {
       setState(() => _isLoading = false);
@@ -406,10 +440,10 @@ class _SignInScreenState extends State<SignInScreen> {
                             ),
                           ),
                           validator: (value) {
-                            if (value == null || value.trim().isEmpty) {
-                              return 'Please enter the captcha.';
+                            if (value == null || value.trim().isNotEmpty) {
+                              return null;
                             }
-                            return null;
+                            return 'Please enter the captcha.';
                           },
                         ),
                         const SizedBox(height: 12),
@@ -477,10 +511,10 @@ class _SignInScreenState extends State<SignInScreen> {
                             ),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFF6A1B9A),
-                              disabledBackgroundColor: const Color(
-                                0xFF6A1B9A,
-                              ).withOpacity(0.6),
-                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              disabledBackgroundColor:
+                                  const Color(0xFF6A1B9A).withOpacity(0.6),
+                              padding:
+                                  const EdgeInsets.symmetric(vertical: 14),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(10),
                               ),
