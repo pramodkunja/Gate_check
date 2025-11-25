@@ -2,7 +2,6 @@
 import 'package:flutter/material.dart';
 import 'package:gatecheck/Admin_Screens/Organization_Management_Screens/models/models.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:intl/intl.dart';
 
 class UserCard extends StatelessWidget {
   final User user;
@@ -112,7 +111,7 @@ class UserCard extends StatelessWidget {
             //     fontSize: 13,
             //     color: Colors.grey[600],
             //   ),
-            // ),
+            // ),/
           ],
           const SizedBox(height: 12),
           Row(

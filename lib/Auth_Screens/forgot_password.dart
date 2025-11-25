@@ -1,9 +1,9 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:gatecheck/Auth_Screens/reset_password.dart';
 import 'package:gatecheck/Services/Auth_Services/api_service.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:dio/dio.dart';
-import 'reset_password.dart';
 import 'dart:math' as math;
 
 class ResetPasswordScreen extends StatefulWidget {
@@ -93,11 +93,29 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
           );
 
           // Navigate to OTP verification screen with email
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (context) => OtpVerificationScreen(email: email),
-            ),
-          );
+          Future.delayed(const Duration(milliseconds: 500), () {
+            if (mounted) {
+              Navigator.of(context)
+                  .push(
+                    MaterialPageRoute(
+                      builder: (context) => OtpVerificationScreen(email: email),
+                    ),
+                  )
+                  .catchError((error) {
+                    debugPrint('Navigation error: $error');
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            'Failed to navigate: ${error.toString()}',
+                          ),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
+                  });
+            }
+          });
         }
       }
     } on DioException catch (e) {
@@ -111,7 +129,8 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
         errorMessage = e.response?.data['message'] ?? "Invalid email address.";
       } else if (e.type == DioExceptionType.connectionTimeout ||
           e.type == DioExceptionType.receiveTimeout) {
-        errorMessage = "Connection timeout. Please check your internet connection.";
+        errorMessage =
+            "Connection timeout. Please check your internet connection.";
       } else if (e.type == DioExceptionType.connectionError) {
         errorMessage = "Cannot connect to server. Please try again later.";
       }

@@ -157,7 +157,7 @@ class ApiService {
   // -------------------- Forgot Password --------------------
   Future<Response> forgotPassword(String identifier) async {
     return await _dio.post(
-      '/login/forgot-password/',
+      '/login/otp-request/',
       data: {'identifier': identifier},
     );
   }
