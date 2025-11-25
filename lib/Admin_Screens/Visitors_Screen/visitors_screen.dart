@@ -95,7 +95,8 @@ class _RegularVisitorsScreenState extends State<RegularVisitorsScreen> {
             visitor.status.displayName == selectedStatus;
 
         bool matchesPassType =
-            selectedPassType == 'All Types' || visitor.passType == selectedPassType;
+            selectedPassType == 'All Types' ||
+            visitor.passType == selectedPassType;
 
         bool matchesCategory =
             selectedCategory == 'All Categories' ||
@@ -165,24 +166,25 @@ class _RegularVisitorsScreenState extends State<RegularVisitorsScreen> {
     String email = UserService().getUserEmail();
 
     // decide role
-  final String? role = UserService().getUserRole();  // assume you add this service method
-  final bool isAdmin = (role == null || role == 'admin');
+    final String? role = UserService()
+        .getUserRole(); // assume you add this service method
+    final bool isAdmin = (role == null || role == 'admin');
 
     return Scaffold(
       drawer: isAdmin
-        ? const Navigation()  // assume admin drawer
-        : const UserNavigation(),  // you should have a user drawer
-    appBar: isAdmin
-        ? CustomAppBar(
-            userName: userName,
-            firstLetter: firstLetter,
-            email: email,
-          )
-        : UserCustomAppBar(
-            userName: userName,
-            firstLetter: firstLetter,
-            email: email,
-          ),
+          ? const Navigation() // assume admin drawer
+          : const UserNavigation(), // you should have a user drawer
+      appBar: isAdmin
+          ? CustomAppBar(
+              userName: userName,
+              firstLetter: firstLetter,
+              email: email,
+            )
+          : UserCustomAppBar(
+              userName: userName,
+              firstLetter: firstLetter,
+              email: email,
+            ),
 
       body: Column(
         children: [
@@ -285,13 +287,13 @@ class _RegularVisitorsScreenState extends State<RegularVisitorsScreen> {
                       selectedCategory: selectedCategory,
                       onFilterChanged:
                           (String status, String passType, String category) {
-                        setState(() {
-                          selectedStatus = status;
-                          selectedPassType = passType;
-                          selectedCategory = category;
-                          _applyFilters();
-                        });
-                      },
+                            setState(() {
+                              selectedStatus = status;
+                              selectedPassType = passType;
+                              selectedCategory = category;
+                              _applyFilters();
+                            });
+                          },
                     ),
                     SizedBox(width: screenWidth * 0.03),
                     const ExcelDropdown(),
@@ -304,82 +306,82 @@ class _RegularVisitorsScreenState extends State<RegularVisitorsScreen> {
             child: isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : errorMessage != null
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.error_outline,
-                              size: screenWidth * 0.16,
-                              color: AppColors.rejected,
-                            ),
-                            SizedBox(height: screenHeight * 0.02),
-                            Padding(
-                              padding: EdgeInsets.symmetric(
-                                horizontal: screenWidth * 0.1,
-                              ),
-                              child: Text(
-                                errorMessage!,
-                                style: GoogleFonts.inter(
-                                  fontSize: screenWidth * 0.04,
-                                  color: AppColors.textSecondary,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                            ),
-                            SizedBox(height: screenHeight * 0.02),
-                            ElevatedButton.icon(
-                              onPressed: _loadVisitors,
-                              icon: const Icon(Icons.refresh),
-                              label: const Text('Retry'),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: AppColors.primary,
-                                foregroundColor: Colors.white,
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: screenWidth * 0.08,
-                                  vertical: screenHeight * 0.015,
-                                ),
-                              ),
-                            ),
-                          ],
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.error_outline,
+                          size: screenWidth * 0.16,
+                          color: AppColors.rejected,
                         ),
-                      )
-                    : filteredVisitors.isEmpty
-                        ? Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  Icons.people_outline,
-                                  size: screenWidth * 0.16,
-                                  color: AppColors.iconGray,
-                                ),
-                                SizedBox(height: screenHeight * 0.02),
-                                Text(
-                                  searchQuery.isEmpty
-                                      ? 'No visitors found'
-                                      : 'No visitors match your search',
-                                  style: GoogleFonts.inter(
-                                    fontSize: screenWidth * 0.04,
-                                    color: AppColors.textSecondary,
-                                  ),
-                                ),
-                              ],
+                        SizedBox(height: screenHeight * 0.02),
+                        Padding(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: screenWidth * 0.1,
+                          ),
+                          child: Text(
+                            errorMessage!,
+                            style: GoogleFonts.inter(
+                              fontSize: screenWidth * 0.04,
+                              color: AppColors.textSecondary,
                             ),
-                          )
-                        : RefreshIndicator(
-                            onRefresh: _loadVisitors,
-                            child: ListView.builder(
-                              padding: EdgeInsets.all(screenWidth * 0.04),
-                              itemCount: filteredVisitors.length,
-                              itemBuilder: (context, index) {
-                                return VisitorCard(
-                                  visitor: filteredVisitors[index],
-                                  onRefresh: _loadVisitors,
-                                );
-                              },
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                        SizedBox(height: screenHeight * 0.02),
+                        ElevatedButton.icon(
+                          onPressed: _loadVisitors,
+                          icon: const Icon(Icons.refresh),
+                          label: const Text('Retry'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primary,
+                            foregroundColor: Colors.white,
+                            padding: EdgeInsets.symmetric(
+                              horizontal: screenWidth * 0.08,
+                              vertical: screenHeight * 0.015,
                             ),
                           ),
+                        ),
+                      ],
+                    ),
+                  )
+                : filteredVisitors.isEmpty
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.people_outline,
+                          size: screenWidth * 0.16,
+                          color: AppColors.iconGray,
+                        ),
+                        SizedBox(height: screenHeight * 0.02),
+                        Text(
+                          searchQuery.isEmpty
+                              ? 'No visitors found'
+                              : 'No visitors match your search',
+                          style: GoogleFonts.inter(
+                            fontSize: screenWidth * 0.04,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                : RefreshIndicator(
+                    onRefresh: _loadVisitors,
+                    child: ListView.builder(
+                      padding: EdgeInsets.all(screenWidth * 0.04),
+                      itemCount: filteredVisitors.length,
+                      itemBuilder: (context, index) {
+                        return VisitorCard(
+                          visitor: filteredVisitors[index],
+                          onRefresh: _loadVisitors,
+                        );
+                      },
+                    ),
+                  ),
           ),
         ],
       ),
