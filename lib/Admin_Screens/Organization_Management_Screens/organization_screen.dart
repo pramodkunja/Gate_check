@@ -387,7 +387,7 @@ class _OrganizationManagementScreenState
         firstLetter: firstLetter,
         email: email,
       ),
-      drawer: const Navigation(),
+      drawer: const Navigation(currentRoute: 'Organization',),
       body: SafeArea(
         child: Column(
           children: [

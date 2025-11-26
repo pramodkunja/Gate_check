@@ -83,7 +83,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         firstLetter: firstLetter,
         email: email,
       ),
-      drawer: const Navigation(),
+      drawer: const Navigation(currentRoute: 'Dashboard',),
       body: RefreshIndicator(
         onRefresh: _fetchVisitorCount,
         child: LayoutBuilder(

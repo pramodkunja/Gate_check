@@ -58,7 +58,7 @@ class _ReportsScreenState extends State<ReportsScreen>
         firstLetter: firstLetter,
         email: email,
       ),
-      drawer: const Navigation(),
+      drawer: const Navigation(currentRoute: '',),
       backgroundColor: const Color(0xFFF8F9FA),
       body: SafeArea(
         child: Padding(

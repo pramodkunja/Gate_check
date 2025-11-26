@@ -261,7 +261,7 @@ class _CategoriesManagementScreenState
         firstLetter: firstLetter,
         email: email,
       ),
-      drawer: Navigation(),
+      drawer: Navigation(currentRoute: 'Categories',),
       body: SafeArea(
         child: _isLoading
             ? const Center(child: CircularProgressIndicator())

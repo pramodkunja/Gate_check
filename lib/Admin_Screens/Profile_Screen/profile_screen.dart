@@ -223,8 +223,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     return Scaffold(
       drawer: isAdmin
-          ? const Navigation() // assume admin drawer
-          : const UserNavigation(), // you should have a user drawer
+          ? const Navigation(currentRoute: 'Profile') // assume admin drawer
+          : const UserNavigation(currentRoute: 'Profile',), // you should have a user drawer
       appBar: isAdmin
           ? CustomAppBar(
               userName: userName,

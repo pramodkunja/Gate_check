@@ -166,14 +166,17 @@ class _RegularVisitorsScreenState extends State<RegularVisitorsScreen> {
     String email = UserService().getUserEmail();
 
     // decide role
+    // ignore: unnecessary_nullable_for_final_variable_declarations
     final String? role = UserService()
         .getUserRole(); // assume you add this service method
     final bool isAdmin = (role == null || role == 'admin');
 
     return Scaffold(
       drawer: isAdmin
-          ? const Navigation() // assume admin drawer
-          : const UserNavigation(), // you should have a user drawer
+          ? const Navigation(currentRoute: 'GateCheck') // assume admin drawer
+          : const UserNavigation(
+              currentRoute: 'GateCheck',
+            ), // you should have a user drawer
       appBar: isAdmin
           ? CustomAppBar(
               userName: userName,

@@ -84,7 +84,7 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
         firstLetter: firstLetter,
         email: email,
       ),
-      drawer: const UserNavigation(),
+      drawer: const UserNavigation(currentRoute: 'Dashboard'),
       body: LayoutBuilder(
         builder: (context, constraints) {
           return SingleChildScrollView(
