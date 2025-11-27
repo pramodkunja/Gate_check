@@ -13,11 +13,7 @@ class VisitorCard extends StatelessWidget {
   final Visitor visitor;
   final Function()? onRefresh;
 
-  const VisitorCard({
-    super.key,
-    required this.visitor,
-    this.onRefresh,
-  });
+  const VisitorCard({super.key, required this.visitor, this.onRefresh});
 
   Color _getCategoryColor() {
     switch (visitor.category.toLowerCase()) {
@@ -33,13 +29,44 @@ class VisitorCard extends StatelessWidget {
     }
   }
 
+  String _getPassTypeLabel() {
+    final type = visitor.passType.toUpperCase();
+    switch (type) {
+      case 'ONE_TIME':
+        return 'One-time';
+      case 'RECURRING':
+        return 'Recurring';
+      case 'PERMANENT':
+        return 'Permanent';
+      default:
+        return visitor.passType;
+    }
+  }
+
+  Color _getPassTypeColor() {
+    switch (visitor.passType.toUpperCase()) {
+      case 'ONE_TIME':
+        return AppColors.primary;
+      case 'RECURRING':
+        return Colors.orange;
+      case 'PERMANENT':
+        return Colors.purple;
+      default:
+        return AppColors.iconGray;
+    }
+  }
+
   bool _isScheduledForToday() {
     // Use local times to avoid timezone mismatches
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
 
     final localVisit = visitor.visitingDate.toLocal();
-    final visitDate = DateTime(localVisit.year, localVisit.month, localVisit.day);
+    final visitDate = DateTime(
+      localVisit.year,
+      localVisit.month,
+      localVisit.day,
+    );
 
     return visitDate.isAtSameMomentAs(today);
   }
@@ -51,9 +78,7 @@ class VisitorCard extends StatelessWidget {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => const Center(
-        child: CircularProgressIndicator(),
-      ),
+      builder: (context) => const Center(child: CircularProgressIndicator()),
     );
 
     try {
@@ -114,10 +139,7 @@ class VisitorCard extends StatelessWidget {
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: Text(
-              'Reject',
-              style: GoogleFonts.inter(color: Colors.red),
-            ),
+            child: Text('Reject', style: GoogleFonts.inter(color: Colors.red)),
           ),
         ],
       ),
@@ -131,9 +153,7 @@ class VisitorCard extends StatelessWidget {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => const Center(
-        child: CircularProgressIndicator(),
-      ),
+      builder: (context) => const Center(child: CircularProgressIndicator()),
     );
 
     try {
@@ -180,10 +200,8 @@ class VisitorCard extends StatelessWidget {
   Future<void> _handleCheckIn(BuildContext context) async {
     final result = await Navigator.of(context).push<bool>(
       MaterialPageRoute(
-        builder: (_) => EntryOtpScreen(
-          visitor: visitor,
-          action: EntryExitAction.entry,
-        ),
+        builder: (_) =>
+            EntryOtpScreen(visitor: visitor, action: EntryExitAction.entry),
       ),
     );
 
@@ -195,10 +213,8 @@ class VisitorCard extends StatelessWidget {
   Future<void> _handleCheckOut(BuildContext context) async {
     final result = await Navigator.of(context).push<bool>(
       MaterialPageRoute(
-        builder: (_) => EntryOtpScreen(
-          visitor: visitor,
-          action: EntryExitAction.exit,
-        ),
+        builder: (_) =>
+            EntryOtpScreen(visitor: visitor, action: EntryExitAction.exit),
       ),
     );
 
@@ -297,7 +313,9 @@ class VisitorCard extends StatelessWidget {
     // This keeps the post-checkout display consistent even on subsequent days.
     final isPast = visitor.isPast && !visitor.isCheckedOut;
     final isToday = _isScheduledForToday();
-    final formattedDate = DateFormat('yyyy-MM-dd').format(visitor.visitingDate.toLocal());
+    final formattedDate = DateFormat(
+      'yyyy-MM-dd',
+    ).format(visitor.visitingDate.toLocal());
 
     return Container(
       margin: EdgeInsets.only(bottom: screenHeight * 0.02),
@@ -386,62 +404,100 @@ class VisitorCard extends StatelessWidget {
                       vertical: screenHeight * 0.008,
                     ),
                     decoration: BoxDecoration(
-                      color: (visitor.isCheckedOut
-                              ? AppColors.approved
-                              : visitor.status.color)
-                          .withOpacity(0.1),
+                      color:
+                          (visitor.isCheckedOut
+                                  ? AppColors.approved
+                                  : visitor.status.color)
+                              .withOpacity(0.1),
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
-                      visitor.isCheckedOut ? 'Visited' : visitor.status.displayName,
+                      visitor.isCheckedOut
+                          ? 'Visited'
+                          : visitor.status.displayName,
                       style: GoogleFonts.inter(
                         fontSize: screenWidth * 0.03,
                         fontWeight: FontWeight.w500,
-                        color: visitor.isCheckedOut ? AppColors.approved : visitor.status.color,
+                        color: visitor.isCheckedOut
+                            ? AppColors.approved
+                            : visitor.status.color,
                       ),
                     ),
                   ),
 
                 SizedBox(width: screenWidth * 0.02),
-                ActionMenu(
-                  visitor: visitor,
-                  onRefresh: onRefresh,
-                ),
+                ActionMenu(visitor: visitor, onRefresh: onRefresh),
               ],
             ),
             SizedBox(height: screenHeight * 0.02),
-            Container(
-              padding: EdgeInsets.symmetric(
-                horizontal: screenWidth * 0.025,
-                vertical: screenHeight * 0.005,
-              ),
-              decoration: BoxDecoration(
-                color: _getCategoryColor().withOpacity(0.1),
-                borderRadius: BorderRadius.circular(6),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.business_center,
-                    size: screenWidth * 0.035,
-                    color: _getCategoryColor(),
+            Row(
+              children: [
+                Container(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: screenWidth * 0.025,
+                    vertical: screenHeight * 0.005,
                   ),
-                  SizedBox(width: screenWidth * 0.01),
-                  Flexible(
-                    child: Text(
-                      visitor.category,
-                      style: GoogleFonts.inter(
-                        fontSize: screenWidth * 0.03,
-                        fontWeight: FontWeight.w500,
+                  decoration: BoxDecoration(
+                    color: _getCategoryColor().withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.business_center,
+                        size: screenWidth * 0.035,
                         color: _getCategoryColor(),
                       ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
+                      SizedBox(width: screenWidth * 0.01),
+                      Flexible(
+                        child: Text(
+                          visitor.category,
+                          style: GoogleFonts.inter(
+                            fontSize: screenWidth * 0.03,
+                            fontWeight: FontWeight.w500,
+                            color: _getCategoryColor(),
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
+                ),
+                SizedBox(width: screenWidth * 0.02),
+                Container(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: screenWidth * 0.02,
+                    vertical: screenHeight * 0.004,
+                  ),
+                  decoration: BoxDecoration(
+                    color: _getPassTypeColor().withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.vpn_key,
+                        size: screenWidth * 0.03,
+                        color: _getPassTypeColor(),
+                      ),
+                      SizedBox(width: screenWidth * 0.01),
+                      Text(
+                        _getPassTypeLabel(),
+                        style: GoogleFonts.inter(
+                          fontSize: screenWidth * 0.028,
+                          fontWeight: FontWeight.w500,
+                          color: _getPassTypeColor(),
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
             SizedBox(height: screenHeight * 0.02),
             _buildInfoRow(

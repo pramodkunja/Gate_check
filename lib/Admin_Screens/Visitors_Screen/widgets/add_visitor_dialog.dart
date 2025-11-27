@@ -46,6 +46,7 @@ class _AddVisitorDialogState extends State<AddVisitorDialog> {
 
   bool isSubmitting = false;
   bool isCategoryLoading = false;
+  String? _dialogError;
 
   // default fallback if API returns none (optional)
   final List<Map<String, dynamic>> fallbackCategories = [];
@@ -89,10 +90,11 @@ class _AddVisitorDialogState extends State<AddVisitorDialog> {
       };
 
       // Prepare dropdown selected value (keep 'Select category' until user picks)
+      if (!mounted) return;
       setState(() {
         isCategoryLoading = false;
       });
-    // ignore: unused_catch_clause
+      // ignore: unused_catch_clause
     } on DioException catch (e) {
       // On error, fallback and show a friendly message
       setState(() {
@@ -104,12 +106,9 @@ class _AddVisitorDialogState extends State<AddVisitorDialog> {
       });
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to load categories. Using defaults.'),
-            backgroundColor: AppColors.rejected,
-          ),
-        );
+        setState(() {
+          _dialogError = 'Failed to load categories. Using defaults.';
+        });
       }
     } catch (e) {
       // Generic fallback
@@ -181,6 +180,19 @@ class _AddVisitorDialogState extends State<AddVisitorDialog> {
     }
   }
 
+  String _getPassTypeApiValue(String displayLabel) {
+    switch (displayLabel) {
+      case 'One Time':
+        return 'ONE_TIME';
+      case 'Recurring':
+        return 'RECURRING';
+      case 'Permanent':
+        return 'PERMANENT';
+      default:
+        return 'ONE_TIME';
+    }
+  }
+
   void _submitForm() async {
     if (isSubmitting) return;
 
@@ -191,15 +203,9 @@ class _AddVisitorDialogState extends State<AddVisitorDialog> {
         selectedCategory != 'Select category' && selectedCategoryId != null;
 
     if (!basicValid || !dateTimeSelected || !categorySelected) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Please fill all required fields',
-            style: GoogleFonts.poppins(),
-          ),
-          backgroundColor: AppColors.rejected,
-        ),
-      );
+      setState(() {
+        _dialogError = 'Please fill all required fields';
+      });
       return;
     }
 
@@ -207,27 +213,15 @@ class _AddVisitorDialogState extends State<AddVisitorDialog> {
     if (selectedPassType == 'Recurring') {
       if (_recurringDaysController.text.trim().isEmpty ||
           _validUntilDate == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Please provide recurring days and valid until date.',
-              style: GoogleFonts.poppins(),
-            ),
-            backgroundColor: AppColors.rejected,
-          ),
-        );
+        setState(() {
+          _dialogError = 'Please provide recurring days and valid until date.';
+        });
         return;
       }
       if (int.tryParse(_recurringDaysController.text.trim()) == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Recurring days must be a valid number.',
-              style: GoogleFonts.poppins(),
-            ),
-            backgroundColor: AppColors.rejected,
-          ),
-        );
+        setState(() {
+          _dialogError = 'Recurring days must be a valid number.';
+        });
         return;
       }
     }
@@ -249,6 +243,8 @@ class _AddVisitorDialogState extends State<AddVisitorDialog> {
       // Use selectedCategoryId that comes from backend
       'category': selectedCategoryId,
       'allowing_hours': int.tryParse(_allowingHoursController.text) ?? 8,
+      // Add pass_type based on selected value
+      'pass_type': _getPassTypeApiValue(selectedPassType),
     };
 
     // Add optional fields
@@ -302,6 +298,8 @@ class _AddVisitorDialogState extends State<AddVisitorDialog> {
     }
 
     try {
+      // clear previous dialog error
+      if (mounted) setState(() => _dialogError = null);
       await widget.onAdd(visitorData);
       if (mounted) {
         Navigator.pop(context);
@@ -310,6 +308,7 @@ class _AddVisitorDialogState extends State<AddVisitorDialog> {
       if (mounted) {
         setState(() {
           isSubmitting = false;
+          _dialogError = 'Failed to add visitor. Please try again.';
         });
       }
     }
@@ -321,11 +320,13 @@ class _AddVisitorDialogState extends State<AddVisitorDialog> {
       insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Container(
-        constraints: const BoxConstraints(maxWidth: 600),
+        constraints: BoxConstraints(
+          maxWidth: 600,
+          maxHeight: MediaQuery.of(context).size.height * 0.9,
+        ),
         child: Column(
-          mainAxisSize: MainAxisSize.min,
           children: [
-            // Header
+            // Header (fixed at top)
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
@@ -356,14 +357,59 @@ class _AddVisitorDialogState extends State<AddVisitorDialog> {
               ),
             ),
 
-            // Body (scrollable)
-            Flexible(
+            // Inline error banner (shows above the form inside the dialog)
+            if (_dialogError != null)
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 12,
+                ),
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 12,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.red.shade50,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.red.shade200),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          _dialogError!,
+                          style: GoogleFonts.poppins(
+                            fontSize: 13,
+                            color: Colors.red.shade700,
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                        icon: Icon(Icons.close, color: Colors.red.shade700),
+                        onPressed: () {
+                          setState(() {
+                            _dialogError = null;
+                          });
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+            // Body (scrollable - grows to fill available space)
+            Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.all(20),
                 child: Form(
                   key: _formKey,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       _buildSectionTitle('Basic Information'),
                       const SizedBox(height: 12),
@@ -374,7 +420,7 @@ class _AddVisitorDialogState extends State<AddVisitorDialog> {
                         hint: 'Enter visitor name',
                         isRequired: true,
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 18),
 
                       _buildTextField(
                         controller: _phoneController,
@@ -383,7 +429,7 @@ class _AddVisitorDialogState extends State<AddVisitorDialog> {
                         isRequired: true,
                         keyboardType: TextInputType.phone,
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 18),
 
                       _buildTextField(
                         controller: _emailController,
@@ -392,7 +438,7 @@ class _AddVisitorDialogState extends State<AddVisitorDialog> {
                         isRequired: true,
                         keyboardType: TextInputType.emailAddress,
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 18),
 
                       _buildDropdown(
                         label: 'Gender',
@@ -404,10 +450,10 @@ class _AddVisitorDialogState extends State<AddVisitorDialog> {
                           });
                         },
                       ),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 24),
 
                       _buildSectionTitle('Visit Details'),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 18),
 
                       _buildDropdown(
                         label: 'Pass Type',
@@ -424,7 +470,7 @@ class _AddVisitorDialogState extends State<AddVisitorDialog> {
                         },
                         isRequired: true,
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 18),
 
                       if (selectedPassType == 'Recurring') ...[
                         _buildTextField(
@@ -434,14 +480,14 @@ class _AddVisitorDialogState extends State<AddVisitorDialog> {
                           keyboardType: TextInputType.number,
                           isRequired: true,
                         ),
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 18),
                         _buildDatePicker(
                           label: 'Valid Until',
                           selectedDate: _validUntilDate,
                           onTap: () => _selectValidUntil(context),
                           isRequired: true,
                         ),
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 18),
                       ],
 
                       // Category dropdown is based on backend
@@ -477,7 +523,7 @@ class _AddVisitorDialogState extends State<AddVisitorDialog> {
                             ],
                           ),
                         ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 18),
 
                       _buildDatePicker(
                         label: 'Visiting Date',
@@ -485,7 +531,7 @@ class _AddVisitorDialogState extends State<AddVisitorDialog> {
                         onTap: () => _selectDate(context),
                         isRequired: true,
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 18),
 
                       _buildTimePicker(
                         label: 'Visiting Time',
@@ -493,7 +539,7 @@ class _AddVisitorDialogState extends State<AddVisitorDialog> {
                         onTap: () => _selectTime(context),
                         isRequired: true,
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 18),
 
                       _buildTextField(
                         controller: _allowingHoursController,
@@ -502,31 +548,31 @@ class _AddVisitorDialogState extends State<AddVisitorDialog> {
                         isRequired: true,
                         keyboardType: TextInputType.number,
                       ),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 24),
 
                       _buildSectionTitle('Purpose & Details'),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 18),
 
                       _buildTextField(
                         controller: _whomToMeetController,
                         label: 'Whom to Meet',
                         hint: 'Person/department to meet',
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 18),
 
                       _buildTextField(
                         controller: _comingFromController,
                         label: 'Coming From',
                         hint: 'Company/organization name',
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 18),
 
                       _buildTextField(
                         controller: _companyDetailsController,
                         label: 'Company Details',
                         hint: 'Additional company information',
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 18),
 
                       _buildTextField(
                         controller: _purposeController,
@@ -535,17 +581,17 @@ class _AddVisitorDialogState extends State<AddVisitorDialog> {
                         isRequired: true,
                         maxLines: 3,
                       ),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 24),
 
                       _buildSectionTitle('Security & Additional Details'),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 18),
 
                       _buildTextField(
                         controller: _belongingsController,
                         label: 'Belongings/Tools',
                         hint: 'Items being carried',
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 18),
 
                       _buildTextField(
                         controller: _securityNotesController,
@@ -553,10 +599,10 @@ class _AddVisitorDialogState extends State<AddVisitorDialog> {
                         hint: 'Any security observations',
                         maxLines: 2,
                       ),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 24),
 
                       _buildSectionTitle('Vehicle Information'),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 18),
 
                       _buildDropdown(
                         label: 'Vehicle Type',
@@ -568,14 +614,14 @@ class _AddVisitorDialogState extends State<AddVisitorDialog> {
                           });
                         },
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 18),
 
                       _buildTextField(
                         controller: _vehicleNumberController,
                         label: 'Vehicle Number',
                         hint: 'Enter vehicle number',
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 12),
                     ],
                   ),
                 ),
@@ -746,10 +792,24 @@ class _AddVisitorDialogState extends State<AddVisitorDialog> {
               borderRadius: BorderRadius.circular(8),
               borderSide: BorderSide(color: AppColors.primary),
             ),
+            errorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: BorderSide(color: Colors.red, width: 1.5),
+            ),
+            focusedErrorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: BorderSide(color: Colors.red, width: 1.5),
+            ),
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 12,
               vertical: 12,
             ),
+            errorStyle: GoogleFonts.poppins(
+              fontSize: 12,
+              color: Colors.red,
+              height: 1.5,
+            ),
+            errorMaxLines: 3,
           ),
 
           // Combined validator supporting required, phone and email rules

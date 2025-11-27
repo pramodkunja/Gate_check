@@ -75,32 +75,57 @@ class UserCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 8),
-          Text(
-            user.email,
-            style: GoogleFonts.poppins(
-              fontSize: 14,
-              color: Colors.grey[700],
-            ),
+          Row(
+            children: [
+              Icon(Icons.email_outlined, size: 16, color: Colors.grey[600]),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  user.email,
+                  style: GoogleFonts.poppins(
+                    fontSize: 14,
+                    color: Colors.grey[700],
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 4),
-          Text(
-            user.mobileNumber,
-            style: GoogleFonts.poppins(
-              fontSize: 14,
-              color: Colors.grey[700],
-            ),
+          Row(
+            children: [
+              Icon(Icons.phone_outlined, size: 16, color: Colors.grey[600]),
+              const SizedBox(width: 8),
+              Text(
+                user.mobileNumber,
+                style: GoogleFonts.poppins(
+                  fontSize: 14,
+                  color: Colors.grey[700],
+                ),
+              ),
+            ],
           ),
           if (user.block != null || user.floor != null) ...[
             const SizedBox(height: 4),
-            Text(
-              [
-                if (user.block != null) user.block!,
-                if (user.floor != null) user.floor!,
-              ].join(', '),
-              style: GoogleFonts.poppins(
-                fontSize: 14,
-                color: Colors.grey[700],
-              ),
+            Row(
+              children: [
+                Icon(
+                  Icons.location_on_outlined,
+                  size: 16,
+                  color: Colors.grey[600],
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  [
+                    if (user.block != null) user.block!,
+                    if (user.floor != null) user.floor!,
+                  ].join(', '),
+                  style: GoogleFonts.poppins(
+                    fontSize: 14,
+                    color: Colors.grey[700],
+                  ),
+                ),
+              ],
             ),
           ],
           if (user.dateAdded != null) ...[
