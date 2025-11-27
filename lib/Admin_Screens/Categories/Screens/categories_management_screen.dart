@@ -21,7 +21,7 @@ class _CategoriesManagementScreenState
     extends State<CategoriesManagementScreen> {
   final TextEditingController _searchController = TextEditingController();
   final CategoryService _categoryService = CategoryService();
-  
+
   String _filterStatus = 'All';
   List<Category> allCategories = [];
   bool _isLoading = false;
@@ -35,23 +35,25 @@ class _CategoriesManagementScreenState
   // Load categories from API
   Future<void> _loadCategories() async {
     setState(() => _isLoading = true);
-    
+
     try {
       final categoriesData = await _categoryService.getAllCategories();
+      if (!mounted) return;
       setState(() {
-        allCategories = categoriesData.map((json) => Category.fromJson(json)).toList();
+        allCategories = categoriesData
+            .map((json) => Category.fromJson(json))
+            .toList();
         _isLoading = false;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() => _isLoading = false);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error loading categories: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error loading categories: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
@@ -72,8 +74,8 @@ class _CategoriesManagementScreenState
   int get totalCategories => allCategories.length;
   int get activeCategories => allCategories.where((c) => c.isActive).length;
   int get inactiveCategories => allCategories.where((c) => !c.isActive).length;
-  String get activeRate => totalCategories > 0 
-      ? '${((activeCategories / totalCategories) * 100).toStringAsFixed(0)}%' 
+  String get activeRate => totalCategories > 0
+      ? '${((activeCategories / totalCategories) * 100).toStringAsFixed(0)}%'
       : '0%';
 
   void _addCategory() {
@@ -82,24 +84,39 @@ class _CategoriesManagementScreenState
       builder: (context) => AddOrEditCategoryDialog(
         onSave: (category) async {
           try {
+            // Show loading indicator while saving
+            if (mounted) {
+              showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (_) =>
+                    const Center(child: CircularProgressIndicator()),
+              );
+            }
+
             await _categoryService.createCategory(
               name: category.name,
               description: category.description,
               isActive: category.isActive,
             );
-            
+
             if (mounted) {
+              Navigator.pop(context); // Close loading dialog
+              Navigator.pop(context); // Close add dialog
+
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
                   content: Text('Category added successfully'),
                   backgroundColor: Colors.green,
                 ),
               );
+
+              // Refresh on current page
+              if (mounted) _loadCategories();
             }
-            
-            _loadCategories(); // Reload categories
           } catch (e) {
             if (mounted) {
+              Navigator.pop(context); // Close loading dialog
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: Text('Error adding category: $e'),
@@ -120,25 +137,40 @@ class _CategoriesManagementScreenState
         category: category,
         onSave: (updatedCategory) async {
           try {
+            // Show loading indicator while saving
+            if (mounted) {
+              showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (_) =>
+                    const Center(child: CircularProgressIndicator()),
+              );
+            }
+
             await _categoryService.updateCategory(
               id: category.id,
               name: updatedCategory.name,
               description: updatedCategory.description,
               isActive: updatedCategory.isActive,
             );
-            
+
             if (mounted) {
+              Navigator.pop(context); // Close loading dialog
+              Navigator.pop(context); // Close edit dialog
+
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
                   content: Text('Category updated successfully'),
                   backgroundColor: Colors.green,
                 ),
               );
+
+              // Refresh on current page
+              if (mounted) _loadCategories();
             }
-            
-            _loadCategories(); // Reload categories
           } catch (e) {
             if (mounted) {
+              Navigator.pop(context); // Close loading dialog
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: Text('Error updating category: $e'),
@@ -173,7 +205,9 @@ class _CategoriesManagementScreenState
             ),
             const SizedBox(height: 4),
             Text(
-              category.description.isEmpty ? 'No description' : category.description,
+              category.description.isEmpty
+                  ? 'No description'
+                  : category.description,
               style: GoogleFonts.poppins(color: Colors.grey[700]),
             ),
             const SizedBox(height: 12),
@@ -217,22 +251,36 @@ class _CategoriesManagementScreenState
           TextButton(
             onPressed: () async {
               Navigator.pop(context);
-              
+
+              // Show loading indicator while deleting
+              if (mounted) {
+                showDialog(
+                  context: context,
+                  barrierDismissible: false,
+                  builder: (_) =>
+                      const Center(child: CircularProgressIndicator()),
+                );
+              }
+
               try {
                 await _categoryService.deleteCategory(category.id);
-                
+
                 if (mounted) {
+                  Navigator.pop(context); // Close loading dialog
+
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
                       content: Text('Category deleted successfully'),
                       backgroundColor: Colors.green,
                     ),
                   );
+
+                  // Refresh on current page
+                  if (mounted) _loadCategories();
                 }
-                
-                _loadCategories(); // Reload categories
               } catch (e) {
                 if (mounted) {
+                  Navigator.pop(context); // Close loading dialog
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text('Error deleting category: $e'),
@@ -261,7 +309,7 @@ class _CategoriesManagementScreenState
         firstLetter: firstLetter,
         email: email,
       ),
-      drawer: Navigation(currentRoute: 'Categories',),
+      drawer: Navigation(currentRoute: 'Categories'),
       body: SafeArea(
         child: _isLoading
             ? const Center(child: CircularProgressIndicator())
@@ -276,7 +324,11 @@ class _CategoriesManagementScreenState
                       children: [
                         Row(
                           children: [
-                            const Icon(Icons.category, color: Colors.blue, size: 28),
+                            const Icon(
+                              Icons.category,
+                              color: Colors.blue,
+                              size: 28,
+                            ),
                             const SizedBox(width: 8),
                             Text(
                               'Categories\nManagement',
@@ -378,7 +430,8 @@ class _CategoriesManagementScreenState
                               )
                               .toList(),
                           onChanged: (value) {
-                            if (value != null) setState(() => _filterStatus = value);
+                            if (value != null)
+                              setState(() => _filterStatus = value);
                           },
                         ),
                         const SizedBox(width: 8),

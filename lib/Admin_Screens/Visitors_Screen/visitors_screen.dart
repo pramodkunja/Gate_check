@@ -90,17 +90,51 @@ class _RegularVisitorsScreenState extends State<RegularVisitorsScreen> {
             visitor.passId.toLowerCase().contains(searchQuery.toLowerCase()) ||
             visitor.phone.contains(searchQuery);
 
-        bool matchesStatus =
-            selectedStatus == 'All Status' ||
-            visitor.status.displayName == selectedStatus;
+        // Normalize selected status for robust comparison
+        final selStatus = selectedStatus.trim().toLowerCase();
+        final visitorStatusName = visitor.status.displayName
+            .trim()
+            .toLowerCase();
+        final visitorApiStatus = visitor.status.apiValue.trim().toLowerCase();
 
+        // Determine if this visitor is considered 'Past' (scheduled date before today
+        // and not checked out). We will treat 'Past' specially in filtering.
+        final bool isPast = visitor.isPast && !visitor.isCheckedOut;
+
+        bool matchesStatus;
+        if (selStatus == 'all status') {
+          matchesStatus = true;
+        } else if (selStatus == 'visited') {
+          // 'Visited' can be represented by a visitor who has checked out,
+          // or by an explicit status value returned from backend.
+          matchesStatus =
+              visitor.isCheckedOut == true ||
+              visitorStatusName == 'visited' ||
+              visitorApiStatus == 'visited';
+        } else if (selStatus == 'past') {
+          // Allow filtering specifically for past visitors
+          matchesStatus = isPast;
+        } else {
+          // For other statuses (Approved, Pending, Rejected), only match visitors
+          // that have that status and are NOT marked as Past (unless the user
+          // explicitly chose 'Past'). This ensures selecting 'Pending' doesn't
+          // show the Past badge entries.
+          matchesStatus =
+              (visitorStatusName == selStatus ||
+                  visitorApiStatus == selStatus) &&
+              !isPast;
+        }
+
+        // Convert UI pass type label to API format for comparison
+        String apiPassType = _convertPassTypeToApi(selectedPassType);
         bool matchesPassType =
             selectedPassType == 'All Types' ||
-            visitor.passType == selectedPassType;
+            visitor.passType.toUpperCase() == apiPassType;
 
+        // Category comparison (case-insensitive)
         bool matchesCategory =
             selectedCategory == 'All Categories' ||
-            visitor.category == selectedCategory;
+            visitor.category.toLowerCase() == selectedCategory.toLowerCase();
 
         return matchesSearch &&
             matchesStatus &&
@@ -108,6 +142,21 @@ class _RegularVisitorsScreenState extends State<RegularVisitorsScreen> {
             matchesCategory;
       }).toList();
     });
+  }
+
+  String _convertPassTypeToApi(String displayLabel) {
+    switch (displayLabel.trim().toLowerCase()) {
+      case 'one time':
+        return 'ONE_TIME';
+      case 'recurring':
+        return 'RECURRING';
+      case 'permanent':
+        return 'PERMANENT';
+      case 'all types':
+        return 'ALL_TYPES';
+      default:
+        return displayLabel.toUpperCase();
+    }
   }
 
   Future<void> _addVisitor(Map<String, dynamic> visitorData) async {

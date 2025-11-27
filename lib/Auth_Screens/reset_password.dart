@@ -57,65 +57,53 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
   }
 
   Future<void> _resendCode() async {
+    if (!mounted) return;
     setState(() => _isResending = true);
 
     try {
       final response = await _apiService.forgotPassword(widget.email);
-
+      if (!mounted) return;
       setState(() => _isResending = false);
 
       if (response.statusCode == 200) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                'New code sent to ${widget.email}',
-                style: GoogleFonts.poppins(),
-              ),
-              backgroundColor: const Color(0xFF9C27B0),
-            ),
-          );
-          startTimer();
-        }
-      }
-    } on DioException catch (e) {
-      setState(() => _isResending = false);
-
-      String errorMessage = "Failed to resend code. Please try again.";
-
-      if (e.response?.statusCode == 429) {
-        errorMessage = "Too many requests. Please wait before trying again.";
-      } else if (e.type == DioExceptionType.connectionTimeout ||
-          e.type == DioExceptionType.receiveTimeout) {
-        errorMessage =
-            "Connection timeout. Please check your internet connection.";
-      } else if (e.type == DioExceptionType.connectionError) {
-        errorMessage = "Cannot connect to server. Please try again later.";
-      }
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(errorMessage, style: GoogleFonts.poppins()),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 3),
-          ),
-        );
-      }
-    } catch (e) {
-      setState(() => _isResending = false);
-
-      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'Unexpected error: ${e.toString()}',
+              'New code sent to ${widget.email}',
               style: GoogleFonts.poppins(),
             ),
-            backgroundColor: Colors.red,
+            backgroundColor: const Color(0xFF9C27B0),
           ),
         );
+        startTimer();
       }
+    } on DioException catch (e) {
+      if (!mounted) return;
+      setState(() => _isResending = false);
+
+      // Prefer backend-provided messages
+      String errorMessage = _apiService.getErrorMessage(e);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(errorMessage, style: GoogleFonts.poppins()),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isResending = false);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Unexpected error: ${e.toString()}',
+            style: GoogleFonts.poppins(),
+          ),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
@@ -123,52 +111,43 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
     final isValid = _formKey.currentState?.validate() ?? false;
     if (!isValid) return;
 
+    if (!mounted) return;
     setState(() => _isVerifying = true);
 
     try {
       final enteredOtp = _otpController.text.trim();
       final response = await _apiService.verifyOtp(widget.email, enteredOtp);
-
+      if (!mounted) return;
       setState(() => _isVerifying = false);
 
-      if (response.statusCode == 200) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                "OTP Verified Successfully!",
-                style: GoogleFonts.poppins(),
-              ),
-              backgroundColor: Colors.green,
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              "OTP Verified Successfully!",
+              style: GoogleFonts.poppins(),
             ),
-          );
+            backgroundColor: Colors.green,
+          ),
+        );
 
-          // Navigate to confirm password screen
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(
-              builder: (context) => ConfirmPasswordScreen(email: widget.email),
+        // Navigate to confirm password screen
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (context) => ConfirmPasswordScreen(email: widget.email),
+          ),
+        );
+      } else {
+        // Backend returned an error status code (400, 404, etc.)
+        String errorMessage = 'Failed to verify OTP. Please try again.';
+        if (response.data != null) {
+          errorMessage = _apiService.getErrorMessage(
+            DioException(
+              requestOptions: RequestOptions(path: ''),
+              response: response,
             ),
           );
         }
-      }
-    } on DioException catch (e) {
-      setState(() => _isVerifying = false);
-
-      String errorMessage = "Invalid OTP. Please try again.";
-
-      if (e.response?.statusCode == 400) {
-        errorMessage = e.response?.data['message'] ?? "Invalid or expired OTP.";
-      } else if (e.response?.statusCode == 404) {
-        errorMessage = "OTP session expired. Please request a new code.";
-      } else if (e.type == DioExceptionType.connectionTimeout ||
-          e.type == DioExceptionType.receiveTimeout) {
-        errorMessage =
-            "Connection timeout. Please check your internet connection.";
-      } else if (e.type == DioExceptionType.connectionError) {
-        errorMessage = "Cannot connect to server. Please try again later.";
-      }
-
-      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(errorMessage, style: GoogleFonts.poppins()),
@@ -177,20 +156,33 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
           ),
         );
       }
-    } catch (e) {
+    } on DioException catch (e) {
+      if (!mounted) return;
       setState(() => _isVerifying = false);
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Unexpected error: ${e.toString()}',
-              style: GoogleFonts.poppins(),
-            ),
-            backgroundColor: Colors.red,
+      // Prefer backend-provided messages when available
+      String errorMessage = _apiService.getErrorMessage(e);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(errorMessage, style: GoogleFonts.poppins()),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isVerifying = false);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Unexpected error: ${e.toString()}',
+            style: GoogleFonts.poppins(),
           ),
-        );
-      }
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 

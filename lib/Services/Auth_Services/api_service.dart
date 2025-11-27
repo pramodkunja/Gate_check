@@ -186,6 +186,22 @@ class ApiService {
     );
   }
 
+  // -------------------- Reset Password (Change Password) --------------------
+  Future<Response> resetPassword({
+    required String oldPassword,
+    required String newPassword,
+    required String confirmPassword,
+  }) async {
+    return await _dio.post(
+      '/login/reset-password/',
+      data: {
+        'old_password': oldPassword,
+        'new_password': newPassword,
+        'confirm_password': confirmPassword,
+      },
+    );
+  }
+
   // -------------------- Get User Profile --------------------
   Future<Response> getUserProfile() async {
     return await _dio.get('/user/profile/');

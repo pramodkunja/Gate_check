@@ -1,5 +1,6 @@
 // dialogs/add_user_dialog.dart
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:gatecheck/Admin_Screens/Organization_Management_Screens/models/models.dart';
 import 'package:gatecheck/Services/Admin_Services/organization_services.dart';
 import 'package:gatecheck/Services/Roles_services/roles_service.dart';
@@ -113,8 +114,9 @@ class _AddUserDialogState extends State<AddUserDialog> {
       final fetchedRoles = await _roleService.getAllRoles();
       setState(() {
         // Keep only active roles (adjust if you want all)
-        _rolesFromApi =
-            fetchedRoles.where((r) => r['is_active'] == true).toList();
+        _rolesFromApi = fetchedRoles
+            .where((r) => r['is_active'] == true)
+            .toList();
         _isLoadingRoles = false;
       });
 
@@ -143,15 +145,15 @@ class _AddUserDialogState extends State<AddUserDialog> {
   void _submit() {
     if (_formKey.currentState!.validate()) {
       if (_selectedRole == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please select a role')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Please select a role')));
         return;
       }
       if (widget.companyId == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Company ID is missing')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Company ID is missing')));
         return;
       }
 
@@ -174,7 +176,10 @@ class _AddUserDialogState extends State<AddUserDialog> {
             : _floorController.text.trim(),
         dateAdded: null,
       );
-      widget.onAdd(user, widget.companyId!); // pass companyId as extra parameter
+      widget.onAdd(
+        user,
+        widget.companyId!,
+      ); // pass companyId as extra parameter
       Navigator.pop(context);
     }
   }
@@ -269,8 +274,9 @@ class _AddUserDialogState extends State<AddUserDialog> {
                           if (value == null || value.trim().isEmpty) {
                             return 'Please enter email address';
                           }
-                          if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
-                              .hasMatch(value)) {
+                          if (!RegExp(
+                            r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+                          ).hasMatch(value)) {
                             return 'Please enter a valid email';
                           }
                           return null;
@@ -283,15 +289,22 @@ class _AddUserDialogState extends State<AddUserDialog> {
                         decoration: InputDecoration(
                           labelText: 'Mobile Number *',
                           labelStyle: GoogleFonts.poppins(fontSize: 18),
-                          hintText: 'Enter mobile number',
+                          hintText: 'Enter 10-digit mobile number',
                           hintStyle: GoogleFonts.poppins(fontSize: 16),
                           prefixIcon: const Icon(Icons.phone_outlined),
                           border: const OutlineInputBorder(),
                         ),
                         keyboardType: TextInputType.phone,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                          LengthLimitingTextInputFormatter(10),
+                        ],
                         validator: (value) {
                           if (value == null || value.trim().isEmpty) {
                             return 'Please enter mobile number';
+                          }
+                          if (value.trim().length != 10) {
+                            return 'Mobile number must be exactly 10 digits';
                           }
                           return null;
                         },
