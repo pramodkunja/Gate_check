@@ -21,12 +21,12 @@ class _AssignPermissionsDialogState extends State<AssignPermissionsDialog> {
 
   int? selectedRoleId;
   bool _isSubmitting = false;
-  bool isActive = true; // ✅ Active flag to send with assignment
+  bool isActive = true; // Active flag to send with assignment
 
-  List<Map<String, dynamic>> roles = [];        // {id, name}
+  List<Map<String, dynamic>> roles = []; // {id, name}
   List<Map<String, dynamic>> permissionList = []; // {id/permission_id, name}
 
-  // ✅ Track already-assigned roles by both ID and name
+  // Track already-assigned roles by both ID and name
   final Set<int> _assignedRoleIds = {};
   final Set<String> _assignedRoleNamesLower = {};
 
@@ -35,6 +35,10 @@ class _AssignPermissionsDialogState extends State<AssignPermissionsDialog> {
   bool _loadingRoles = true;
   bool _loadingPermissions = true;
   bool _loadingAssignedRoles = true;
+
+  // Inline error states
+  String? _roleError;
+  String? _permissionError;
 
   @override
   void initState() {
@@ -46,12 +50,12 @@ class _AssignPermissionsDialogState extends State<AssignPermissionsDialog> {
   Future<void> _initData() async {
     await _loadAssignedRoles(); // fills _assignedRoleIds & _assignedRoleNamesLower
     await Future.wait([
-      _loadRoles(),      // uses the sets above to filter
+      _loadRoles(), // uses the sets above to filter
       _loadPermissions(),
     ]);
   }
 
-  /// ✅ Read `/roles/assign-permissions/` and figure out which roles are already mapped
+  /// Read `/roles/assign-permissions/` and figure out which roles are already mapped
   Future<void> _loadAssignedRoles() async {
     try {
       final List<RolePermissionModel> mappings =
@@ -91,7 +95,7 @@ class _AssignPermissionsDialogState extends State<AssignPermissionsDialog> {
     }
   }
 
-  /// ✅ Load roles from your UserRoleService and filter out assigned roles
+  /// Load roles from your UserRoleService and filter out assigned roles
   Future<void> _loadRoles() async {
     try {
       final result = await _apiRoleService.getAvailableRoles();
@@ -116,7 +120,7 @@ class _AssignPermissionsDialogState extends State<AssignPermissionsDialog> {
               final isAssignedByName = lowerName.isNotEmpty &&
                   _assignedRoleNamesLower.contains(lowerName);
 
-              // ❌ Exclude if assigned by ID or by name
+              // Exclude if assigned by ID or by name
               return !(isAssignedById || isAssignedByName);
             })
             .map<Map<String, dynamic>>((r) {
@@ -174,22 +178,37 @@ class _AssignPermissionsDialogState extends State<AssignPermissionsDialog> {
           ),
         );
       }
+      _permissionError = null; // clear error on interaction
     });
   }
 
   Future<void> _assignPermissions() async {
+    // clear previous errors
+    setState(() {
+      _roleError = null;
+      _permissionError = null;
+    });
+
+    bool hasError = false;
+
     if (roles.isEmpty) {
       _showMsg("No roles available to assign");
       return;
     }
 
     if (selectedRoleId == null) {
-      _showMsg("Please select a role");
-      return;
+      _roleError = "Please select a role";
+      hasError = true;
     }
+
     if (selectedPermissionIds.isEmpty) {
-      _showMsg("Select at least one permission");
-      return;
+      _permissionError = "Select at least one permission";
+      hasError = true;
+    }
+
+    if (hasError) {
+      setState(() {});
+      return; // don't call API if validation failed
     }
 
     setState(() => _isSubmitting = true);
@@ -309,48 +328,72 @@ class _AssignPermissionsDialogState extends State<AssignPermissionsDialog> {
                               ),
                               const SizedBox(height: 12),
 
-                              // Role Dropdown
-                              Container(
-                                decoration: BoxDecoration(
-                                  border: Border.all(
-                                    color: const Color(0xFF7E57C2),
-                                    width: 2,
-                                  ),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: DropdownButtonFormField<int>(
-                                  initialValue: selectedRoleId,
-                                  decoration: InputDecoration(
-                                    hintText: 'Select a role',
-                                    hintStyle: GoogleFonts.poppins(
-                                      color: Colors.grey[600],
-                                    ),
-                                    border: InputBorder.none,
-                                    contentPadding:
-                                        const EdgeInsets.symmetric(
-                                      horizontal: 16,
-                                      vertical: 12,
-                                    ),
-                                  ),
-                                  items:
-                                      roles.map<DropdownMenuItem<int>>((map) {
-                                    return DropdownMenuItem<int>(
-                                      value: map['id'] as int,
-                                      child: Text(
-                                        map['name'].toString(),
-                                        style: GoogleFonts.poppins(),
+                              // Role Dropdown + inline error below (no expansion)
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Container(
+                                    decoration: BoxDecoration(
+                                      border: Border.all(
+                                        color: _roleError != null
+                                            ? Colors.red
+                                            : const Color(0xFF7E57C2),
+                                        width: 2,
                                       ),
-                                    );
-                                  }).toList(),
-                                  onChanged: _isSubmitting
-                                      ? null
-                                      : (value) {
-                                          setState(() {
-                                            selectedRoleId = value;
-                                          });
-                                        },
-                                  icon: const Icon(Icons.keyboard_arrow_down),
-                                ),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: DropdownButtonFormField<int>(
+                                      value: selectedRoleId,
+                                      decoration: InputDecoration(
+                                        hintText: 'Select a role',
+                                        hintStyle: GoogleFonts.poppins(
+                                          color: Colors.grey[600],
+                                        ),
+                                        border: InputBorder.none,
+                                        contentPadding:
+                                            const EdgeInsets.symmetric(
+                                          horizontal: 16,
+                                          vertical: 12,
+                                        ),
+                                      ),
+                                      items: roles
+                                          .map<DropdownMenuItem<int>>((map) {
+                                        return DropdownMenuItem<int>(
+                                          value: map['id'] as int,
+                                          child: Text(
+                                            map['name'].toString(),
+                                            style: GoogleFonts.poppins(),
+                                          ),
+                                        );
+                                      }).toList(),
+                                      onChanged: _isSubmitting
+                                          ? null
+                                          : (value) {
+                                              setState(() {
+                                                selectedRoleId = value;
+                                                _roleError = null; // clear error
+                                              });
+                                            },
+                                      icon: const Icon(
+                                        Icons.keyboard_arrow_down,
+                                      ),
+                                    ),
+                                  ),
+                                  if (_roleError != null)
+                                    Padding(
+                                      padding: const EdgeInsets.only(
+                                        top: 6,
+                                        left: 4,
+                                      ),
+                                      child: Text(
+                                        _roleError!,
+                                        style: GoogleFonts.poppins(
+                                          color: Colors.red,
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                    ),
+                                ],
                               ),
 
                               const SizedBox(height: 24),
@@ -412,50 +455,78 @@ class _AssignPermissionsDialogState extends State<AssignPermissionsDialog> {
 
                               const SizedBox(height: 12),
 
-                              // Permissions List
-                              Container(
-                                height: 300,
-                                decoration: BoxDecoration(
-                                  border:
-                                      Border.all(color: Colors.grey[300]!),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: ListView.builder(
-                                  padding: const EdgeInsets.all(8),
-                                  itemCount: permissionList.length,
-                                  itemBuilder: (context, index) {
-                                    final p = permissionList[index];
-                                    final int id =
-                                        (p['permission_id'] ?? p['id']) as int;
-                                    final String name =
-                                        p['name']?.toString() ?? '';
-
-                                    return CheckboxListTile(
-                                      value:
-                                          selectedPermissionIds.contains(id),
-                                      onChanged: _isSubmitting
-                                          ? null
-                                          : (_) {
-                                              setState(() {
-                                                selectedPermissionIds
-                                                        .contains(id)
-                                                    ? selectedPermissionIds
-                                                        .remove(id)
-                                                    : selectedPermissionIds
-                                                        .add(id);
-                                              });
-                                            },
-                                      title: Text(
-                                        name,
-                                        style: GoogleFonts.poppins(
-                                            fontSize: 14),
+                              // Permissions List + inline error
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Container(
+                                    height: 300,
+                                    decoration: BoxDecoration(
+                                      border: Border.all(
+                                        color: _permissionError != null
+                                            ? Colors.red
+                                            : Colors.grey[300]!,
                                       ),
-                                      controlAffinity:
-                                          ListTileControlAffinity.leading,
-                                      dense: true,
-                                    );
-                                  },
-                                ),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: ListView.builder(
+                                      padding: const EdgeInsets.all(8),
+                                      itemCount: permissionList.length,
+                                      itemBuilder: (context, index) {
+                                        final p = permissionList[index];
+                                        final int id =
+                                            (p['permission_id'] ??
+                                                p['id']) as int;
+                                        final String name =
+                                            p['name']?.toString() ?? '';
+
+                                        return CheckboxListTile(
+                                          value: selectedPermissionIds
+                                              .contains(id),
+                                          onChanged: _isSubmitting
+                                              ? null
+                                              : (_) {
+                                                  setState(() {
+                                                    if (selectedPermissionIds
+                                                        .contains(id)) {
+                                                      selectedPermissionIds
+                                                          .remove(id);
+                                                    } else {
+                                                      selectedPermissionIds
+                                                          .add(id);
+                                                    }
+                                                    _permissionError =
+                                                        null; // clear error
+                                                  });
+                                                },
+                                          title: Text(
+                                            name,
+                                            style: GoogleFonts.poppins(
+                                              fontSize: 14,
+                                            ),
+                                          ),
+                                          controlAffinity:
+                                              ListTileControlAffinity.leading,
+                                          dense: true,
+                                        );
+                                      },
+                                    ),
+                                  ),
+                                  if (_permissionError != null)
+                                    Padding(
+                                      padding: const EdgeInsets.only(
+                                        top: 6,
+                                        left: 4,
+                                      ),
+                                      child: Text(
+                                        _permissionError!,
+                                        style: GoogleFonts.poppins(
+                                          color: Colors.red,
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                    ),
+                                ],
                               ),
 
                               const SizedBox(height: 12),
