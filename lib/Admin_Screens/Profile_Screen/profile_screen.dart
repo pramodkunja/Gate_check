@@ -217,7 +217,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         : 'U';
 
     // decide role
-    final String? role = UserService()
+    final String role = UserService()
         .getUserRole(); // assume you add this service method
     final bool isAdmin = (role == null || role == 'admin');
 

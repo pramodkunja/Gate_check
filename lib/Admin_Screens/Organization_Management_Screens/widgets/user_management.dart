@@ -111,7 +111,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
 
     return User(
       id: data['id']?.toString() ?? '',
-      name:
+      username:
           data['username']?.toString() ??
           data['alias_name']?.toString() ??
           data['name']?.toString() ??
@@ -141,7 +141,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
         _filteredUsers = _organization.users
             .where(
               (user) =>
-                  user.name.toLowerCase().contains(query.toLowerCase()) ||
+                  user.username.toLowerCase().contains(query.toLowerCase()) ||
                   user.email.toLowerCase().contains(query.toLowerCase()) ||
                   user.mobileNumber.toLowerCase().contains(query.toLowerCase()),
             )
@@ -156,7 +156,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
       _showLoadingDialog();
 
       final userData = {
-        'username': user.name,
+        'username': user.username,
         'email': user.email,
         'mobile_number': user.mobileNumber,
         'company': companyId, // required field key
@@ -208,12 +208,12 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
       _showLoadingDialog();
 
       final userData = {
-        'username': user.name,
+        'username': user.username,
         'email': user.email,
         'mobile_number': user.mobileNumber,
         'company_name': _organization.name,
         'company_id': _organization.id,
-        'alias_name': user.name,
+        'alias_name': user.username,
         'roles': user.role.isNotEmpty ? [user.role] : [],
         'block': user.block ?? '',
         'floor': user.floor ?? '',
@@ -747,7 +747,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                               text: 'Are you sure you want to delete ',
                             ),
                             TextSpan(
-                              text: user.name,
+                              text: user.username,
                               style: const TextStyle(
                                 fontWeight: FontWeight.w600,
                               ),

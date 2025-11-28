@@ -130,59 +130,62 @@ class _CategoriesManagementScreenState
     );
   }
 
-  void _editCategory(Category category) {
-    showDialog(
-      context: context,
-      builder: (context) => AddOrEditCategoryDialog(
-        category: category,
-        onSave: (updatedCategory) async {
-          try {
-            // Show loading indicator while saving
-            if (mounted) {
-              showDialog(
-                context: context,
-                barrierDismissible: false,
-                builder: (_) =>
-                    const Center(child: CircularProgressIndicator()),
-              );
-            }
+void _editCategory(Category category) {
+  showDialog(
+    context: context,
+    builder: (context) => AddOrEditCategoryDialog(
+      category: category,
+      onSave: (updatedCategory) async {
+        // 1) Show loading
+        if (!mounted) return;
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (_) => const Center(child: CircularProgressIndicator()),
+        );
 
-            await _categoryService.updateCategory(
-              id: category.id,
-              name: updatedCategory.name,
-              description: updatedCategory.description,
-              isActive: updatedCategory.isActive,
+        try {
+          await _categoryService.updateCategory(
+            id: category.id,
+            name: updatedCategory.name,
+            description: updatedCategory.description,
+            isActive: updatedCategory.isActive,
+          );
+
+          // 2) Close loading
+          if (mounted) Navigator.of(context).pop();
+
+          // 3) Close edit dialog
+          if (mounted) Navigator.of(context).pop();
+
+          // 4) Notify + refresh
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Category updated successfully'),
+                backgroundColor: Colors.green,
+              ),
             );
-
-            if (mounted) {
-              Navigator.pop(context); // Close loading dialog
-              Navigator.pop(context); // Close edit dialog
-
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Category updated successfully'),
-                  backgroundColor: Colors.green,
-                ),
-              );
-
-              // Refresh on current page
-              if (mounted) _loadCategories();
-            }
-          } catch (e) {
-            if (mounted) {
-              Navigator.pop(context); // Close loading dialog
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('Error updating category: $e'),
-                  backgroundColor: Colors.red,
-                ),
-              );
-            }
+            _loadCategories();
           }
-        },
-      ),
-    );
-  }
+        } catch (e) {
+          // Close loading if open
+          if (mounted) Navigator.of(context).pop();
+
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Error updating category: $e'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        }
+      },
+    ),
+  );
+}
+
 
   void _viewCategory(Category category) {
     showDialog(
@@ -248,50 +251,7 @@ class _CategoriesManagementScreenState
             onPressed: () => Navigator.pop(context),
             child: const Text('Cancel'),
           ),
-          TextButton(
-            onPressed: () async {
-              Navigator.pop(context);
-
-              // Show loading indicator while deleting
-              if (mounted) {
-                showDialog(
-                  context: context,
-                  barrierDismissible: false,
-                  builder: (_) =>
-                      const Center(child: CircularProgressIndicator()),
-                );
-              }
-
-              try {
-                await _categoryService.deleteCategory(category.id);
-
-                if (mounted) {
-                  Navigator.pop(context); // Close loading dialog
-
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Category deleted successfully'),
-                      backgroundColor: Colors.green,
-                    ),
-                  );
-
-                  // Refresh on current page
-                  if (mounted) _loadCategories();
-                }
-              } catch (e) {
-                if (mounted) {
-                  Navigator.pop(context); // Close loading dialog
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Error deleting category: $e'),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
-                }
-              }
-            },
-            child: const Text('Delete', style: TextStyle(color: Colors.red)),
-          ),
+        
         ],
       ),
     );
@@ -430,8 +390,9 @@ class _CategoriesManagementScreenState
                               )
                               .toList(),
                           onChanged: (value) {
-                            if (value != null)
+                            if (value != null) {
                               setState(() => _filterStatus = value);
+                            }
                           },
                         ),
                         const SizedBox(width: 8),
@@ -469,7 +430,6 @@ class _CategoriesManagementScreenState
                                   category: category,
                                   onEdit: () => _editCategory(category),
                                   onView: () => _viewCategory(category),
-                                  onDelete: () => _deleteCategory(category),
                                 );
                               },
                             ),

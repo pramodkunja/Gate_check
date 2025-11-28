@@ -159,7 +159,7 @@ class _AddUserDialogState extends State<AddUserDialog> {
 
       final user = User(
         id: '', // Will be assigned by API
-        name: _nameController.text.trim(),
+        username: _nameController.text.trim(),
         email: _emailController.text.trim(),
         mobileNumber: _mobileController.text.trim(),
         // ✅ Use current controller text (updated from API)
@@ -242,6 +242,11 @@ class _AddUserDialogState extends State<AddUserDialog> {
                       TextFormField(
                         controller: _nameController,
                         style: GoogleFonts.poppins(fontSize: 16),
+                        inputFormatters: [
+                          FilteringTextInputFormatter.allow(
+                            RegExp(r'[a-zA-Z\s]'),
+                          ),
+                        ],
                         decoration: InputDecoration(
                           labelText: 'User Name *',
                           labelStyle: GoogleFonts.poppins(fontSize: 18),

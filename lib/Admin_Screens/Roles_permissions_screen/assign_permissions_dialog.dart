@@ -319,7 +319,7 @@ class _AssignPermissionsDialogState extends State<AssignPermissionsDialog> {
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                                 child: DropdownButtonFormField<int>(
-                                  value: selectedRoleId,
+                                  initialValue: selectedRoleId,
                                   decoration: InputDecoration(
                                     hintText: 'Select a role',
                                     hintStyle: GoogleFonts.poppins(

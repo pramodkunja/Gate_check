@@ -419,6 +419,7 @@ class _AddVisitorDialogState extends State<AddVisitorDialog> {
                         label: 'Visitor Name',
                         hint: 'Enter visitor name',
                         isRequired: true,
+                        keyboardType: TextInputType.text,
                       ),
                       const SizedBox(height: 18),
 
@@ -442,6 +443,7 @@ class _AddVisitorDialogState extends State<AddVisitorDialog> {
 
                       _buildDropdown(
                         label: 'Gender',
+                        isRequired: true,
                         value: selectedGender,
                         items: AppConstants.genders,
                         onChanged: (value) {
@@ -742,6 +744,11 @@ class _AddVisitorDialogState extends State<AddVisitorDialog> {
       inputFormatters = <TextInputFormatter>[
         FilteringTextInputFormatter.deny(RegExp(r'\s')),
       ];
+    } else if (keyboardType == TextInputType.text && label == 'Visitor Name') {
+      // For visitor name: allow only alphabets and spaces
+      inputFormatters = <TextInputFormatter>[
+        FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z\s]')),
+      ];
     }
 
     return Column(
@@ -887,7 +894,7 @@ class _AddVisitorDialogState extends State<AddVisitorDialog> {
         ),
         const SizedBox(height: 8),
         DropdownButtonFormField<String>(
-          value: value,
+          initialValue: value,
           decoration: InputDecoration(
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),

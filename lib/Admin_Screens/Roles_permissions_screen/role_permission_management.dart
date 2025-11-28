@@ -429,8 +429,8 @@ class _StatCard extends StatelessWidget {
     required this.countText,
     required this.bgColor,
     required this.icon,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -486,8 +486,7 @@ class _RoleCard extends StatelessWidget {
   final RolePermissionModel role;
   final VoidCallback onEdit;
 
-  const _RoleCard({required this.role, required this.onEdit, Key? key})
-    : super(key: key);
+  const _RoleCard({required this.role, required this.onEdit, super.key});
 
   @override
   Widget build(BuildContext context) {
