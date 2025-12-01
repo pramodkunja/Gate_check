@@ -33,6 +33,7 @@ class _RegularVisitorsScreenState extends State<RegularVisitorsScreen> {
 
   bool isLoading = false;
   String? errorMessage;
+  String? userRole; // ✅ Add this to store user role
 
   // Change this to your actual company ID
   static const int companyId = 1;
@@ -40,7 +41,16 @@ class _RegularVisitorsScreenState extends State<RegularVisitorsScreen> {
   @override
   void initState() {
     super.initState();
+    _loadUserRole(); // ✅ Load user role on init
     _loadVisitors();
+  }
+
+  // ✅ Add this method to load user role
+  void _loadUserRole() {
+    setState(() {
+      userRole = UserService().getUserRole();
+    });
+    debugPrint('🔍 Current user role in RegularVisitorsScreen: $userRole');
   }
 
   Future<void> _loadVisitors() async {
@@ -215,17 +225,15 @@ class _RegularVisitorsScreenState extends State<RegularVisitorsScreen> {
     String email = UserService().getUserEmail();
 
     // decide role
-    // ignore: unnecessary_nullable_for_final_variable_declarations
-    final String? role = UserService()
-        .getUserRole(); // assume you add this service method
+    final String? role = UserService().getUserRole();
     final bool isAdmin = (role == null || role == 'admin');
 
     return Scaffold(
       drawer: isAdmin
-          ? const Navigation(currentRoute: 'GateCheck') // assume admin drawer
+          ? const Navigation(currentRoute: 'GateCheck')
           : const UserNavigation(
               currentRoute: 'GateCheck',
-            ), // you should have a user drawer
+            ),
       appBar: isAdmin
           ? CustomAppBar(
               userName: userName,
@@ -430,6 +438,7 @@ class _RegularVisitorsScreenState extends State<RegularVisitorsScreen> {
                         return VisitorCard(
                           visitor: filteredVisitors[index],
                           onRefresh: _loadVisitors,
+                          userRole: userRole, // ✅ Pass the user role here
                         );
                       },
                     ),

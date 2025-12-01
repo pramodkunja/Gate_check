@@ -43,15 +43,17 @@ class _EntryOtpScreenState extends State<EntryOtpScreen> {
     try {
       final Response response;
 
+      final trimmedOtp = _otpController.text.trim();
+
       if (widget.action == EntryExitAction.entry) {
         response = await _visitorService.checkInVisitor(
           passId: widget.visitor.passId,
-          otp: _otpController.text.trim(),
+          otp: trimmedOtp,
         );
       } else {
         response = await _visitorService.checkOutVisitor(
           passId: widget.visitor.passId,
-          otp: _otpController.text.trim(),
+          otp: trimmedOtp,
         );
       }
 
@@ -67,7 +69,9 @@ class _EntryOtpScreenState extends State<EntryOtpScreen> {
               backgroundColor: Colors.green,
             ),
           );
-          Navigator.of(context).pop(true);
+
+          // <-- RETURN THE OTP STRING BACK TO THE CALLER
+          Navigator.of(context).pop(trimmedOtp);
         } else {
           // Handle error response from backend
           String errorMessage = 'Invalid OTP. Please try again.';
