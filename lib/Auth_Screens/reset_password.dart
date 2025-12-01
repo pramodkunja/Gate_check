@@ -294,8 +294,9 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                           validator: (value) {
                             final v = value?.trim() ?? '';
                             if (v.isEmpty) return 'Please enter the code.';
-                            if (v.length < 6)
+                            if (v.length < 6) {
                               return 'Enter the full 6-digit code.';
+                            }
                             return null;
                           },
                         ),

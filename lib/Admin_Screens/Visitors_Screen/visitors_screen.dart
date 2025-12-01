@@ -107,32 +107,26 @@ class _RegularVisitorsScreenState extends State<RegularVisitorsScreen> {
             .toLowerCase();
         final visitorApiStatus = visitor.status.apiValue.trim().toLowerCase();
 
-        // Determine if this visitor is considered 'Past' (scheduled date before today
-        // and not checked out). We will treat 'Past' specially in filtering.
+        // Determine if this visitor is considered 'Past' (scheduled date before today)
         final bool isPast = visitor.isPast && !visitor.isCheckedOut;
 
         bool matchesStatus;
         if (selStatus == 'all status') {
           matchesStatus = true;
         } else if (selStatus == 'visited') {
-          // 'Visited' can be represented by a visitor who has checked out,
-          // or by an explicit status value returned from backend.
-          matchesStatus =
-              visitor.isCheckedOut == true ||
-              visitorStatusName == 'visited' ||
-              visitorApiStatus == 'visited';
+          // 'Visited' means checked out (exit time is recorded)
+          matchesStatus = visitor.isCheckedOut == true;
         } else if (selStatus == 'past') {
-          // Allow filtering specifically for past visitors
+          // 'Past' means scheduled date is before today and NOT checked out
           matchesStatus = isPast;
         } else {
-          // For other statuses (Approved, Pending, Rejected), only match visitors
-          // that have that status and are NOT marked as Past (unless the user
-          // explicitly chose 'Past'). This ensures selecting 'Pending' doesn't
-          // show the Past badge entries.
+          // For 'Approved', 'Pending', 'Rejected': match by status AND exclude 'Past' and 'Visited'
+          // This ensures they show only pending/approved/rejected visitors who haven't visited yet
           matchesStatus =
               (visitorStatusName == selStatus ||
                   visitorApiStatus == selStatus) &&
-              !isPast;
+              !isPast &&
+              !visitor.isCheckedOut;
         }
 
         // Convert UI pass type label to API format for comparison

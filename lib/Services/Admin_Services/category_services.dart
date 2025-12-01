@@ -10,7 +10,7 @@ class CategoryService {
   Future<List<Map<String, dynamic>>> getAllCategories() async {
     try {
       final response = await _apiService.dio.get('/visitors/categories/');
-      
+
       if (response.statusCode == 200) {
         debugPrint('✅ Categories fetched successfully');
         return List<Map<String, dynamic>>.from(response.data);
@@ -33,11 +33,7 @@ class CategoryService {
     try {
       final response = await _apiService.dio.post(
         '/visitors/categories/',
-        data: {
-          'name': name,
-          'description': description,
-          'is_active': isActive,
-        },
+        data: {'name': name, 'description': description, 'is_active': isActive},
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
@@ -62,11 +58,7 @@ class CategoryService {
     try {
       final response = await _apiService.dio.put(
         '/visitors/categories/$id/',
-        data: {
-          'name': name,
-          'description': description,
-          'is_active': isActive,
-        },
+        data: {'id': id, 'description': description, 'is_active': isActive},
       );
 
       if (response.statusCode == 200) {
@@ -81,19 +73,22 @@ class CategoryService {
     }
   }
 
-  // Delete category
-  Future<void> deleteCategory(int id) async {
-    try {
-      final response = await _apiService.dio.delete('/visitors/categories/$id/');
+//   // Delete category
+//   Future<void> deleteCategory(int id) async {
+//     try {
+//       final response = await _apiService.dio.delete(
+//         '/visitors/categories/$id/',
+        
+//       );
 
-      if (response.statusCode == 200 || response.statusCode == 204) {
-        debugPrint('✅ Category deleted successfully');
-      } else {
-        throw Exception('Failed to delete category');
-      }
-    } on DioException catch (e) {
-      debugPrint('❌ Error deleting category: ${e.message}');
-      throw Exception(_apiService.getErrorMessage(e));
-    }
-  }
-}
+//       if (response.statusCode == 200 || response.statusCode == 204) {
+//         debugPrint('✅ Category deleted successfully');
+//       } else {
+//         throw Exception('Failed to delete category');
+//       }
+//     } on DioException catch (e) {
+//       debugPrint('❌ Error deleting category: ${e.message}');
+//       throw Exception(_apiService.getErrorMessage(e));
+//     }
+//   }
+ }

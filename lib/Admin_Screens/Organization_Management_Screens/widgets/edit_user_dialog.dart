@@ -28,7 +28,7 @@ class _EditUserDialogState extends State<EditUserDialog> {
   @override
   void initState() {
     super.initState();
-    _nameController = TextEditingController(text: widget.user.name);
+    _nameController = TextEditingController(text: widget.user.username);
     _emailController = TextEditingController(text: widget.user.email);
     _blockController = TextEditingController(text: widget.user.block ?? '');
     _floorController = TextEditingController(text: widget.user.floor ?? '');
@@ -48,7 +48,7 @@ class _EditUserDialogState extends State<EditUserDialog> {
     if (_formKey.currentState!.validate()) {
       final updatedUser = User(
         id: widget.user.id,
-        name: _nameController.text.trim(),
+        username: _nameController.text.trim(),
         email: _emailController.text.trim(),
         mobileNumber: widget.user.mobileNumber,
         companyName: widget.user.companyName,
@@ -176,7 +176,7 @@ class _EditUserDialogState extends State<EditUserDialog> {
                       ),
                       const SizedBox(height: 16),
                       DropdownButtonFormField<bool>(
-                        value: _isActive,
+                        initialValue: _isActive,
                         style: GoogleFonts.poppins(fontSize: 16, color: Colors.black87),
                         decoration: InputDecoration(
                           labelText: 'Status',

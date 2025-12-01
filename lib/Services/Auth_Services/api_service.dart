@@ -276,10 +276,11 @@ class ApiService {
           if (v is Map) {
             final messages = <String>[];
             v.forEach((key, val) {
-              if (val is List)
+              if (val is List) {
                 messages.add('$key: ${val.join(", ")}');
-              else
+              } else {
                 messages.add('$key: ${val.toString()}');
+              }
             });
             return messages.join('; ');
           }

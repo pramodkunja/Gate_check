@@ -2,7 +2,6 @@
 import 'package:flutter/material.dart';
 import 'package:gatecheck/Admin_Screens/Organization_Management_Screens/models/models.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:intl/intl.dart';
 
 class UserDetailsDialog extends StatelessWidget {
   final User user;
@@ -60,7 +59,7 @@ class UserDetailsDialog extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildDetailRow('Name', user.name, icon: Icons.person),
+                    _buildDetailRow('Name', user.username, icon: Icons.person),
                     const SizedBox(height: 16),
                     _buildDetailRow('Email', user.email, icon: Icons.email),
                     const SizedBox(height: 16),
