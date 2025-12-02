@@ -64,30 +64,50 @@ class _AddVisitorDialogState extends State<AddVisitorDialog> {
 
     try {
       final resp = await VisitorApiService().getCategories();
-      // Expecting a list of objects like [{"id":15,"name":"Vendor",...}, ...]
+      // Expecting a list of objects like [{"id":15,"name":"Vendor","is_active":true,...}, ...]
       final data = resp.data;
+      
+      List<Map<String, dynamic>> fetchedCategories = [];
+
       if (data is List) {
-        categories = data
+        fetchedCategories = data
             .map<Map<String, dynamic>>((e) {
-              // Normalize to map with keys 'id' and 'name'
+              // Normalize to map with keys 'id', 'name', and now 'is_active'
               if (e is Map<String, dynamic>) {
-                return {'id': e['id'], 'name': e['name']?.toString() ?? ''};
+                return {
+                  'id': e['id'],
+                  'name': e['name']?.toString() ?? '',
+                  'is_active': e['is_active'] ?? false, // Default to false if missing
+                };
               }
-              return {'id': null, 'name': e.toString()};
+              return {'id': null, 'name': e.toString(), 'is_active': false};
             })
-            .where((m) => m['id'] != null && (m['name'] as String).isNotEmpty)
+            // Filter to include only categories that are active, have an ID, and a non-empty name
+            .where((m) =>
+                m['id'] != null &&
+                (m['name'] as String).isNotEmpty &&
+                m['is_active'] == true) // <-- The updated filtering logic
             .toList();
       }
 
       // If API returned empty or unexpected, fallback to default categories
-      if (categories.isEmpty) {
+      if (fetchedCategories.isEmpty) {
         categories = fallbackCategories;
+      } else {
+        categories = fetchedCategories;
       }
 
       // Build lookup map name -> id (use the display name as key)
       categoryMap = {
         for (var c in categories) (c['name'] as String): (c['id'] as int),
       };
+
+      // Ensure the selectedCategory is still valid after filtering (if not, reset)
+      if (!categoryMap.containsKey(selectedCategory)) {
+        selectedCategory = 'Select category';
+        selectedCategoryId = null;
+      }
+
 
       // Prepare dropdown selected value (keep 'Select category' until user picks)
       if (!mounted) return;
@@ -103,6 +123,9 @@ class _AddVisitorDialogState extends State<AddVisitorDialog> {
           for (var c in categories) (c['name'] as String): (c['id'] as int),
         };
         isCategoryLoading = false;
+        // Reset selected if it was from a previous successful load that is now failing
+        selectedCategory = 'Select category';
+        selectedCategoryId = null;
       });
 
       if (mounted) {
@@ -118,6 +141,8 @@ class _AddVisitorDialogState extends State<AddVisitorDialog> {
           for (var c in categories) (c['name'] as String): (c['id'] as int),
         };
         isCategoryLoading = false;
+        selectedCategory = 'Select category';
+        selectedCategoryId = null;
       });
     }
   }
@@ -317,11 +342,14 @@ class _AddVisitorDialogState extends State<AddVisitorDialog> {
   @override
   Widget build(BuildContext context) {
     return Dialog(
+      // Keep existing padding for good spacing on small/large screens
       insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Container(
         constraints: BoxConstraints(
+          // Max width for tablet/desktop views
           maxWidth: 600,
+          // Max height for responsiveness on all screens
           maxHeight: MediaQuery.of(context).size.height * 0.9,
         ),
         child: Column(
