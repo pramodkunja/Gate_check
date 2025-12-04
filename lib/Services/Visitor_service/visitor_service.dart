@@ -8,10 +8,19 @@ class VisitorApiService {
   // Get all visitors for a company
   Future<Response> getVisitors(int companyId) async {
     try {
-      debugPrint('🔍 Fetching visitors for company: $companyId');
-      final response = await _apiService.dio.get(
-        '/visitors/company/$companyId/visitors/',
-      );
+      final isSuperUser = await _apiService.isSuperUser();
+      debugPrint('🔍 Fetching visitors. Is SuperUser: $isSuperUser');
+
+      String endpoint;
+      if (isSuperUser) {
+        endpoint = '/visitors/visitors/';
+      } else {
+        endpoint = '/visitors/company/$companyId/visitors/';
+      }
+
+      debugPrint('🔍 Fetching visitors from: $endpoint');
+      final response = await _apiService.dio.get(endpoint);
+      
       debugPrint('✅ Visitors fetched successfully');
       return response;
     } on DioException catch (e) {
@@ -233,5 +242,25 @@ class VisitorApiService {
   // Helper to get error message
   String getErrorMessage(DioException error) {
     return _apiService.getErrorMessage(error);
+  }
+
+  // -------------------- Bulk Upload Visitors --------------------
+  Future<Response> uploadBulkVisitors(
+    List<Map<String, dynamic>> visitors,
+  ) async {
+    try {
+      debugPrint("📤 Uploading bulk visitors...");
+
+      final response = await _apiService.dio.post(
+        '/reports/bulk-upload-visitors/',
+        data: {'visitors': visitors},
+      );
+
+      debugPrint("✅ Bulk upload success");
+      return response;
+    } on DioException catch (e) {
+      debugPrint("❌ Bulk upload error: ${e.message}");
+      rethrow;
+    }
   }
 }

@@ -1,9 +1,16 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:file_picker/file_picker.dart';
+import 'package:gatecheck/Admin_Screens/Visitors_Screen/widgets/bulk_visitor_preview.dart';
+import 'package:gatecheck/Admin_Screens/Visitors_Screen/widgets/parser_code.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../utils/colors.dart';
 
 class ExcelDropdown extends StatefulWidget {
-  const ExcelDropdown({super.key});
+  final VoidCallback? onSuccess;
+  const ExcelDropdown({super.key, this.onSuccess});
 
   @override
   State<ExcelDropdown> createState() => _ExcelDropdownState();
@@ -24,7 +31,7 @@ class _ExcelDropdownState extends State<ExcelDropdown> {
 
   void _openDropdown() {
     _overlayEntry = _createOverlayEntry();
-    Overlay.of(context).insert(_overlayEntry!);
+    Overlay.of(context)!.insert(_overlayEntry!);
     setState(() {
       _isOpen = true;
     });
@@ -44,7 +51,7 @@ class _ExcelDropdownState extends State<ExcelDropdown> {
     var offset = renderBox.localToGlobal(Offset.zero);
 
     return OverlayEntry(
-      builder: (context) => GestureDetector(
+      builder: (overlayContext) => GestureDetector(
         onTap: _closeDropdown,
         behavior: HitTestBehavior.translucent,
         child: Stack(
@@ -56,17 +63,10 @@ class _ExcelDropdownState extends State<ExcelDropdown> {
                 elevation: 8,
                 borderRadius: BorderRadius.circular(12),
                 child: Container(
-                  width: 180,
+                  width: 220,
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(12),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        blurRadius: 20,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
                   ),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
@@ -74,12 +74,143 @@ class _ExcelDropdownState extends State<ExcelDropdown> {
                       InkWell(
                         onTap: () async {
                           _closeDropdown();
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('Import will be implemented soon'),
-                              duration: Duration(seconds: 3),
+                          
+                          if (!mounted) return;
+                          
+                          // Debug: Confirm tap
+                          /*
+                          await showDialog(
+                            context: context,
+                            builder: (_) => AlertDialog(
+                              title: Text('Debug'),
+                              content: Text('Starting file picker...'),
+                              actions: [TextButton(onPressed: () => Navigator.pop(context), child: Text('OK'))],
                             ),
                           );
+                          */
+
+                          // pick file
+                          final result = await FilePicker.platform.pickFiles(
+                            type: FileType.custom,
+                            allowedExtensions: ['xlsx', 'xls'],
+                            withData: true, // Important for Web to get bytes
+                          );
+
+                          if (result == null) {
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text("No file selected")),
+                              );
+                            }
+                            return;
+                          }
+
+                          List<int>? fileBytes;
+                          String fileName = result.files.single.name;
+
+                          if (kIsWeb) {
+                            fileBytes = result.files.single.bytes;
+                          } else {
+                            final path = result.files.single.path;
+                            if (path != null) {
+                              fileBytes = await File(path).readAsBytes();
+                            }
+                          }
+
+                          if (fileBytes == null) {
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text("Cannot access file data"),
+                                ),
+                              );
+                            }
+                            return;
+                          }
+
+                          // parse excel
+                          if (!mounted) return;
+                          
+                          showDialog(
+                            context: context,
+                            barrierDismissible: false,
+                            builder: (_) => const Center(
+                              child: CircularProgressIndicator(),
+                            ),
+                          );
+
+                          try {
+                            print('DEBUG: Parsing file: $fileName');
+                            final visitors = await parseExcel(fileBytes);
+                            print('DEBUG: Parsed ${visitors.length} visitors');
+                            
+                            if (mounted) {
+                              Navigator.of(context).pop(); // remove loader
+                            }
+
+                            if (visitors.isEmpty) {
+                              if (mounted) {
+                                showDialog(
+                                  context: context,
+                                  builder: (_) => AlertDialog(
+                                    title: Text('Debug: Empty Excel'),
+                                    content: Text('Parsed 0 visitors. Check headers and data.'),
+                                    actions: [TextButton(onPressed: () => Navigator.pop(context), child: Text('OK'))],
+                                  ),
+                                );
+                              }
+                              return;
+                            }
+                            
+                            // navigate to preview
+                            if (mounted) {
+                              final success = await Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => BulkVisitorsPreviewScreen(
+                                    visitors: visitors,
+                                    fileBytes: fileBytes,
+                                    fileName: fileName,
+                                  ),
+                                ),
+                              );
+                              
+                              if (success == true && widget.onSuccess != null) {
+                                widget.onSuccess!();
+                              }
+                            }
+                          } catch (e) {
+                            if (mounted) {
+                              Navigator.of(context).pop(); // remove loader
+                              
+                              print('DEBUG: Parse error: $e');
+                              
+                              // Automatically fallback to direct upload if parsing fails
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text("Could not preview file. You can still upload it directly."),
+                                    duration: Duration(seconds: 3),
+                                  ),
+                                );
+
+                                final success = await Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => BulkVisitorsPreviewScreen(
+                                      visitors: [],
+                                      fileBytes: fileBytes,
+                                      fileName: fileName,
+                                    ),
+                                  ),
+                                );
+
+                                if (success == true && widget.onSuccess != null) {
+                                  widget.onSuccess!();
+                                }
+                              }
+                            }
+                          }
                         },
                         borderRadius: BorderRadius.circular(12),
                         child: Padding(
@@ -96,7 +227,44 @@ class _ExcelDropdownState extends State<ExcelDropdown> {
                               ),
                               const SizedBox(width: 12),
                               Text(
-                                'Import',
+                                'Import Excel',
+                                style: GoogleFonts.inter(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
+                                  color: AppColors.textPrimary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const Divider(height: 1),
+                      InkWell(
+                        onTap: () {
+                          _closeDropdown();
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                "Download template feature coming soon",
+                              ),
+                            ),
+                          );
+                        },
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 14,
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.download_outlined,
+                                size: 18,
+                                color: AppColors.textPrimary,
+                              ),
+                              const SizedBox(width: 12),
+                              Text(
+                                'Download Template',
                                 style: GoogleFonts.inter(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w500,

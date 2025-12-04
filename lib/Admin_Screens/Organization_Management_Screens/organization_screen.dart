@@ -11,6 +11,7 @@ import 'package:gatecheck/Services/Admin_Services/organization_services.dart';
 import 'package:gatecheck/Services/User_services/user_service.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:dio/dio.dart';
+import 'package:gatecheck/Services/Auth_Services/api_service.dart';
 
 class OrganizationManagementScreen extends StatefulWidget {
   const OrganizationManagementScreen({super.key});
@@ -32,11 +33,20 @@ class _OrganizationManagementScreenState
 
   bool _isLoading = false;
   String? _errorMessage;
+  bool _isSuperUser = false;
 
   @override
   void initState() {
     super.initState();
+    _checkSuperUser();
     _loadOrganizations();
+  }
+
+  Future<void> _checkSuperUser() async {
+    final isSuper = await ApiService().isSuperUser();
+    setState(() {
+      _isSuperUser = isSuper;
+    });
   }
 
   // -------------------- Load Organizations from API --------------------
@@ -454,31 +464,32 @@ class _OrganizationManagementScreenState
                               ],
                             ),
                             const SizedBox(height: 12),
-                            SizedBox(
-                              width: double.infinity,
-                              child: OutlinedButton.icon(
-                                onPressed: () {
-                                  showDialog(
-                                    context: context,
-                                    builder: (context) => AddOrganizationDialog(
-                                      onAdd: _addOrganization,
+                            if (_isSuperUser)
+                              SizedBox(
+                                width: double.infinity,
+                                child: OutlinedButton.icon(
+                                  onPressed: () {
+                                    showDialog(
+                                      context: context,
+                                      builder: (context) => AddOrganizationDialog(
+                                        onAdd: _addOrganization,
+                                      ),
+                                    );
+                                  },
+                                  icon: const Icon(Icons.add, size: 20),
+                                  label: Text(
+                                    'Add Organization',
+                                    style: GoogleFonts.poppins(fontSize: 13),
+                                  ),
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: Colors.purple,
+                                    side: const BorderSide(color: Colors.purple),
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 12,
                                     ),
-                                  );
-                                },
-                                icon: const Icon(Icons.add, size: 20),
-                                label: Text(
-                                  'Add Organization',
-                                  style: GoogleFonts.poppins(fontSize: 13),
-                                ),
-                                style: OutlinedButton.styleFrom(
-                                  foregroundColor: Colors.purple,
-                                  side: const BorderSide(color: Colors.purple),
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 12,
                                   ),
                                 ),
                               ),
-                            ),
                           ],
                         )
                       : Row(
@@ -517,32 +528,33 @@ class _OrganizationManagementScreenState
                                 ],
                               ),
                             ),
-                            OutlinedButton.icon(
-                              onPressed: () {
-                                showDialog(
-                                  context: context,
-                                  builder: (context) => AddOrganizationDialog(
-                                    onAdd: _addOrganization,
+                            if (_isSuperUser)
+                              OutlinedButton.icon(
+                                onPressed: () {
+                                  showDialog(
+                                    context: context,
+                                    builder: (context) => AddOrganizationDialog(
+                                      onAdd: _addOrganization,
+                                    ),
+                                  );
+                                },
+                                icon: const Icon(Icons.add, size: 18),
+                                label: Text(
+                                  'Add\nOrganization',
+                                  style: GoogleFonts.poppins(
+                                    fontSize: isMediumScreen ? 11 : 12,
                                   ),
-                                );
-                              },
-                              icon: const Icon(Icons.add, size: 18),
-                              label: Text(
-                                'Add\nOrganization',
-                                style: GoogleFonts.poppins(
-                                  fontSize: isMediumScreen ? 11 : 12,
+                                  textAlign: TextAlign.center,
                                 ),
-                                textAlign: TextAlign.center,
-                              ),
-                              style: OutlinedButton.styleFrom(
-                                foregroundColor: Colors.purple,
-                                side: const BorderSide(color: Colors.purple),
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: isMediumScreen ? 12 : 16,
-                                  vertical: 8,
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: Colors.purple,
+                                  side: const BorderSide(color: Colors.purple),
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: isMediumScreen ? 12 : 16,
+                                    vertical: 8,
+                                  ),
                                 ),
                               ),
-                            ),
                           ],
                         ),
                   const SizedBox(height: 16),

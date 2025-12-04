@@ -136,6 +136,20 @@ class ApiService {
           debugPrint('⚠️ No company_id found in login response');
         }
 
+        // ✅ Extract and store Role & Superuser status
+        final role = user?['roles']?.toString() ?? user?['role']?.toString(); // Check 'roles' first, then 'role'
+        final isSuperUser = user?['is_superuser']; // Boolean in JSON
+
+        if (role != null) {
+          await prefs.setString('userRole', role);
+          debugPrint('👤 User Role saved: $role');
+        }
+
+        if (isSuperUser != null) {
+          await prefs.setBool('isSuperUser', isSuperUser == true || isSuperUser == 1);
+          debugPrint('🦸 Is SuperUser saved: $isSuperUser');
+        }
+
         if (accessToken != null && accessToken.isNotEmpty) {
           await prefs.setString('authToken', accessToken);
           debugPrint('✅ Access token saved: $accessToken');
@@ -246,6 +260,73 @@ class ApiService {
     }
 
     return false;
+  }
+
+  // -------------------- Bulk Upload Visitors (File) --------------------
+  Future<Response> uploadBulkVisitorsFile({
+    required List<int> fileBytes,
+    required String fileName,
+  }) async {
+    try {
+      debugPrint("📤 Uploading file: $fileName (${fileBytes.length} bytes)...");
+
+      final formData = FormData.fromMap({
+        'file': MultipartFile.fromBytes(
+          fileBytes,
+          filename: fileName,
+        ),
+      });
+
+      final response = await _dio.post(
+        '/reports/bulk-upload-visitors/',
+        data: formData,
+        options: Options(
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        ),
+      );
+
+      debugPrint("✅ Upload Success: ${response.statusCode}");
+      return response;
+    } on DioException catch (e) {
+      debugPrint("❌ Bulk Upload Error: ${e.message}");
+      throw e;
+    }
+  }
+
+  // -------------------- Bulk Upload Visitors (JSON) --------------------
+  Future<Response> uploadBulkVisitors(List<Map<String, dynamic>> visitors) async {
+    try {
+      debugPrint("📤 Uploading ${visitors.length} visitors...");
+
+      final payload = {
+        "visitors": visitors,
+      };
+
+      final response = await _dio.post(
+        '/reports/bulk-upload-visitors/',
+        data: payload,
+      );
+
+      debugPrint("✅ Upload Success: ${response.statusCode}");
+      return response;
+    } on DioException catch (e) {
+      debugPrint("❌ Bulk Upload Error: ${e.message}");
+      throw e;
+    }
+  }
+
+
+  // -------------------- Role & Permission Helpers --------------------
+  Future<String?> getUserRole() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('userRole');
+  }
+
+  Future<bool> isSuperUser() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool('isSuperUser') ?? false;
   }
 
   // -------------------- Error Message Helper --------------------
