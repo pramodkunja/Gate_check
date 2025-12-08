@@ -8,6 +8,7 @@ import 'package:gatecheck/Services/Admin_Services/category_services.dart';
 import 'package:gatecheck/Services/User_services/user_service.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../Dashboard_Screens/custom_appbar.dart';
+import 'package:gatecheck/widgets/common_search_bar.dart';
 
 class CategoriesManagementScreen extends StatefulWidget {
   const CategoriesManagementScreen({super.key});
@@ -364,18 +365,10 @@ void _editCategory(Category category) {
                     Row(
                       children: [
                         Expanded(
-                          child: TextField(
+                          child: CommonSearchBar(
                             controller: _searchController,
+                            hintText: 'Search by category name...',
                             onChanged: (_) => setState(() {}),
-                            decoration: InputDecoration(
-                              hintText: 'Search by category name...',
-                              prefixIcon: const Icon(Icons.search),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              filled: true,
-                              fillColor: Colors.white,
-                            ),
                           ),
                         ),
                         const SizedBox(width: 12),

@@ -13,6 +13,7 @@ import 'widgets/visitor_card.dart';
 import 'widgets/add_visitor_dialog.dart';
 import 'widgets/filter_dropdown.dart';
 import 'widgets/excel_dropdown.dart';
+import 'package:gatecheck/widgets/common_search_bar.dart';
 
 class RegularVisitorsScreen extends StatefulWidget {
   const RegularVisitorsScreen({super.key});
@@ -34,6 +35,13 @@ class _RegularVisitorsScreenState extends State<RegularVisitorsScreen> {
   bool isLoading = false;
   String? errorMessage;
   String? userRole; // ✅ Add this to store user role
+  final TextEditingController _searchController = TextEditingController();
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   // Change this to your actual company ID
   static const int companyId = 1;
@@ -62,7 +70,7 @@ class _RegularVisitorsScreenState extends State<RegularVisitorsScreen> {
     try {
       final response = await _visitorService.getVisitors(companyId);
 
-      if (response.statusCode == 200 && response.data != null) {
+      if ((response.statusCode == 200 || response.statusCode == 304) && response.data != null) {
         final List<dynamic> data = response.data as List<dynamic>;
         setState(() {
           visitors = data.map((json) => Visitor.fromJson(json)).toList();
@@ -268,36 +276,15 @@ class _RegularVisitorsScreenState extends State<RegularVisitorsScreen> {
             padding: EdgeInsets.all(screenWidth * 0.04),
             child: Column(
               children: [
-                Container(
-                  decoration: BoxDecoration(
-                    color: AppColors.background,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: TextField(
-                    onChanged: (value) {
-                      setState(() {
-                        searchQuery = value;
-                        _applyFilters();
-                      });
-                    },
-                    decoration: InputDecoration(
-                      hintText: 'Search by Name, ID, or Phone',
-                      hintStyle: GoogleFonts.inter(
-                        color: AppColors.textSecondary,
-                        fontSize: screenWidth * 0.035,
-                      ),
-                      prefixIcon: Icon(
-                        Icons.search,
-                        color: AppColors.iconGray,
-                        size: screenWidth * 0.06,
-                      ),
-                      border: InputBorder.none,
-                      contentPadding: EdgeInsets.symmetric(
-                        horizontal: screenWidth * 0.04,
-                        vertical: screenHeight * 0.018,
-                      ),
-                    ),
-                  ),
+                CommonSearchBar(
+                  controller: _searchController,
+                  hintText: 'Search by Name, ID, or Phone',
+                  onChanged: (value) {
+                    setState(() {
+                      searchQuery = value;
+                      _applyFilters();
+                    });
+                  },
                 ),
                 SizedBox(height: screenHeight * 0.02),
                 Row(

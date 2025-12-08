@@ -9,6 +9,7 @@ import 'package:gatecheck/Admin_Screens/Roles_permissions_screen/edit_permission
 import 'package:gatecheck/Services/Roles_permission_services/role_permissions_service.dart';
 import 'package:gatecheck/Services/User_services/user_service.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:gatecheck/widgets/common_search_bar.dart';
 
 class RolePermissionsScreen extends StatefulWidget {
   const RolePermissionsScreen({super.key});
@@ -298,37 +299,9 @@ class _RolePermissionsScreenState extends State<RolePermissionsScreen> {
                     Row(
                       children: [
                         Expanded(
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(10),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.03),
-                                  blurRadius: 6,
-                                ),
-                              ],
-                            ),
-                            child: Row(
-                              children: [
-                                const Icon(Icons.search, color: Colors.grey),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: TextField(
-                                    controller: _searchController,
-                                    decoration: InputDecoration(
-                                      hintText: 'Search roles...',
-                                      hintStyle: GoogleFonts.poppins(
-                                        fontSize: 14,
-                                        color: Colors.grey[500],
-                                      ),
-                                      border: InputBorder.none,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
+                          child: CommonSearchBar(
+                            controller: _searchController,
+                            hintText: 'Search roles...',
                           ),
                         ),
                         const SizedBox(width: 12),

@@ -8,6 +8,7 @@ import 'package:gatecheck/Services/Admin_Services/organization_services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:dio/dio.dart';
 import '../widgets/user_card.dart';
+import 'package:gatecheck/widgets/common_search_bar.dart';
 
 class UserManagementScreen extends StatefulWidget {
   final Organization organization;
@@ -478,30 +479,10 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                     ),
                   ),
                   const SizedBox(height: 12),
-                  TextField(
+                  CommonSearchBar(
                     controller: _searchController,
+                    hintText: 'Search by name or email...',
                     onChanged: _filterUsers,
-                    enabled: !_isLoading,
-                    style: GoogleFonts.poppins(fontSize: 16),
-                    decoration: InputDecoration(
-                      hintText: 'Search by name or email...',
-                      hintStyle: GoogleFonts.poppins(fontSize: 16),
-                      prefixIcon: const Icon(Icons.search),
-                      filled: true,
-                      fillColor: Colors.white,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      suffixIcon: _searchController.text.isNotEmpty
-                          ? IconButton(
-                              icon: const Icon(Icons.clear),
-                              onPressed: () {
-                                _searchController.clear();
-                                _filterUsers('');
-                              },
-                            )
-                          : null,
-                    ),
                   ),
                 ],
               ),

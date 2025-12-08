@@ -12,6 +12,7 @@ import 'package:gatecheck/Services/User_services/user_service.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:dio/dio.dart';
 import 'package:gatecheck/Services/Auth_Services/api_service.dart';
+import 'package:gatecheck/widgets/common_search_bar.dart';
 
 class OrganizationManagementScreen extends StatefulWidget {
   const OrganizationManagementScreen({super.key});
@@ -558,41 +559,10 @@ class _OrganizationManagementScreenState
                           ],
                         ),
                   const SizedBox(height: 16),
-                  TextField(
+                  CommonSearchBar(
                     controller: _searchController,
+                    hintText: 'Search Organizations...',
                     onChanged: _filterOrganizations,
-                    style: GoogleFonts.poppins(
-                      fontSize: isSmallScreen ? 14 : 16,
-                    ),
-                    decoration: InputDecoration(
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      hintText: 'Search Organizations...',
-                      hintStyle: GoogleFonts.poppins(
-                        fontSize: isSmallScreen ? 14 : 16,
-                      ),
-                      prefixIcon: Icon(
-                        Icons.search,
-                        size: isSmallScreen ? 20 : 24,
-                      ),
-                      suffixIcon: _searchController.text.isNotEmpty
-                          ? IconButton(
-                              icon: Icon(
-                                Icons.clear,
-                                size: isSmallScreen ? 20 : 24,
-                              ),
-                              onPressed: () {
-                                _searchController.clear();
-                                _filterOrganizations('');
-                              },
-                            )
-                          : null,
-                      contentPadding: EdgeInsets.symmetric(
-                        horizontal: isSmallScreen ? 12 : 16,
-                        vertical: isSmallScreen ? 12 : 16,
-                      ),
-                    ),
                   ),
                 ],
               ),

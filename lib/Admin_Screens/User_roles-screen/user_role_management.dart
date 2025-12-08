@@ -9,6 +9,7 @@ import 'package:gatecheck/Admin_Screens/User_roles-screen/user_role_model.dart';
 import 'package:gatecheck/Services/User_roles_services/user_roles_service.dart';
 import 'package:gatecheck/Services/User_services/user_service.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:gatecheck/widgets/common_search_bar.dart';
 
 class UserRolesManagementScreen extends StatefulWidget {
   const UserRolesManagementScreen({super.key});
@@ -902,20 +903,10 @@ class _UserRolesManagementScreenState extends State<UserRolesManagementScreen> {
   }
 
   Widget _buildSearchField() {
-    return TextField(
+    return CommonSearchBar(
       controller: _searchController,
       onChanged: _onSearchChanged,
-      enabled: !_isLoading,
-      decoration: InputDecoration(
-        prefixIcon: const Icon(Icons.search),
-        hintText: 'Search users...',
-        filled: true,
-        fillColor: Colors.white,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(30),
-          borderSide: BorderSide.none,
-        ),
-      ),
+      hintText: 'Search users...',
     );
   }
 

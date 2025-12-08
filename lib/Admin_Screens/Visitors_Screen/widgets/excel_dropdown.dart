@@ -2,10 +2,15 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:file_picker/file_picker.dart';
 import 'package:gatecheck/Admin_Screens/Visitors_Screen/widgets/bulk_visitor_preview.dart';
 import 'package:gatecheck/Admin_Screens/Visitors_Screen/widgets/parser_code.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:open_file/open_file.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../utils/colors.dart';
 
 class ExcelDropdown extends StatefulWidget {
@@ -74,9 +79,9 @@ class _ExcelDropdownState extends State<ExcelDropdown> {
                       InkWell(
                         onTap: () async {
                           _closeDropdown();
-                          
+
                           if (!mounted) return;
-                          
+
                           // Debug: Confirm tap
                           /*
                           await showDialog(
@@ -99,7 +104,9 @@ class _ExcelDropdownState extends State<ExcelDropdown> {
                           if (result == null) {
                             if (mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text("No file selected")),
+                                const SnackBar(
+                                  content: Text("No file selected"),
+                                ),
                               );
                             }
                             return;
@@ -130,7 +137,7 @@ class _ExcelDropdownState extends State<ExcelDropdown> {
 
                           // parse excel
                           if (!mounted) return;
-                          
+
                           showDialog(
                             context: context,
                             barrierDismissible: false,
@@ -143,7 +150,7 @@ class _ExcelDropdownState extends State<ExcelDropdown> {
                             print('DEBUG: Parsing file: $fileName');
                             final visitors = await parseExcel(fileBytes);
                             print('DEBUG: Parsed ${visitors.length} visitors');
-                            
+
                             if (mounted) {
                               Navigator.of(context).pop(); // remove loader
                             }
@@ -154,14 +161,21 @@ class _ExcelDropdownState extends State<ExcelDropdown> {
                                   context: context,
                                   builder: (_) => AlertDialog(
                                     title: Text('Debug: Empty Excel'),
-                                    content: Text('Parsed 0 visitors. Check headers and data.'),
-                                    actions: [TextButton(onPressed: () => Navigator.pop(context), child: Text('OK'))],
+                                    content: Text(
+                                      'Parsed 0 visitors. Check headers and data.',
+                                    ),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () => Navigator.pop(context),
+                                        child: Text('OK'),
+                                      ),
+                                    ],
                                   ),
                                 );
                               }
                               return;
                             }
-                            
+
                             // navigate to preview
                             if (mounted) {
                               final success = await Navigator.push(
@@ -174,7 +188,7 @@ class _ExcelDropdownState extends State<ExcelDropdown> {
                                   ),
                                 ),
                               );
-                              
+
                               if (success == true && widget.onSuccess != null) {
                                 widget.onSuccess!();
                               }
@@ -182,14 +196,16 @@ class _ExcelDropdownState extends State<ExcelDropdown> {
                           } catch (e) {
                             if (mounted) {
                               Navigator.of(context).pop(); // remove loader
-                              
+
                               print('DEBUG: Parse error: $e');
-                              
+
                               // Automatically fallback to direct upload if parsing fails
                               if (mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   const SnackBar(
-                                    content: Text("Could not preview file. You can still upload it directly."),
+                                    content: Text(
+                                      "Could not preview file. You can still upload it directly.",
+                                    ),
                                     duration: Duration(seconds: 3),
                                   ),
                                 );
@@ -205,7 +221,8 @@ class _ExcelDropdownState extends State<ExcelDropdown> {
                                   ),
                                 );
 
-                                if (success == true && widget.onSuccess != null) {
+                                if (success == true &&
+                                    widget.onSuccess != null) {
                                   widget.onSuccess!();
                                 }
                               }
@@ -242,13 +259,7 @@ class _ExcelDropdownState extends State<ExcelDropdown> {
                       InkWell(
                         onTap: () {
                           _closeDropdown();
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                "Download template feature coming soon",
-                              ),
-                            ),
-                          );
+                          _downloadTemplate();
                         },
                         child: Padding(
                           padding: const EdgeInsets.symmetric(
@@ -317,6 +328,90 @@ class _ExcelDropdownState extends State<ExcelDropdown> {
         ),
       ),
     );
+  }
+
+  Future<void> _downloadTemplate() async {
+    try {
+      // 1. Load from assets
+      final byteData = await rootBundle.load('assets/visitor_schedule_1.xlsx');
+      final fileBytes = byteData.buffer.asUint8List();
+
+      // 5. Save File
+      String fileName = 'visitor_schedule_1.xlsx';
+
+      if (kIsWeb) {
+        final uri = Uri.dataFromBytes(
+          fileBytes,
+          mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        );
+        await launchUrl(uri);
+        return;
+      }
+
+      // Request storage permission on Android
+      if (Platform.isAndroid) {
+        var status = await Permission.storage.status;
+        if (!status.isGranted) {
+          status = await Permission.storage.request();
+          if (!status.isGranted) {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text(
+                    'Storage permission is required to download template',
+                  ),
+                  backgroundColor: Colors.red,
+                ),
+              );
+            }
+            return;
+          }
+        }
+      }
+
+      Directory? directory;
+      if (Platform.isWindows) {
+        directory = await getDownloadsDirectory();
+      } else if (Platform.isAndroid) {
+        directory = await getExternalStorageDirectory();
+      } else {
+        directory = await getApplicationDocumentsDirectory();
+      }
+
+      if (directory == null) {
+        directory = await getApplicationDocumentsDirectory();
+      }
+
+      final filePath = '${directory.path}/$fileName';
+      final file = File(filePath);
+      await file.writeAsBytes(fileBytes);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Template saved to Downloads'),
+            backgroundColor: Colors.green,
+            action: SnackBarAction(
+              label: 'Open',
+              textColor: Colors.white,
+              onPressed: () {
+                OpenFile.open(filePath);
+              },
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('Error downloading template: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to download template: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   @override
