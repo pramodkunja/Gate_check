@@ -410,7 +410,19 @@ class VisitorCard extends StatelessWidget {
     final screenWidth = size.width;
     final screenHeight = size.height;
 
-    final isPast = visitor.isPast && !visitor.isCheckedOut;
+    // Treat rejected (and other terminal statuses if you add them) as terminal —
+    // they should not be considered "past" even if the visitingDate is older.
+    final terminalStatuses = {
+      VisitorStatus.rejected,
+      // Add more terminal statuses here if necessary, e.g.:
+      // VisitorStatus.cancelled,
+    };
+
+    // previous: final isPast = visitor.isPast && !visitor.isCheckedOut;
+    final isPast = visitor.isPast &&
+        !visitor.isCheckedOut &&
+        !terminalStatuses.contains(visitor.status);
+
     final isToday = _isScheduledForToday();
     final formattedDate = DateFormat('yyyy-MM-dd').format(visitor.visitingDate.toLocal());
 
@@ -596,8 +608,9 @@ class VisitorCard extends StatelessWidget {
         );
       }
 
-      // Past badge (kept as before)
-      if (visitor.isPast && !visitor.isCheckedOut) {
+      // Past (but don't override explicit backend terminal statuses because isPast was adjusted)
+      // IMPORTANT: use the computed `isPast` variable (which excludes terminal statuses)
+      if (isPast) {
         return Container(
           padding: EdgeInsets.symmetric(
             horizontal: screenWidth * 0.03,
@@ -618,7 +631,7 @@ class VisitorCard extends StatelessWidget {
         );
       }
 
-      // Default: use enum-backed status label/color
+      // Default: use enum-backed status label/color (this will show 'Rejected' for rejected visitors)
       return Container(
         padding: EdgeInsets.symmetric(
           horizontal: screenWidth * 0.03,
@@ -705,7 +718,9 @@ class VisitorCard extends StatelessWidget {
                 ActionMenu(
                   visitor: visitor,
                   onRefresh: onRefresh,
-                  showReschedule: !isSecurity && !visitor.isCheckedOut,
+                  showReschedule: !isSecurity &&
+                      !visitor.isCheckedOut &&
+                      visitor.status != VisitorStatus.rejected,
                 ),
               ],
             ),
