@@ -330,7 +330,8 @@ class _OrganizationManagementScreenState
         _showSuccessSnackBar('User added successfully');
         await _loadOrganizations(); // Reload to get updated user list
       } else {
-        _showErrorSnackBar('Failed to add user');
+        final errorMessage = _orgService.getErrorMessageFromResponse(response);
+        _showErrorSnackBar(errorMessage);
       }
     } on DioException catch (e) {
       Navigator.pop(context); // Close loading dialog

@@ -136,21 +136,31 @@ class UserRoleService {
     try {
       debugPrint('👥 Fetching all users from backend...');
 
-      final prefs = await SharedPreferences.getInstance();
-      final companyId = prefs.getString('companyId');
+      final isSuperUser = await _apiService.isSuperUser();
+      debugPrint('🦸 Is SuperUser: $isSuperUser');
 
-      if (companyId == null || companyId.isEmpty) {
-        debugPrint('⚠️ No companyId found in local storage');
-        throw Exception('Company ID not found');
+      Response response;
+
+      if (isSuperUser) {
+        // Superuser: fetch all users (no company_id param)
+        debugPrint('🌍 Fetching ALL users (SuperUser mode)');
+        response = await _apiService.dio.get('/user/create-user/');
+      } else {
+        // Regular user: fetch users for their company
+        final prefs = await SharedPreferences.getInstance();
+        final companyId = prefs.getString('companyId');
+
+        if (companyId == null || companyId.isEmpty) {
+          debugPrint('⚠️ No companyId found in local storage for non-superuser');
+          throw Exception('Company ID not found');
+        }
+
+        debugPrint('🏢 Fetching users for company_id: $companyId');
+        response = await _apiService.dio.get(
+          '/user/create-user/',
+          queryParameters: {'company_id': companyId},
+        );
       }
-
-      debugPrint('🏢 Using company_id: $companyId');
-
-      // ✅ Hit endpoint with company_id param
-      final response = await _apiService.dio.get(
-        '/user/create-user/',
-        queryParameters: {'company_id': companyId},
-      );
 
       debugPrint('💡 Users Response Status: ${response.statusCode}');
       debugPrint('💡 Users Response Data: ${response.data}');
@@ -187,8 +197,11 @@ class UserRoleService {
       }).toList();
 
       debugPrint('✅ Total Users Fetched: ${users.length}');
-      for (var u in users) {
-        debugPrint('👤 ${u['username']} (${u['id']})');
+      // Optional: limit log output for performance
+      if (users.length <= 10) {
+        for (var u in users) {
+          debugPrint('👤 ${u['username']} (${u['id']})');
+        }
       }
 
       return users;

@@ -15,6 +15,10 @@ import 'package:gatecheck/Admin_Screens/Visitors_Screen/visitors_screen.dart';
 import 'package:gatecheck/User_Screens/Dashboard_Screens/user_dashboard.dart';
 import 'package:gatecheck/User_Screens/Reports_screens/reports.dart';
 
+// Security Screens
+import 'package:gatecheck/Security_Screens/security_dashboard.dart';
+import 'package:gatecheck/Security_Screens/visitor_live_status.dart';
+
 class AppRoutes {
   // Route Names
   
@@ -34,6 +38,10 @@ class AppRoutes {
   static const String userProfile = '/user/profile';
   static const String userVisitors = '/user/visitors';
   static const String userReports = '/user/reports';
+
+// Security Routes
+static const String securityDashboard = '/security/dashboard';
+static const String visitorLiveStatus = '/security/visitor-live-status';
 
   // Route Generator
   static Route<dynamic> generateRoute(RouteSettings settings) {
@@ -76,6 +84,12 @@ class AppRoutes {
       
       case userReports:
         return MaterialPageRoute(builder: (_) => const UserReportsScreen());
+
+        //security routes
+      case securityDashboard:
+        return MaterialPageRoute(builder: (_) => const SecurityDashboardScreen());
+      case visitorLiveStatus:
+        return MaterialPageRoute(builder: (_) => const VisitorLiveStatusScreen());  
 
       // Default Route
       default:

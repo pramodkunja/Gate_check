@@ -211,21 +211,57 @@ class OrganizationService {
   }
 
   // -------------------- Error Message Helper --------------------
+  // -------------------- Error Message Helper --------------------
   String getErrorMessage(DioException error) {
     if (error.response?.data != null) {
-      final data = error.response!.data;
-      if (data is Map<String, dynamic>) {
-        if (data.containsKey('message')) {
-          return data['message'].toString();
-        }
-        if (data.containsKey('error')) {
-          return data['error'].toString();
-        }
-        if (data.containsKey('detail')) {
-          return data['detail'].toString();
-        }
-      }
+      return _parseErrorData(error.response!.data);
     }
-    return 'Unexpected error. Please try again.';
+    return error.message ?? 'Unexpected error. Please try again.';
+  }
+
+  // Helper to extract error message from a Response object (when validateStatus allows 400s)
+  String getErrorMessageFromResponse(Response response) {
+    if (response.data != null) {
+      return _parseErrorData(response.data);
+    }
+    return 'Request failed with status: ${response.statusCode}';
+  }
+
+  String _parseErrorData(dynamic data) {
+    if (data is Map<String, dynamic>) {
+      // Check for common error keys
+      if (data.containsKey('message')) {
+        return data['message'].toString();
+      }
+      if (data.containsKey('error')) {
+        return data['error'].toString();
+      }
+      if (data.containsKey('detail')) {
+        return data['detail'].toString();
+      }
+      
+      // Check for field-specific errors (common in Django DRF: {"email": ["Error"]})
+      final List<String> errorMessages = [];
+      data.forEach((key, value) {
+        if (value is List) {
+          // "email": ["Invalid email"]
+          errorMessages.add('$key: ${value.join(", ")}');
+        } else if (value is String) {
+          // "email": "Invalid email"
+          errorMessages.add('$key: $value');
+        }
+      });
+      
+      if (errorMessages.isNotEmpty) {
+        return errorMessages.join('\n');
+      }
+    } else if (data is List) {
+      // List of errors
+      return data.join('\n');
+    } else if (data is String) {
+      return data;
+    }
+    
+    return 'Unexpected error format.';
   }
 }

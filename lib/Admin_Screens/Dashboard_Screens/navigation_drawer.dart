@@ -237,6 +237,13 @@ class _NavigationState extends State<Navigation> {
                     isSelected: selectedRoute == 'Categories',
                     onTap: () => _handleNavigation('Categories'),
                   ),
+
+                   _buildMenuItem(
+                    icon: Icons.security_outlined,
+                    title: 'Security',
+                    isSelected: selectedRoute == 'Security',
+                    onTap: () => _handleNavigation('Security'),
+                  ),
                 ],
               ),
             ),
