@@ -100,29 +100,29 @@ class _ActionMenuState extends State<ActionMenu> {
     ];
 
     // Insert Reschedule item (if allowed) after QR Pass
-    if (widget.showReschedule) {
-      items.addAll([
-        Divider(height: 1, color: AppColors.border),
-        _buildMenuItem(
-          icon: Icons.calendar_today,
-          label: 'Reschedule',
-          onTap: () {
-            _closeMenu();
-            // Open reschedule dialog and trigger onSuccess to refresh
-            showDialog(
-              context: context,
-              builder: (context) => RescheduleDialog(
-                visitorId: widget.visitor.id,
-                visitorName: widget.visitor.name,
-                onSuccess: () {
-                  _safeRefresh();
-                },
-              ),
-            );
-          },
-        ),
-      ]);
-    }
+    // if (widget.showReschedule) {
+    //   items.addAll([
+    //     Divider(height: 1, color: AppColors.border),
+    //     _buildMenuItem(
+    //       icon: Icons.calendar_today,
+    //       label: 'Reschedule',
+    //       onTap: () {
+    //         _closeMenu();
+    //         // Open reschedule dialog and trigger onSuccess to refresh
+    //         showDialog(
+    //           context: context,
+    //           builder: (context) => RescheduleDialog(
+    //             visitorId: widget.visitor.id,
+    //             visitorName: widget.visitor.name,
+    //             onSuccess: () {
+    //               _safeRefresh();
+    //             },
+    //           ),
+    //         );
+    //       },
+    //     ),
+    //   ]);
+    // }
 
     return OverlayEntry(
       builder: (context) => GestureDetector(

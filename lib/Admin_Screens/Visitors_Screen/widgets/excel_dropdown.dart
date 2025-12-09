@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
@@ -8,7 +9,6 @@ import 'package:gatecheck/Admin_Screens/Visitors_Screen/widgets/bulk_visitor_pre
 import 'package:gatecheck/Admin_Screens/Visitors_Screen/widgets/parser_code.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:open_file/open_file.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../utils/colors.dart';
@@ -45,254 +45,260 @@ class _ExcelDropdownState extends State<ExcelDropdown> {
   void _closeDropdown() {
     _overlayEntry?.remove();
     _overlayEntry = null;
-    setState(() {
-      _isOpen = false;
-    });
+    if (mounted) {
+      setState(() {
+        _isOpen = false;
+      });
+    }
   }
 
   OverlayEntry _createOverlayEntry() {
-    RenderBox renderBox = context.findRenderObject() as RenderBox;
-    var size = renderBox.size;
-    var offset = renderBox.localToGlobal(Offset.zero);
+    final renderBox = context.findRenderObject() as RenderBox;
+    final size = renderBox.size;
+    final offset = renderBox.localToGlobal(Offset.zero);
+    final screenSize = MediaQuery.of(context).size;
+
+    const double maxDropdownWidth = 220.0;
+    double dropdownWidth =
+        screenSize.width - 32 < maxDropdownWidth ? screenSize.width - 32 : maxDropdownWidth;
+
+    // Clamp horizontally so it never overflows
+    double left = offset.dx;
+    if (left + dropdownWidth > screenSize.width - 16) {
+      left = screenSize.width - dropdownWidth - 16;
+    }
+    if (left < 16) left = 16;
+
+    final double top = offset.dy + size.height + 8;
 
     return OverlayEntry(
-      builder: (overlayContext) => GestureDetector(
-        onTap: _closeDropdown,
-        behavior: HitTestBehavior.translucent,
-        child: Stack(
-          children: [
-            Positioned(
-              left: offset.dx - 100,
-              top: offset.dy + size.height + 8,
-              child: Material(
-                elevation: 8,
-                borderRadius: BorderRadius.circular(12),
-                child: Container(
-                  width: 220,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      InkWell(
-                        onTap: () async {
-                          _closeDropdown();
+      builder: (overlayContext) => Stack(
+        children: [
+          // Tap outside to close
+          Positioned.fill(
+            child: GestureDetector(
+              onTap: _closeDropdown,
+              behavior: HitTestBehavior.translucent,
+              child: const SizedBox(),
+            ),
+          ),
+          Positioned(
+            left: left,
+            top: top,
+            width: dropdownWidth,
+            child: Material(
+              elevation: 8,
+              borderRadius: BorderRadius.circular(12),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    InkWell(
+                      onTap: () async {
+                        _closeDropdown();
 
-                          if (!mounted) return;
+                        if (!mounted) return;
 
-                          // Debug: Confirm tap
-                          /*
-                          await showDialog(
-                            context: context,
-                            builder: (_) => AlertDialog(
-                              title: Text('Debug'),
-                              content: Text('Starting file picker...'),
-                              actions: [TextButton(onPressed: () => Navigator.pop(context), child: Text('OK'))],
-                            ),
-                          );
-                          */
+                        final result = await FilePicker.platform.pickFiles(
+                          type: FileType.custom,
+                          allowedExtensions: ['xlsx', 'xls'],
+                          withData: true,
+                        );
 
-                          // pick file
-                          final result = await FilePicker.platform.pickFiles(
-                            type: FileType.custom,
-                            allowedExtensions: ['xlsx', 'xls'],
-                            withData: true, // Important for Web to get bytes
-                          );
-
-                          if (result == null) {
-                            if (mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text("No file selected"),
-                                ),
-                              );
-                            }
-                            return;
-                          }
-
-                          List<int>? fileBytes;
-                          String fileName = result.files.single.name;
-
-                          if (kIsWeb) {
-                            fileBytes = result.files.single.bytes;
-                          } else {
-                            final path = result.files.single.path;
-                            if (path != null) {
-                              fileBytes = await File(path).readAsBytes();
-                            }
-                          }
-
-                          if (fileBytes == null) {
-                            if (mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text("Cannot access file data"),
-                                ),
-                              );
-                            }
-                            return;
-                          }
-
-                          // parse excel
-                          if (!mounted) return;
-
-                          showDialog(
-                            context: context,
-                            barrierDismissible: false,
-                            builder: (_) => const Center(
-                              child: CircularProgressIndicator(),
-                            ),
-                          );
-
-                          try {
-                            print('DEBUG: Parsing file: $fileName');
-                            final visitors = await parseExcel(fileBytes);
-                            print('DEBUG: Parsed ${visitors.length} visitors');
-
-                            if (mounted) {
-                              Navigator.of(context).pop(); // remove loader
-                            }
-
-                            if (visitors.isEmpty) {
-                              if (mounted) {
-                                showDialog(
-                                  context: context,
-                                  builder: (_) => AlertDialog(
-                                    title: Text('Debug: Empty Excel'),
-                                    content: Text(
-                                      'Parsed 0 visitors. Check headers and data.',
-                                    ),
-                                    actions: [
-                                      TextButton(
-                                        onPressed: () => Navigator.pop(context),
-                                        child: Text('OK'),
-                                      ),
-                                    ],
-                                  ),
-                                );
-                              }
-                              return;
-                            }
-
-                            // navigate to preview
-                            if (mounted) {
-                              final success = await Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => BulkVisitorsPreviewScreen(
-                                    visitors: visitors,
-                                    fileBytes: fileBytes,
-                                    fileName: fileName,
-                                  ),
-                                ),
-                              );
-
-                              if (success == true && widget.onSuccess != null) {
-                                widget.onSuccess!();
-                              }
-                            }
-                          } catch (e) {
-                            if (mounted) {
-                              Navigator.of(context).pop(); // remove loader
-
-                              print('DEBUG: Parse error: $e');
-
-                              // Automatically fallback to direct upload if parsing fails
-                              if (mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text(
-                                      "Could not preview file. You can still upload it directly.",
-                                    ),
-                                    duration: Duration(seconds: 3),
-                                  ),
-                                );
-
-                                final success = await Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => BulkVisitorsPreviewScreen(
-                                      visitors: [],
-                                      fileBytes: fileBytes,
-                                      fileName: fileName,
-                                    ),
-                                  ),
-                                );
-
-                                if (success == true &&
-                                    widget.onSuccess != null) {
-                                  widget.onSuccess!();
-                                }
-                              }
-                            }
-                          }
-                        },
-                        borderRadius: BorderRadius.circular(12),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 14,
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(
-                                Icons.file_upload,
-                                size: 18,
-                                color: AppColors.textPrimary,
+                        if (result == null) {
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text("No file selected"),
                               ),
-                              const SizedBox(width: 12),
-                              Text(
+                            );
+                          }
+                          return;
+                        }
+
+                        List<int>? fileBytes;
+                        String fileName = result.files.single.name;
+
+                        if (kIsWeb) {
+                          fileBytes = result.files.single.bytes;
+                        } else {
+                          final path = result.files.single.path;
+                          if (path != null) {
+                            fileBytes = await File(path).readAsBytes();
+                          }
+                        }
+
+                        if (fileBytes == null) {
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text("Cannot access file data"),
+                              ),
+                            );
+                          }
+                          return;
+                        }
+
+                        if (!mounted) return;
+
+                        showDialog(
+                          context: context,
+                          barrierDismissible: false,
+                          builder: (_) => const Center(
+                            child: CircularProgressIndicator(),
+                          ),
+                        );
+
+                        try {
+                          final visitors = await parseExcel(fileBytes);
+
+                          if (mounted) {
+                            Navigator.of(context).pop(); // remove loader
+                          }
+
+                          if (visitors.isEmpty) {
+                            if (mounted) {
+                              showDialog(
+                                context: context,
+                                builder: (_) => AlertDialog(
+                                  title: const Text('Debug: Empty Excel'),
+                                  content: const Text(
+                                    'Parsed 0 visitors. Check headers and data.',
+                                  ),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () => Navigator.pop(context),
+                                      child: const Text('OK'),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }
+                            return;
+                          }
+
+                          if (mounted) {
+                            final success = await Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => BulkVisitorsPreviewScreen(
+                                  visitors: visitors,
+                                  fileBytes: fileBytes,
+                                  fileName: fileName,
+                                ),
+                              ),
+                            );
+
+                            if (success == true && widget.onSuccess != null) {
+                              widget.onSuccess!();
+                            }
+                          }
+                        } catch (e) {
+                          if (mounted) {
+                            Navigator.of(context).pop(); // remove loader
+
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                  "Could not preview file. You can still upload it directly.",
+                                ),
+                                duration: Duration(seconds: 3),
+                              ),
+                            );
+
+                            final success = await Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => BulkVisitorsPreviewScreen(
+                                  visitors: const [],
+                                  fileBytes: fileBytes,
+                                  fileName: fileName,
+                                ),
+                              ),
+                            );
+
+                            if (success == true && widget.onSuccess != null) {
+                              widget.onSuccess!();
+                            }
+                          }
+                        }
+                      },
+                      borderRadius: BorderRadius.circular(12),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 12,
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.file_upload,
+                              size: 18,
+                              color: AppColors.textPrimary,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
                                 'Import Excel',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                                 style: GoogleFonts.inter(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w500,
                                   color: AppColors.textPrimary,
                                 ),
                               ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
                       ),
-                      const Divider(height: 1),
-                      InkWell(
-                        onTap: () {
-                          _closeDropdown();
-                          _downloadTemplate();
-                        },
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 14,
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(
-                                Icons.download_outlined,
-                                size: 18,
-                                color: AppColors.textPrimary,
-                              ),
-                              const SizedBox(width: 12),
-                              Text(
+                    ),
+                    const Divider(height: 1),
+                    InkWell(
+                      onTap: () {
+                        _closeDropdown();
+                        _downloadTemplate();
+                      },
+                      borderRadius: BorderRadius.circular(12),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 12,
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.download_outlined,
+                              size: 18,
+                              color: AppColors.textPrimary,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
                                 'Download Template',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                                 style: GoogleFonts.inter(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w500,
                                   color: AppColors.textPrimary,
                                 ),
                               ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -331,76 +337,97 @@ class _ExcelDropdownState extends State<ExcelDropdown> {
   }
 
   Future<void> _downloadTemplate() async {
+    const fileName = 'visitor_schedule_1.xlsx';
+
     try {
-      // 1. Load from assets
-      final byteData = await rootBundle.load('assets/visitor_schedule_1.xlsx');
-      final fileBytes = byteData.buffer.asUint8List();
-
-      // 5. Save File
-      String fileName = 'visitor_schedule_1.xlsx';
-
+      // 🌐 WEB: open as data URL
       if (kIsWeb) {
+        final byteData = await rootBundle.load('assets/visitor_schedule_1.xlsx');
+        final fileBytes = byteData.buffer.asUint8List();
         final uri = Uri.dataFromBytes(
           fileBytes,
-          mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          mimeType:
+              'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         );
         await launchUrl(uri);
         return;
       }
 
-      // Request storage permission on Android
+      // Load from assets once
+      final byteData = await rootBundle.load('assets/visitor_schedule_1.xlsx');
+      final Uint8List fileBytes = byteData.buffer.asUint8List();
+
+      String filePath;
+
       if (Platform.isAndroid) {
-        var status = await Permission.storage.status;
-        if (!status.isGranted) {
-          status = await Permission.storage.request();
-          if (!status.isGranted) {
-            if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text(
-                    'Storage permission is required to download template',
-                  ),
-                  backgroundColor: Colors.red,
-                ),
-              );
-            }
-            return;
+        // ✅ Try to save into public Downloads WITHOUT requesting runtime permission
+        // This works on many devices; if it fails, we fall back to app directory.
+        try {
+          final downloadsDir = Directory('/storage/emulated/0/Download');
+          if (!downloadsDir.existsSync()) {
+            downloadsDir.createSync(recursive: true);
           }
+          filePath = '${downloadsDir.path}/$fileName';
+          final file = File(filePath);
+          await file.writeAsBytes(fileBytes, flush: true);
+
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: const Text('Template saved in Downloads folder'),
+                backgroundColor: Colors.green,
+                action: SnackBarAction(
+                  label: 'Open',
+                  textColor: Colors.white,
+                  onPressed: () {
+                    OpenFile.open(filePath);
+                  },
+                ),
+              ),
+            );
+          }
+          return; // success, no need to fall back
+        } catch (e) {
+          // Fall back below
+          debugPrint('Failed to write to public Downloads, falling back: $e');
         }
-      }
 
-      Directory? directory;
-      if (Platform.isWindows) {
-        directory = await getDownloadsDirectory();
-      } else if (Platform.isAndroid) {
-        directory = await getExternalStorageDirectory();
+        // Fallback: app-specific documents directory
+        final docsDir = await getApplicationDocumentsDirectory();
+        filePath = '${docsDir.path}/$fileName';
+      } else if (Platform.isIOS) {
+        // iOS – app documents directory
+        final docsDir = await getApplicationDocumentsDirectory();
+        filePath = '${docsDir.path}/$fileName';
       } else {
-        directory = await getApplicationDocumentsDirectory();
+        // Desktop / others
+        Directory? directory = await getDownloadsDirectory();
+        directory ??= await getApplicationDocumentsDirectory();
+        filePath = '${directory.path}/$fileName';
       }
 
-      if (directory == null) {
-        directory = await getApplicationDocumentsDirectory();
-      }
-
-      final filePath = '${directory.path}/$fileName';
       final file = File(filePath);
-      await file.writeAsBytes(fileBytes);
+      await file.writeAsBytes(fileBytes, flush: true);
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Template saved to Downloads'),
-            backgroundColor: Colors.green,
-            action: SnackBarAction(
-              label: 'Open',
-              textColor: Colors.white,
-              onPressed: () {
-                OpenFile.open(filePath);
-              },
-            ),
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            Platform.isAndroid
+                ? 'Template downloaded (app storage, use Open to view)'
+                : 'Template downloaded',
           ),
-        );
-      }
+          backgroundColor: Colors.green,
+          action: SnackBarAction(
+            label: 'Open',
+            textColor: Colors.white,
+            onPressed: () {
+              OpenFile.open(filePath);
+            },
+          ),
+        ),
+      );
     } catch (e) {
       debugPrint('Error downloading template: $e');
       if (mounted) {
