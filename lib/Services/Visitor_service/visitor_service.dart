@@ -15,7 +15,7 @@ class VisitorApiService {
       if (isSuperUser) {
         endpoint = '/visitors/visitors/';
       } else {
-        endpoint = '/visitors/company/$companyId/visitors/';
+        endpoint = '/visitors/visitors/';
       }
 
       debugPrint('🔍 Fetching visitors from: $endpoint');

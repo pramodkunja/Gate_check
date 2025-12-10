@@ -511,13 +511,13 @@ class _AddVisitorDialogState extends State<AddVisitorDialog> {
                           isRequired: true,
                         ),
                         const SizedBox(height: 18),
-                        _buildDatePicker(
-                          label: 'Valid Until',
-                          selectedDate: _validUntilDate,
-                          onTap: () => _selectValidUntil(context),
-                          isRequired: true,
-                        ),
-                        const SizedBox(height: 18),
+                        // _buildDatePicker(
+                        //   label: 'Valid Until',
+                        //   selectedDate: _validUntilDate,
+                        //   onTap: () => _selectValidUntil(context),
+                        //   isRequired: true,
+                        // ),
+                        //const SizedBox(height: 18),
                       ],
 
                       // Category dropdown is based on backend

@@ -165,15 +165,9 @@ class _AddUserDialogState extends State<AddUserDialog> {
         // ✅ Use current controller text (updated from API)
         companyName: _companyController.text.trim(),
         role: _selectedRole!,
-        aliasName: _aliasController.text.trim().isEmpty
-            ? null
-            : _aliasController.text.trim(),
-        block: _blockController.text.trim().isEmpty
-            ? null
-            : _blockController.text.trim(),
-        floor: _floorController.text.trim().isEmpty
-            ? null
-            : _floorController.text.trim(),
+        aliasName: _aliasController.text.trim(),
+        block: _blockController.text.trim(),
+        floor: _floorController.text.trim(),
         dateAdded: null,
       );
       widget.onAdd(
@@ -413,39 +407,57 @@ class _AddUserDialogState extends State<AddUserDialog> {
                         controller: _aliasController,
                         style: GoogleFonts.poppins(fontSize: 16),
                         decoration: InputDecoration(
-                          labelText: 'Alias Name',
+                          labelText: 'Alias Name *',
                           labelStyle: GoogleFonts.poppins(fontSize: 18),
-                          hintText: 'Enter alias name (optional)',
+                          hintText: 'Enter alias name',
                           hintStyle: GoogleFonts.poppins(fontSize: 16),
                           prefixIcon: const Icon(Icons.badge_outlined),
                           border: const OutlineInputBorder(),
                         ),
+                         validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'Please enter alias name';
+                          }
+                          return null;
+                        },
                       ),
                       const SizedBox(height: 16),
                       TextFormField(
                         controller: _blockController,
                         style: GoogleFonts.poppins(fontSize: 16),
                         decoration: InputDecoration(
-                          labelText: 'Block/Building',
+                          labelText: 'Block/Building *',
                           labelStyle: GoogleFonts.poppins(fontSize: 18),
-                          hintText: 'Enter block or building (optional)',
+                          hintText: 'Enter block or building',
                           hintStyle: GoogleFonts.poppins(fontSize: 16),
                           prefixIcon: const Icon(Icons.apartment_outlined),
                           border: const OutlineInputBorder(),
                         ),
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'Please enter block or building';
+                          }
+                          return null;
+                        },
                       ),
                       const SizedBox(height: 16),
                       TextFormField(
                         controller: _floorController,
                         style: GoogleFonts.poppins(fontSize: 16),
                         decoration: InputDecoration(
-                          labelText: 'Floor',
+                          labelText: 'Floor *',
                           labelStyle: GoogleFonts.poppins(fontSize: 18),
-                          hintText: 'Enter floor (optional)',
+                          hintText: 'Enter floor number',
                           hintStyle: GoogleFonts.poppins(fontSize: 16),
                           prefixIcon: const Icon(Icons.layers_outlined),
                           border: const OutlineInputBorder(),
                         ),
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'Please enter floor';
+                          }
+                          return null;
+                        },
                       ),
                     ],
                   ),
