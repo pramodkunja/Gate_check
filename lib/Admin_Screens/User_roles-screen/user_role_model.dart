@@ -4,7 +4,8 @@ class UserRoleModel {
   final int userRoleId;
   final int userId;
   final int roleId;
-  final int? companyId; // ✅ Added company ID
+  final int? companyId;
+  final String? companyName; // ✅ Added company Name
   final String username;
   final String rolename;
   final String? createdBy;
@@ -19,6 +20,7 @@ class UserRoleModel {
     required this.userId,
     required this.roleId,
     this.companyId,
+    this.companyName,
     required this.username,
     required this.rolename,
     this.createdBy,
@@ -42,6 +44,7 @@ class UserRoleModel {
       userId: json['user'] ?? 0,
       roleId: json['role'] ?? 0,
       companyId: parseCompanyId(json['company'] ?? json['company_id']),
+      companyName: json['company_name']?.toString(),
       username:
           json['user_name']?.toString() ??
           '',
@@ -69,6 +72,7 @@ class UserRoleModel {
       'user': userId,
       'role': roleId,
       'company': companyId,
+      'company_name': companyName,
       'user_name': username,
       'role_name': rolename,
       'created_by': createdBy,

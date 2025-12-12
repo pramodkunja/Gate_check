@@ -681,32 +681,22 @@ class _UserRolesManagementScreenState extends State<UserRolesManagementScreen> {
                       vertical: 10,
                     ),
                     child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Expanded(
-                          flex: 4,
-                          child: Text(
-                            'USER',
-                            style: GoogleFonts.poppins(
-                              fontWeight: FontWeight.w600,
-                            ),
+                        Text(
+                          'USER DETAILS',
+                          style: GoogleFonts.poppins(
+                            fontWeight: FontWeight.w600,
+                            color: secondaryText,
+                            fontSize: 12,
                           ),
                         ),
-                        Expanded(
-                          flex: 3,
-                          child: Text(
-                            'ROLE',
-                            style: GoogleFonts.poppins(
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                        Expanded(
-                          flex: 2,
-                          child: Text(
-                            'ACTIONS',
-                            style: GoogleFonts.poppins(
-                              fontWeight: FontWeight.w600,
-                            ),
+                        Text(
+                          'ACTIONS',
+                          style: GoogleFonts.poppins(
+                            fontWeight: FontWeight.w600,
+                            color: secondaryText,
+                            fontSize: 12,
                           ),
                         ),
                       ],
@@ -737,86 +727,144 @@ class _UserRolesManagementScreenState extends State<UserRolesManagementScreen> {
                           itemBuilder: (context, index) {
                             final u = _visibleUsers[index];
                             return Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 14,
-                              ),
+                              padding: const EdgeInsets.all(16),
                               decoration: BoxDecoration(
                                 color: Colors.white,
-                                borderRadius: BorderRadius.circular(12),
+                                borderRadius: BorderRadius.circular(20),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: Colors.black12.withOpacity(0.03),
-                                    blurRadius: 8,
-                                    offset: const Offset(0, 2),
+                                    color: Colors.black.withOpacity(0.04),
+                                    blurRadius: 10,
+                                    offset: const Offset(0, 4),
                                   ),
                                 ],
                               ),
                               child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.center,
                                 children: [
-                                  Expanded(
-                                    flex: 4,
-                                    child: Row(
-                                      children: [
-                                        CircleAvatar(
-                                          backgroundColor: primary.withOpacity(
-                                            0.12,
-                                          ),
-                                          child: Text(
-                                            u.username
-                                                .split(' ')
-                                                .map(
-                                                  (e) =>
-                                                      e.isNotEmpty ? e[0] : '',
-                                                )
-                                                .take(2)
-                                                .join()
-                                                .toUpperCase(),
-                                          ),
-                                        ),
-                                        const SizedBox(width: 12),
-                                        Flexible(
-                                          child: Text(
-                                            u.username,
-                                            style: GoogleFonts.poppins(
-                                              fontWeight: FontWeight.w600,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
+                                  // Avatar
+                                  Container(
+                                    width: 50,
+                                    height: 50,
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFF3EDFF),
+                                      shape: BoxShape.circle,
                                     ),
-                                  ),
-                                  Expanded(
-                                    flex: 3,
+                                    alignment: Alignment.center,
                                     child: Text(
-                                      u.rolename,
+                                      u.username
+                                          .split(' ')
+                                          .map(
+                                              (e) =>
+                                                  e.isNotEmpty ? e[0] : '',)
+                                          .take(2)
+                                          .join()
+                                          .toUpperCase(),
                                       style: GoogleFonts.poppins(
-                                        color: secondaryText,
+                                        color: primary,
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 18,
                                       ),
                                     ),
                                   ),
+                                  const SizedBox(width: 16),
+
+                                  // User Details (Name, Role, Company)
                                   Expanded(
-                                    flex: 2,
-                                    child: Wrap(
-                                      alignment: WrapAlignment.end,
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
-                                        IconButton(
-                                          onPressed: _isLoading
-                                              ? null
-                                              : () => _openEditDialog(u),
-                                          icon: const Icon(Icons.edit),
-                                          color: primary,
+                                        Text(
+                                          u.username,
+                                          style: GoogleFonts.poppins(
+                                            fontWeight: FontWeight.w600,
+                                            fontSize: 16,
+                                            color: const Color(0xFF212121),
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
                                         ),
-                                        IconButton(
-                                          onPressed: _isLoading
-                                              ? null
-                                              : () => _openDeleteDialog(u),
-                                          icon: const Icon(Icons.delete),
-                                          color: Colors.redAccent,
+                                        const SizedBox(height: 4),
+                                        Row(
+                                          children: [
+                                            Container(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                horizontal: 8,
+                                                vertical: 2,
+                                              ),
+                                              decoration: BoxDecoration(
+                                                color: const Color(0xFFF3EDFF),
+                                                borderRadius:
+                                                    BorderRadius.circular(6),
+                                              ),
+                                              child: Text(
+                                                u.rolename.toUpperCase(),
+                                                style: GoogleFonts.poppins(
+                                                  fontSize: 10,
+                                                  fontWeight: FontWeight.w600,
+                                                  color: primary,
+                                                  letterSpacing: 0.5,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
                                         ),
+                                        if (u.companyName != null &&
+                                            u.companyName!.isNotEmpty) ...[
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            u.companyName!,
+                                            style: GoogleFonts.poppins(
+                                              fontSize: 12,
+                                              color: secondaryText,
+                                            ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ],
                                       ],
                                     ),
                                   ),
+                                  const SizedBox(width: 8),
+
+                                  // Actions
+                                  Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                       Row(
+                                         mainAxisAlignment: MainAxisAlignment.end,
+                                         children: [
+                                            IconButton(
+                                              onPressed: _isLoading
+                                                  ? null
+                                                  : () => _openEditDialog(u),
+                                              icon: const Icon(Icons.edit, size: 20),
+                                              color: primary,
+                                              padding: EdgeInsets.zero,
+                                              constraints: const BoxConstraints(),
+                                              style: IconButton.styleFrom(
+                                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                              ),
+                                            ),
+                                            const SizedBox(width: 16),
+                                            IconButton(
+                                              onPressed: _isLoading
+                                                  ? null
+                                                  : () => _openDeleteDialog(u),
+                                              icon: const Icon(Icons.delete, size: 20),
+                                              color: Colors.redAccent,
+                                              padding: EdgeInsets.zero,
+                                              constraints: const BoxConstraints(),
+                                              style: IconButton.styleFrom(
+                                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                              ),
+                                            ),
+                                         ],
+                                       )
+                                    ]
+                                  )
                                 ],
                               ),
                             );
