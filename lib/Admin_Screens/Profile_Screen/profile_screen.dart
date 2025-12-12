@@ -1,15 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:gatecheck/Services/Auth_Services/api_service.dart';
 import 'package:gatecheck/Services/User_services/user_service.dart';
+
+// USER UI
 import 'package:gatecheck/User_Screens/Dashboard_Screens/user_custom_appbar.dart';
 import 'package:gatecheck/User_Screens/Dashboard_Screens/user_navigation_drawer.dart';
-import 'package:google_fonts/google_fonts.dart';
+
+// ADMIN UI
 import 'package:gatecheck/Admin_Screens/Profile_Screen/widgets/change_password.dart';
 import 'package:gatecheck/Admin_Screens/Profile_Screen/widgets/profile_information.dart';
 import 'package:gatecheck/Admin_Screens/Dashboard_Screens/custom_appbar.dart';
 import 'package:gatecheck/Admin_Screens/Dashboard_Screens/navigation_drawer.dart';
+
+// SECURITY UI (NEW IMPORTS)
+import 'package:gatecheck/Security_Screens/security_custom_appbar.dart';
+import 'package:gatecheck/Security_Screens/security_navigation_drawer.dart';
+
 import 'widgets/profile_header.dart';
 import 'widgets/security_section.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -22,9 +31,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final ApiService _apiService = ApiService();
   bool _isLoading = false;
 
-  // Profile data variables
   // ignore: unused_field
   Map<String, dynamic>? _profileData;
+
   String _name = '';
   String _companyName = '';
   String _aliasName = '';
@@ -45,24 +54,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _fetchProfileData() async {
-    setState(() {
-      _isLoading = true;
-    });
+    setState(() => _isLoading = true);
 
     try {
       final response = await _apiService.getUserProfile();
 
       if (response.statusCode == 200 && response.data != null) {
-        final data = response.data is Map<String, dynamic>
-            ? response.data as Map<String, dynamic>
-            : <String, dynamic>{};
-
-        debugPrint('📦 Profile Data: $data');
+        final data = response.data as Map<String, dynamic>;
 
         setState(() {
           _profileData = data;
 
-          // Extract basic user information
           _name = data['username']?.toString() ?? '';
           _aliasName = data['alias_name']?.toString() ?? '';
           _role = data['roles']?.toString() ?? 'No data found for role';
@@ -72,177 +74,102 @@ class _ProfileScreenState extends State<ProfileScreen> {
           _blockBuilding = data['block']?.toString() ?? '';
           _floor = data['floor']?.toString() ?? '';
 
-          // Extract nested company information
-          if (data['company'] != null &&
-              data['company'] is Map<String, dynamic>) {
-            final company = data['company'] as Map<String, dynamic>;
+          if (data['company'] is Map<String, dynamic>) {
+            final company = data['company'];
             _companyName = company['company_name']?.toString() ?? '';
             _address = company['address']?.toString() ?? '';
             _location = company['location']?.toString() ?? '';
             _pinCode = company['pin_code']?.toString() ?? '';
-          } else {
-            _companyName = '';
-            _address = '';
-            _location = '';
-            _pinCode = '';
           }
-
-          debugPrint('✅ Mapped Data:');
-          debugPrint('   Name: $_name');
-          debugPrint('   Company: $_companyName');
-          debugPrint('   Alias: $_aliasName');
-          debugPrint('   Role: $_role');
-          debugPrint('   Email: $_email');
-          debugPrint('   Mobile: $_mobileNumber');
-          debugPrint('   Address: $_address');
-          debugPrint('   Location: $_location');
-          debugPrint('   Pin Code: $_pinCode');
         });
       } else {
-        _showErrorSnackBar('Failed to load profile data');
+        _showError("Failed to load profile data");
       }
     } catch (e) {
-      debugPrint('❌ Error fetching profile: $e');
-      _showErrorSnackBar('Error loading profile data');
-    } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      _showError("Error loading profile data");
     }
+
+    setState(() => _isLoading = false);
   }
 
-  void _showErrorSnackBar(String message) {
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(message),
-          backgroundColor: Colors.red,
-          duration: const Duration(seconds: 3),
-        ),
-      );
-    }
+  void _showError(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(msg), backgroundColor: Colors.red),
+    );
   }
 
-  void _showSuccessSnackBar(String message) {
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(message),
-          backgroundColor: Colors.green,
-          duration: const Duration(seconds: 2),
-        ),
-      );
-    }
+  void _showSuccess(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(msg), backgroundColor: Colors.green),
+    );
   }
 
   void _handleChangePassword() {
-    showDialog(
-      context: context,
-      builder: (context) => const ChangePasswordDialog(),
-    );
+    showDialog(context: context, builder: (context) => const ChangePasswordDialog());
   }
 
   void _handleLogout() {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(
-          'Logout',
-          style: GoogleFonts.poppins(
-            fontWeight: FontWeight.bold,
-            color: Colors.black87,
-          ),
-        ),
-        content: Text(
-          'Are you sure you want to logout?',
-          style: GoogleFonts.poppins(color: Colors.black87, fontSize: 14),
-        ),
+      builder: (_) => AlertDialog(
+        title: Text("Logout", style: GoogleFonts.poppins(fontWeight: FontWeight.bold)),
+        content: Text("Are you sure you want to logout?", style: GoogleFonts.poppins()),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text(
-              'Cancel',
-              style: GoogleFonts.poppins(
-                color: Colors.grey[700],
-                fontWeight: FontWeight.w500,
-              ),
-            ),
+            child: Text("Cancel", style: GoogleFonts.poppins()),
           ),
           TextButton(
             onPressed: () async {
               Navigator.pop(context);
-              await _performLogout();
+              await _apiService.logout();
+              if (mounted) Navigator.pushReplacementNamed(context, '/login');
             },
-            child: Text(
-              'Logout',
-              style: GoogleFonts.poppins(
-                color: Colors.red,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
+            child: Text("Logout", style: GoogleFonts.poppins(color: Colors.red)),
           ),
         ],
       ),
     );
   }
 
-  Future<void> _performLogout() async {
-    try {
-      await _apiService.logout();
-      if (mounted) {
-        Navigator.of(context).pushReplacementNamed('/login');
-      }
-    } catch (e) {
-      debugPrint('❌ Logout error: $e');
-      _showErrorSnackBar('Logout failed. Please try again.');
-    }
-  }
-
-  void _handleRefresh() {
-    _fetchProfileData();
-    _showSuccessSnackBar('Refreshing profile...');
-  }
-
   @override
   Widget build(BuildContext context) {
     String userName = UserService().getUserName();
-    String firstLetter = userName.isNotEmpty ? userName[0].toUpperCase() : "?";
+    String initial = userName.isNotEmpty ? userName[0].toUpperCase() : "?";
     String email = UserService().getUserEmail();
+    String role = (UserService().getUserRole()).trim().toLowerCase();
 
-    // Use fetched data if available, otherwise use UserService
-    final displayName = _name.isNotEmpty ? _name : userName;
-    final displayEmail = _email.isNotEmpty ? _email : email;
-    final displayInitial = displayName.isNotEmpty
-        ? displayName[0].toUpperCase()
-        : 'U';
+    // Role Logic
+    final bool isAdmin = role.isEmpty || role == "admin" || role == "null";
+    final bool isSecurity = role == "security";
+    // ignore: unused_local_variable
+    final bool isUser = !isAdmin && !isSecurity;
 
-    // decide role
-    final String role = UserService()
-        .getUserRole(); // assume you add this service method
-    final bool isAdmin = (role == null || role == 'admin');
+    // Override with backend fetched data if available
+    final String displayName = _name.isNotEmpty ? _name : userName;
+    final String displayInitial = displayName.isNotEmpty ? displayName[0].toUpperCase() : "U";
+    final String displayEmail = _email.isNotEmpty ? _email : email;
 
     return Scaffold(
       drawer: isAdmin
-          ? const Navigation(currentRoute: 'Profile') // assume admin drawer
-          : const UserNavigation(currentRoute: 'Profile',), // you should have a user drawer
+          ? const Navigation(currentRoute: "Profile")
+          : isSecurity
+              ? const SecurityNavigation(currentRoute: "Profile")
+              : const UserNavigation(currentRoute: "Profile"),
+
       appBar: isAdmin
-          ? CustomAppBar(
-              userName: userName,
-              firstLetter: firstLetter,
-              email: email,
-            )
-          : UserCustomAppBar(
-              userName: userName,
-              firstLetter: firstLetter,
-              email: email,
-            ),
+          ? CustomAppBar(userName: userName, firstLetter: initial, email: email)
+          : isSecurity
+              ? SecurityCustomAppBar(userName: userName, firstLetter: initial, email: email)
+              : UserCustomAppBar(userName: userName, firstLetter: initial, email: email),
+
       body: _isLoading
-          ? Center(child: CircularProgressIndicator(color: Colors.purple))
+          ? const Center(child: CircularProgressIndicator(color: Colors.purple))
           : SingleChildScrollView(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Header Section
+                  // Header Row
                   Padding(
                     padding: const EdgeInsets.all(16.0),
                     child: Row(
@@ -250,31 +177,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       children: [
                         Row(
                           children: [
-                            const Icon(
-                              Icons.person_outline,
-                              color: Colors.black,
-                            ),
+                            const Icon(Icons.person_outline, color: Colors.black),
                             const SizedBox(width: 8),
                             Text(
-                              'Profile',
+                              "Profile",
                               style: GoogleFonts.poppins(
                                 fontSize: 30,
                                 fontWeight: FontWeight.bold,
-                                color: Colors.black87,
                               ),
                             ),
                           ],
                         ),
                         TextButton.icon(
-                          onPressed: _handleRefresh,
+                          onPressed: () {
+                            _fetchProfileData();
+                            _showSuccess("Refreshing profile...");
+                          },
                           icon: const Icon(Icons.refresh, color: Colors.purple),
-                          label: Text(
-                            'Refresh',
-                            style: GoogleFonts.poppins(
-                              color: Colors.purple,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
+                          label: Text("Refresh", style: GoogleFonts.poppins(color: Colors.purple)),
                         ),
                       ],
                     ),
@@ -287,14 +207,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     initial: displayInitial,
                   ),
 
-                  // Security Section
+                  // Security Actions
                   SecuritySection(
                     aliasName: _aliasName,
                     onChangePassword: _handleChangePassword,
                     onLogout: _handleLogout,
                   ),
 
-                  // Profile Information Section
+                  // Profile Information
                   ProfileInformationSection(
                     role: _role,
                     companyName: _companyName,

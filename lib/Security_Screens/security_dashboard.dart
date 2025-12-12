@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:gatecheck/Security_Screens/entry_otp_screen.dart';
 import 'package:gatecheck/Security_Screens/manual_check_in.dart';
 import 'package:gatecheck/Security_Screens/qr_scanner.dart';
+import 'package:gatecheck/Security_Screens/security_custom_appbar.dart';
+import 'package:gatecheck/Security_Screens/security_navigation_drawer.dart';
+import 'package:gatecheck/Security_Screens/visitor_verify.dart';
+import 'package:gatecheck/Services/User_services/user_service.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class SecurityDashboardScreen extends StatelessWidget {
@@ -8,11 +13,21 @@ class SecurityDashboardScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    String userName = UserService().getUserName();
+    String firstLetter = userName.isNotEmpty ? userName[0].toUpperCase() : "?";
+    String email = UserService().getUserEmail();
+
     final w = MediaQuery.of(context).size.width;
     final h = MediaQuery.of(context).size.height;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Colors.grey[100],
+      appBar: SecurityCustomAppBar(
+        userName: userName,
+        firstLetter: firstLetter,
+        email: email,
+      ),
+      drawer: SecurityNavigation(currentRoute: 'Dashboard'),
       body: SafeArea(
         child: SingleChildScrollView(
           physics: const BouncingScrollPhysics(),
@@ -21,33 +36,11 @@ class SecurityDashboardScreen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                SizedBox(height: h * 0.015),
-
-                /// Top Bar
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Icon(Icons.menu, size: w * 0.065),
-                    CircleAvatar(
-                      radius: w * 0.045,
-                      backgroundColor: Colors.deepPurple,
-                      child: Text(
-                        'S',
-                        style: GoogleFonts.poppins(
-                          color: Colors.white,
-                          fontSize: w * 0.05,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-
                 SizedBox(height: h * 0.025),
 
                 /// Title
                 Text(
-                  "Welcome back, Security!",
+                  "Welcome back, $userName!",
                   style: GoogleFonts.poppins(
                     color: const Color(0xFF8A03FF),
                     fontSize: w * 0.06,
@@ -244,12 +237,12 @@ class SecurityDashboardScreen extends StatelessWidget {
     } else if (action == 'manual_checkin') {
       Navigator.push(
         context,
-        MaterialPageRoute(builder: (_) => const ManualCheckInScreen()),
+        MaterialPageRoute(builder: (_) => const EntryOtpScreen()),
       );
     } else if (action == 'manual_checkout') {
       Navigator.push(
         context,
-        MaterialPageRoute(builder: (_) => const ManualCheckInScreen()),
+        MaterialPageRoute(builder: (_) => const VisitorVerifyScreen()),
       );
     }
   }

@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:gatecheck/Admin_Screens/Dashboard_Screens/dashboard_screen.dart';
+import 'package:gatecheck/Security_Screens/security_dashboard.dart';
 import 'package:gatecheck/Services/Auth_Services/api_service.dart';
 import 'package:gatecheck/Services/User_services/user_service.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -254,6 +255,12 @@ class _SignInScreenState extends State<SignInScreen> {
     if (role == 'admin' || role == 'null') {
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (_) => const DashboardScreen()),
+        (route) => false,
+      );
+    } else if (role == 'security') {
+      // Security users go to security dashboard
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const SecurityDashboardScreen()),
         (route) => false,
       );
     } else {
