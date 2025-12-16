@@ -1,6 +1,8 @@
 import 'dart:ui';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
-import 'package:gatecheck/Security_Screens/visitor_live_status.dart';
+import 'package:gatecheck/Security_Screens/visitor_verify.dart';
+import 'package:gatecheck/Services/Visitor_service/visitor_service.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
@@ -14,8 +16,17 @@ class QrScannerScreen extends StatefulWidget {
 class _QrScannerScreenState extends State<QrScannerScreen>
     with SingleTickerProviderStateMixin {
   final MobileScannerController _controller = MobileScannerController();
+  final VisitorApiService _visitorApiService = VisitorApiService();
+  
   bool _flashOn = false;
   bool _popupVisible = false;
+  bool _isLoading = false;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -26,32 +37,94 @@ class _QrScannerScreenState extends State<QrScannerScreen>
       body: Stack(
         children: [
           // --- Blur Background ---
-          Positioned.fill(
-            child: ImageFiltered(
-              imageFilter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
-              child: Container(
-                decoration: const BoxDecoration(
-                  image: DecorationImage(
-                    image: AssetImage("assets/bg.jpg"),
-                    fit: BoxFit.cover,
-                  ),
-                ),
-              ),
-            ),
-          ),
+          // Positioned.fill(
+          //   child: ImageFiltered(
+          //     imageFilter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+          //     child: Container(
+          //       decoration: const BoxDecoration(
+          //         image: DecorationImage(
+          //           image: AssetImage("assets/bg.jpg"),
+          //           fit: BoxFit.cover,
+          //         ),
+          //       ),
+          //     ),
+          //   ),
+          // ),
 
           // --- QR Scanner ---
           Positioned.fill(
             child: MobileScanner(
               controller: _controller,
-              onDetect: (barcode) {
-                if (!_popupVisible) {
-                  setState(() => _popupVisible = true);
+              onDetect: (barcode) async {
+                if (!_popupVisible && !_isLoading) {
+                  final String? code = barcode.barcodes.first.rawValue;
+                  if (code == null) return;
+
+                  setState(() {
+                     _isLoading = true;
+                  });
                   _controller.stop();
 
-                  Future.delayed(const Duration(milliseconds: 300), () {
-                    showVisitorDetailsPopup(context);
-                  });
+                  try {
+                    // Call API
+                    final response = await _visitorApiService.scanQrCode(code);
+                    
+                    if (mounted) {
+                       setState(() {
+                        _isLoading = false;
+                      });
+                      
+                      final responseData = response.data;
+                      final visitorData = responseData is Map<String, dynamic> ? responseData : <String, dynamic>{};
+                      
+                      // Check if 'data' key exists and use that, or use the root
+                      final finalData = (visitorData['data'] ?? visitorData) as Map<String, dynamic>;
+
+                      // Navigate to Verify Screen
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => VisitorVerifyScreen(
+                            visitorData: finalData,
+                            otp: code, // Passing QR code as OTP/Reference
+                          ),
+                        ),
+                      ).then((_) {
+                         // When returning, restart scanner
+                         if (mounted) {
+                           _controller.start();
+                         }
+                      });
+                    }
+                  } catch (e) {
+                      if (mounted) {
+                        setState(() {
+                          _isLoading = false;
+                          _popupVisible = false; 
+                        });
+                        _controller.start(); 
+                        
+                        String errorMsg = "Scan failed";
+                        if (e is DioException) {
+                           errorMsg = _visitorApiService.getErrorMessage(e);
+                        } else if (e.toString().contains("Invalid QR format")) {
+                           errorMsg = "Invalid QR Format: Please scan a valid GateCheck pass.";
+                        } else {
+                           errorMsg = e.toString().replaceAll('Exception: ', '');
+                        }
+                        
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              errorMsg, 
+                              style: GoogleFonts.poppins(color: Colors.white),
+                            ),
+                            backgroundColor: Colors.red,
+                            behavior: SnackBarBehavior.floating,
+                          ),
+                        );
+                      }
+                  }
                 }
               },
             ),
@@ -74,12 +147,21 @@ class _QrScannerScreenState extends State<QrScannerScreen>
                 ),
                 SizedBox(height: h * 0.01),
                 Text(
-                  "Scanning...",
+                  _isLoading ? "Verifying..." : "Scanning...",
                   style: GoogleFonts.poppins(
                     color: Color(0xFFB57AFF),
                     fontSize: h * 0.02,
                   ),
                 ),
+                if (_isLoading)
+                   Padding(
+                     padding: const EdgeInsets.only(top: 8.0),
+                     child: SizedBox(
+                       height: 20,
+                       width: 20,
+                       child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFFB57AFF)),
+                     ),
+                   ),
               ],
             ),
           ),
@@ -148,134 +230,6 @@ class _QrScannerScreenState extends State<QrScannerScreen>
                   ),
                 ),
               ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ---------------- POPUP -----------------
-
-  void showVisitorDetailsPopup(BuildContext ctx) {
-    showModalBottomSheet(
-      context: ctx,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) {
-        final h = MediaQuery.of(context).size.height;
-        final w = MediaQuery.of(context).size.width;
-
-        return Container(
-          height: h * 0.55,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
-          ),
-          child: Column(
-            children: [
-              SizedBox(height: h * 0.015),
-
-              Container(
-                height: 5,
-                width: 55,
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade400,
-                  borderRadius: BorderRadius.circular(4),
-                ),
-              ),
-
-              SizedBox(height: h * 0.025),
-
-              Container(
-                height: h * 0.10,
-                width: h * 0.10,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Color(0xFFE7D5FF),
-                ),
-                child: Icon(
-                  Icons.person,
-                  color: Color(0xFF9B47FF),
-                  size: h * 0.055,
-                ),
-              ),
-
-              SizedBox(height: h * 0.015),
-              Text(
-                "Rohit Sharma",
-                style: GoogleFonts.poppins(
-                  fontSize: h * 0.028,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-
-              SizedBox(height: h * 0.02),
-
-              buildDetailRow("Category", "Contractor", h),
-              buildDetailRow("Purpose of Visit", "Software Installation", h),
-              buildDetailRow("Check-in Time", "10:45 AM", h),
-
-              Spacer(),
-
-              // -------------------- UPDATED BUTTON --------------------
-              GestureDetector(
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => VisitorLiveStatusScreen(), // ← change this
-                    ),
-                  );
-                },
-                child: Container(
-                  width: w * 0.88,
-                  height: h * 0.065,
-                  margin: EdgeInsets.only(bottom: h * 0.03),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(12),
-                    gradient: LinearGradient(
-                      colors: [Color(0xFF9B47FF), Color(0xFFB57AFF)],
-                    ),
-                  ),
-                  child: Center(
-                    child: Text(
-                      "Check-In",
-                      style: GoogleFonts.poppins(
-                        fontSize: h * 0.022,
-                        color: Colors.white,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  Widget buildDetailRow(String label, String value, double h) {
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 25, vertical: h * 0.008),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            label,
-            style: GoogleFonts.poppins(
-              color: Colors.grey.shade600,
-              fontSize: h * 0.02,
-            ),
-          ),
-          Text(
-            value,
-            style: GoogleFonts.poppins(
-              color: Colors.black,
-              fontSize: h * 0.021,
-              fontWeight: FontWeight.w600,
             ),
           ),
         ],

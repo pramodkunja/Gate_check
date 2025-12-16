@@ -258,7 +258,7 @@ class _VisitorVerifyScreenState extends State<VisitorVerifyScreen> {
                           ),
                           SizedBox(width: size.width * 0.02),
                           Text(
-                            widget.visitorData['mobile_number'] ?? 'N/A',
+                            widget.visitorData['phone'] ?? 'N/A',
                             style: GoogleFonts.poppins(
                               fontSize: isSmallScreen ? 14 : 16,
                               color: Colors.grey[600],
@@ -394,7 +394,7 @@ class _VisitorVerifyScreenState extends State<VisitorVerifyScreen> {
                                   ),
                                   SizedBox(height: size.height * 0.005),
                                   Text(
-                                    widget.visitorData['created_by_name'] ?? 'Admin',
+                                    widget.visitorData['created_by'] ?? 'Admin',
                                     style: GoogleFonts.poppins(
                                       fontSize: isSmallScreen ? 15 : 16,
                                       fontWeight: FontWeight.w600,
@@ -443,12 +443,24 @@ class _VisitorVerifyScreenState extends State<VisitorVerifyScreen> {
                             } on DioException catch (e) {
                               if (!context.mounted) return;
                               ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text(_visitorApiService.getErrorMessage(e))),
+                                SnackBar(
+                                  content: Text(
+                                    _visitorApiService.getErrorMessage(e),
+                                    style: GoogleFonts.poppins(color: Colors.white),
+                                  ),
+                                  backgroundColor: Colors.red,
+                                ),
                               );
                             } catch (e) {
                               if (!context.mounted) return;
                               ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text('Error: $e')),
+                                SnackBar(
+                                  content: Text(
+                                    e.toString().replaceAll('Exception: ', ''),
+                                    style: GoogleFonts.poppins(color: Colors.white),
+                                  ),
+                                  backgroundColor: Colors.red,
+                                ),
                               );
                             } finally {
                               if (mounted) setState(() => _isLoading = false);

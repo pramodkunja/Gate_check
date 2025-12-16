@@ -1,6 +1,8 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:gatecheck/Services/Auth_Services/api_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
 
 class VisitorApiService {
   final ApiService _apiService = ApiService();
@@ -282,4 +284,47 @@ class VisitorApiService {
       rethrow;
     }
   }
+  // -------------------- Scan QR Code --------------------
+
+
+Future<Response> scanQrCode(String code) async {
+  try {
+    debugPrint('📷 Raw QR Code Data: $code');
+
+    // ✅ Decode QR JSON
+    final Map<String, dynamic> qrData = jsonDecode(code);
+
+    final String passId = qrData['pass_id'];
+
+    debugPrint('✅ Extracted pass_id: $passId');
+
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('authToken') ?? '';
+
+    final response = await _apiService.dio.post(
+      '/visitors/qr-scan/',
+      data: {
+        'pass_id': passId, // ✅ ONLY pass_id
+      },
+      options: Options(
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      ),
+    );
+
+    debugPrint('✅ QR Code Scanned & Check-in Successful');
+    return response;
+
+  } on FormatException {
+    debugPrint('❌ QR Code is not valid JSON');
+    throw Exception('Invalid QR format');
+
+  } on DioException catch (e) {
+    debugPrint('❌ Error scanning QR code: ${e.message}');
+    debugPrint('❌ Response: ${e.response?.data}');
+    rethrow;
+  }
+}
 }
