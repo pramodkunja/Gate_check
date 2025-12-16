@@ -157,6 +157,25 @@ class VisitorApiService {
     }
   }
 
+  // Verify Entry OTP (Entry)
+  Future<Response> verifyEntryOtp(String otp, String passId) async {
+    try {
+      debugPrint('🔍 Verifying Entry OTP: $otp for Pass ID: $passId');
+      final response = await _apiService.dio.post(
+        '/visitors/visitors/$passId/entry-exit/',
+        data: {
+          'otp': otp,
+          'action': 'entry', // Assuming action is entry based on endpoint context
+        },
+      );
+      debugPrint('✅ OTP Verified. Visitor details fetched.');
+      return response;
+    } on DioException catch (e) {
+      debugPrint('❌ Error verifying OTP: ${e.message}');
+      rethrow;
+    }
+  }
+
   // Check-in visitor (Entry)
   Future<Response> checkInVisitor({
     required String passId,

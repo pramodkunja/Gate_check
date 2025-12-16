@@ -1,11 +1,20 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:gatecheck/Security_Screens/checkin_sucess_screen.dart';
+import 'package:gatecheck/Services/Visitor_service/visitor_service.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:dio/dio.dart';
 
 class VisitorVerifyScreen extends StatefulWidget {
-  const VisitorVerifyScreen({super.key});
+  final Map<String, dynamic> visitorData;
+  final String otp;
+
+  const VisitorVerifyScreen({
+    super.key,
+    required this.visitorData,
+    required this.otp,
+  });
 
   @override
   State<VisitorVerifyScreen> createState() => _VisitorVerifyScreenState();
@@ -15,6 +24,8 @@ class _VisitorVerifyScreenState extends State<VisitorVerifyScreen> {
   File? _selectedImage;
   final ImagePicker _picker = ImagePicker();
   bool _showOtpVerified = true;
+  final VisitorApiService _visitorApiService = VisitorApiService();
+  bool _isLoading = false;
 
   @override
   void initState() {
@@ -227,7 +238,7 @@ class _VisitorVerifyScreenState extends State<VisitorVerifyScreen> {
 
                       // Name
                       Text(
-                        'Alex Morgan',
+                        widget.visitorData['visitor_name'] ?? 'Unknown Visitor',
                         style: GoogleFonts.poppins(
                           fontSize: isSmallScreen ? 22 : 26,
                           fontWeight: FontWeight.bold,
@@ -247,7 +258,7 @@ class _VisitorVerifyScreenState extends State<VisitorVerifyScreen> {
                           ),
                           SizedBox(width: size.width * 0.02),
                           Text(
-                            '+1 (555) 012-9988',
+                            widget.visitorData['mobile_number'] ?? 'N/A',
                             style: GoogleFonts.poppins(
                               fontSize: isSmallScreen ? 14 : 16,
                               color: Colors.grey[600],
@@ -289,7 +300,8 @@ class _VisitorVerifyScreenState extends State<VisitorVerifyScreen> {
                                   ),
                                   SizedBox(height: size.height * 0.008),
                                   Text(
-                                    'Vendor',
+                                    widget.visitorData['category_details']?['name'] ?? 
+                                    (widget.visitorData['category']?.toString() ?? 'N/A'),
                                     style: GoogleFonts.poppins(
                                       fontSize: isSmallScreen ? 15 : 16,
                                       fontWeight: FontWeight.w600,
@@ -330,7 +342,7 @@ class _VisitorVerifyScreenState extends State<VisitorVerifyScreen> {
                                   ),
                                   SizedBox(height: size.height * 0.008),
                                   Text(
-                                    'Maintenance',
+                                    widget.visitorData['purpose_of_visit'] ?? 'N/A',
                                     style: GoogleFonts.poppins(
                                       fontSize: isSmallScreen ? 15 : 16,
                                       fontWeight: FontWeight.w600,
@@ -382,7 +394,7 @@ class _VisitorVerifyScreenState extends State<VisitorVerifyScreen> {
                                   ),
                                   SizedBox(height: size.height * 0.005),
                                   Text(
-                                    'Sarah Connor',
+                                    widget.visitorData['created_by_name'] ?? 'Admin',
                                     style: GoogleFonts.poppins(
                                       fontSize: isSmallScreen ? 15 : 16,
                                       fontWeight: FontWeight.w600,
@@ -401,19 +413,46 @@ class _VisitorVerifyScreenState extends State<VisitorVerifyScreen> {
                       SizedBox(
                         width: double.infinity,
                         height: size.height * 0.065,
-                        child: ElevatedButton(
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => CheckInSuccessScreen(
-                                  visitorName: 'Alex Morgan',
-                                  issuedBy: 'Sarah Connor',
-                                  visitorImage:
-                                      '', // Add actual image path if available
+                        child: _isLoading 
+                          ? const Center(child: CircularProgressIndicator(color: Colors.white))
+                          : ElevatedButton(
+                          onPressed: () async {
+                            setState(() => _isLoading = true);
+                            try {
+                              final passId = widget.visitorData['pass_id'];
+                              if (passId == null) throw Exception('Pass ID not found');
+
+                              await _visitorApiService.checkInVisitor(
+                                passId: passId,
+                                otp: widget.otp,
+                                notes: 'Checked in via App',
+                              );
+
+                              if (!context.mounted) return;
+
+                              Navigator.pushReplacement(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => CheckInSuccessScreen(
+                                    visitorName: widget.visitorData['visitor_name'] ?? 'Visitor',
+                                    issuedBy: widget.visitorData['created_by_name'] ?? 'Admin',
+                                    visitorImage: '', 
+                                  ),
                                 ),
-                              ),
-                            );
+                              );
+                            } on DioException catch (e) {
+                              if (!context.mounted) return;
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text(_visitorApiService.getErrorMessage(e))),
+                              );
+                            } catch (e) {
+                              if (!context.mounted) return;
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('Error: $e')),
+                              );
+                            } finally {
+                              if (mounted) setState(() => _isLoading = false);
+                            }
                           },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFF7C3AED),

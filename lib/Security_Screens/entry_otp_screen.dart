@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:gatecheck/Security_Screens/visitor_verify.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:gatecheck/Services/Visitor_service/visitor_service.dart';
+import 'package:dio/dio.dart';
 
 class EntryOtpScreen extends StatefulWidget {
   const EntryOtpScreen({super.key});
@@ -14,8 +16,12 @@ class _EntryOtpScreenState extends State<EntryOtpScreen> {
     6,
     (index) => TextEditingController(),
   );
+  
+  final TextEditingController passIdController = TextEditingController();
 
   final List<FocusNode> focusNodes = List.generate(6, (index) => FocusNode());
+  final VisitorApiService _visitorApiService = VisitorApiService();
+  bool _isLoading = false;
 
   @override
   void initState() {
@@ -35,8 +41,16 @@ class _EntryOtpScreenState extends State<EntryOtpScreen> {
     }
   }
 
-  void verifyOtp() {
+  Future<void> verifyOtp() async {
     String otp = controllers.map((c) => c.text).join();
+    String passId = passIdController.text.trim();
+
+    if (passId.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please enter the Visitor Pass ID")),
+      );
+      return;
+    }
 
     if (otp.length != 6) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -45,10 +59,40 @@ class _EntryOtpScreenState extends State<EntryOtpScreen> {
       return;
     }
 
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const VisitorVerifyScreen()),
-    );
+    setState(() => _isLoading = true);
+
+    try {
+      final response = await _visitorApiService.verifyEntryOtp(otp, passId);
+      
+      if (!mounted) return;
+
+      // Extract visitor data from response
+      // Assuming response.data is the visitor object directly or inside 'data'
+      final data = response.data;
+      final visitorData = data is Map<String, dynamic> ? data : Map<String, dynamic>.from(data);
+
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => VisitorVerifyScreen(
+            visitorData: visitorData,
+            otp: otp,
+          ),
+        ),
+      );
+    } on DioException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(_visitorApiService.getErrorMessage(e))),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e')),
+      );
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   @override
@@ -146,6 +190,35 @@ class _EntryOtpScreenState extends State<EntryOtpScreen> {
 
                     SizedBox(height: h * 0.04),
 
+                    // Pass ID Input
+                    Container(
+                      margin: EdgeInsets.symmetric(horizontal: w * 0.02),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF4F7FF),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: const Color(0xFFE0E0E0)),
+                      ),
+                      child: TextField(
+                        controller: passIdController,
+                        decoration: InputDecoration(
+                          hintText: "Enter Visitor Pass ID (e.g., VP...)",
+                          hintStyle: GoogleFonts.poppins(color: Colors.grey),
+                          border: InputBorder.none,
+                          contentPadding: EdgeInsets.symmetric(
+                            horizontal: w * 0.04,
+                            vertical: h * 0.015,
+                          ),
+                          prefixIcon: const Icon(
+                            Icons.badge_outlined,
+                            color: Colors.grey,
+                          ),
+                        ),
+                        style: GoogleFonts.poppins(fontWeight: FontWeight.w500),
+                      ),
+                    ),
+
+                    SizedBox(height: h * 0.03),
+
                     // OTP Fields
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -199,14 +272,16 @@ class _EntryOtpScreenState extends State<EntryOtpScreen> {
                     borderRadius: BorderRadius.circular(30),
                   ),
                   child: Center(
-                    child: Text(
-                      "Verify OTP",
-                      style: GoogleFonts.poppins(
-                        color: Colors.white,
-                        fontSize: w * 0.045,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
+                    child: _isLoading
+                        ? const CircularProgressIndicator(color: Colors.white)
+                        : Text(
+                            "Verify OTP",
+                            style: GoogleFonts.poppins(
+                              color: Colors.white,
+                              fontSize: w * 0.045,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
                   ),
                 ),
               ),

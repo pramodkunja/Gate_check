@@ -4,7 +4,7 @@ import 'package:gatecheck/Security_Screens/manual_check_in.dart';
 import 'package:gatecheck/Security_Screens/qr_scanner.dart';
 import 'package:gatecheck/Security_Screens/security_custom_appbar.dart';
 import 'package:gatecheck/Security_Screens/security_navigation_drawer.dart';
-import 'package:gatecheck/Security_Screens/visitor_verify.dart';
+// import 'package:gatecheck/Security_Screens/visitor_verify.dart'; // Unused
 import 'package:gatecheck/Services/User_services/user_service.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -242,7 +242,10 @@ class SecurityDashboardScreen extends StatelessWidget {
     } else if (action == 'manual_checkout') {
       Navigator.push(
         context,
-        MaterialPageRoute(builder: (_) => const VisitorVerifyScreen()),
+        MaterialPageRoute(builder: (_) => Scaffold(
+          appBar: AppBar(title: const Text("Manual Check-Out")),
+          body: const Center(child: Text("Check-out flow to be implemented")),
+        )),
       );
     }
   }
