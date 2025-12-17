@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:gatecheck/Admin_Screens/Profile_Screen/profile_screen.dart';
-import 'package:gatecheck/Security_Screens/manual_check_in.dart';
 import 'package:gatecheck/Security_Screens/qr_scanner.dart';
 import 'package:gatecheck/Security_Screens/security_dashboard.dart';
 import 'package:google_fonts/google_fonts.dart';
+//import 'package:gatecheck/Security_Screens/entryotp_screen.dart';
 
 
 class SecurityNavigation extends StatelessWidget {
@@ -85,21 +85,21 @@ class SecurityNavigation extends StatelessWidget {
                     onTap: () => _navigate(context, QrScannerScreen()),
                   ),
                   SizedBox(height: screenHeight * 0.01),
-                  _buildMenuItem(
-                    context: context,
-                    icon: Icons.person_outline,
-                    title: 'Manual Check-In',
-                    isSelected: currentRoute == 'Manual Check-In',
-                    onTap: () => _navigate(context, ManualCheckInScreen()),
-                  ),
-                  SizedBox(height: screenHeight * 0.01),
-                  _buildMenuItem(
-                    context: context,
-                    icon: Icons.person_outline,
-                    title: 'Manual Check-Out',
-                    isSelected: currentRoute == 'Manual Check-Out',
-                    onTap: () => _navigate(context, ManualCheckInScreen()),
-                  ),
+                  // _buildMenuItem(
+                  //   context: context,
+                  //   icon: Icons.person_outline,
+                  //   title: 'Manual Check-In',
+                  //   isSelected: currentRoute == 'Manual Check-In',
+                  //   onTap: () => _navigate(context, EntryOtpScreen()),
+                  // ),
+                  // SizedBox(height: screenHeight * 0.01),
+                  // _buildMenuItem(
+                  //   context: context,
+                  //   icon: Icons.person_outline,
+                  //   title: 'Manual Check-Out',
+                  //   isSelected: currentRoute == 'Manual Check-Out',
+                  //   onTap: () => _navigate(context, EntryotpScreen()),
+                  // ),
                   SizedBox(height: screenHeight * 0.01),
                   _buildMenuItem(
                     context: context,

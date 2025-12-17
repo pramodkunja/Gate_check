@@ -17,7 +17,7 @@ class _EntryOtpScreenState extends State<EntryOtpScreen> {
     (index) => TextEditingController(),
   );
   
-  final TextEditingController passIdController = TextEditingController();
+
 
   final List<FocusNode> focusNodes = List.generate(6, (index) => FocusNode());
   final VisitorApiService _visitorApiService = VisitorApiService();
@@ -43,14 +43,8 @@ class _EntryOtpScreenState extends State<EntryOtpScreen> {
 
   Future<void> verifyOtp() async {
     String otp = controllers.map((c) => c.text).join();
-    String passId = passIdController.text.trim();
 
-    if (passId.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please enter the Visitor Pass ID")),
-      );
-      return;
-    }
+
 
     if (otp.length != 6) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -62,14 +56,22 @@ class _EntryOtpScreenState extends State<EntryOtpScreen> {
     setState(() => _isLoading = true);
 
     try {
-      final response = await _visitorApiService.verifyEntryOtp(otp, passId);
+      final response = await _visitorApiService.verifyEntryOtp(otp);
       
       if (!mounted) return;
 
-      // Extract visitor data from response
-      // Assuming response.data is the visitor object directly or inside 'data'
-      final data = response.data;
-      final visitorData = data is Map<String, dynamic> ? data : Map<String, dynamic>.from(data);
+      final responseData = response.data;
+      
+      // Check for logical errors in 200 OK response
+      if (responseData is Map<String, dynamic> && responseData.containsKey('error')) {
+        _showErrorDialog(responseData['error'].toString());
+        return;
+      }
+
+      // Backend returns data in 'visitor' key
+      final visitorData = (responseData is Map<String, dynamic> && responseData.containsKey('visitor'))
+          ? responseData['visitor'] as Map<String, dynamic>
+          : (responseData is Map<String, dynamic> ? responseData : <String, dynamic>{});
 
       Navigator.push(
         context,
@@ -82,17 +84,43 @@ class _EntryOtpScreenState extends State<EntryOtpScreen> {
       );
     } on DioException catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(_visitorApiService.getErrorMessage(e))),
-      );
+      // Show backend error message in popup
+      String errorMsg = _visitorApiService.getErrorMessage(e);
+      if (e.response?.data is Map<String, dynamic> && (e.response?.data as Map).containsKey('error')) {
+         errorMsg = e.response!.data['error'].toString();
+      }
+      _showErrorDialog(errorMsg);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
-      );
+      _showErrorDialog(e.toString());
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  void _showErrorDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(
+          "Verification Failed",
+          style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
+        ),
+        content: Text(
+          message,
+          style: GoogleFonts.poppins(),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: Text(
+              "OK",
+              style: GoogleFonts.poppins(color: const Color(0xFF9C27FF)),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -190,32 +218,7 @@ class _EntryOtpScreenState extends State<EntryOtpScreen> {
 
                     SizedBox(height: h * 0.04),
 
-                    // Pass ID Input
-                    Container(
-                      margin: EdgeInsets.symmetric(horizontal: w * 0.02),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF4F7FF),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: const Color(0xFFE0E0E0)),
-                      ),
-                      child: TextField(
-                        controller: passIdController,
-                        decoration: InputDecoration(
-                          hintText: "Enter Visitor Pass ID (e.g., VP...)",
-                          hintStyle: GoogleFonts.poppins(color: Colors.grey),
-                          border: InputBorder.none,
-                          contentPadding: EdgeInsets.symmetric(
-                            horizontal: w * 0.04,
-                            vertical: h * 0.015,
-                          ),
-                          prefixIcon: const Icon(
-                            Icons.badge_outlined,
-                            color: Colors.grey,
-                          ),
-                        ),
-                        style: GoogleFonts.poppins(fontWeight: FontWeight.w500),
-                      ),
-                    ),
+
 
                     SizedBox(height: h * 0.03),
 

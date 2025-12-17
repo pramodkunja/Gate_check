@@ -75,6 +75,49 @@ class _QrScannerScreenState extends State<QrScannerScreen>
                       });
                       
                       final responseData = response.data;
+
+                      // Check for specific error in success response (200 OK)
+                      if (responseData is Map<String, dynamic> &&
+                          responseData['error'] ==
+                              "One-time pass already used. Re-entry not allowed." &&
+                          responseData['status'] == "Outside") {
+                        
+                         setState(() {
+                           _popupVisible = true;
+                         });
+
+                         showDialog(
+                          context: context,
+                          builder: (ctx) => AlertDialog(
+                            title: Text(
+                              "Entry Denied",
+                              style: GoogleFonts.poppins(
+                                  fontWeight: FontWeight.bold),
+                            ),
+                            content: Text(
+                              responseData['error'].toString(),
+                              style: GoogleFonts.poppins(),
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () {
+                                  setState(() {
+                                    _popupVisible = false;
+                                  });
+                                  Navigator.of(ctx).pop();
+                                  _controller.start(); // Restart scanner
+                                },
+                                child: Text(
+                                  "OK",
+                                  style: GoogleFonts.poppins(
+                                      color: const Color(0xFFB57AFF)),
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                        return; // Stop further execution
+                      }
                       final visitorData = responseData is Map<String, dynamic> ? responseData : <String, dynamic>{};
                       
                       // Check if 'data' key exists and use that, or use the root
@@ -106,6 +149,42 @@ class _QrScannerScreenState extends State<QrScannerScreen>
                         
                         String errorMsg = "Scan failed";
                         if (e is DioException) {
+                          final responseData = e.response?.data;
+                          if (responseData is Map<String, dynamic> &&
+                              responseData['error'] ==
+                                  "One-time pass already used. Re-entry not allowed." &&
+                              responseData['status'] == "Outside") {
+                            // Show Popup for this specific error
+                            showDialog(
+                              context: context,
+                              builder: (ctx) => AlertDialog(
+                                title: Text(
+                                  "Entry Denied",
+                                  style: GoogleFonts.poppins(
+                                      fontWeight: FontWeight.bold),
+                                ),
+                                content: Text(
+                                  responseData['error'].toString(),
+                                  style: GoogleFonts.poppins(),
+                                ),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () {
+                                      Navigator.of(ctx).pop();
+                                      _controller.start(); // Restart scanner
+                                    },
+                                    child: Text(
+                                      "OK",
+                                      style: GoogleFonts.poppins(
+                                          color: const Color(0xFFB57AFF)),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                            return; // Stop further execution (no SnackBar)
+                          }
+
                            errorMsg = _visitorApiService.getErrorMessage(e);
                         } else if (e.toString().contains("Invalid QR format")) {
                            errorMsg = "Invalid QR Format: Please scan a valid GateCheck pass.";

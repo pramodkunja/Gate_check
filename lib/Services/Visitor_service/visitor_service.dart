@@ -160,11 +160,11 @@ class VisitorApiService {
   }
 
   // Verify Entry OTP (Entry)
-  Future<Response> verifyEntryOtp(String otp, String passId) async {
+  Future<Response> verifyEntryOtp(String otp) async {
     try {
-      debugPrint('🔍 Verifying Entry OTP: $otp for Pass ID: $passId');
+      debugPrint('🔍 Verifying Entry OTP: $otp');
       final response = await _apiService.dio.post(
-        '/visitors/visitors/$passId/entry-exit/',
+        '/visitors/otp/',
         data: {
           'otp': otp,
           'action': 'entry', // Assuming action is entry based on endpoint context

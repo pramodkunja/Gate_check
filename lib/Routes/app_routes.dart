@@ -88,8 +88,8 @@ static const String visitorLiveStatus = '/security/visitor-live-status';
         //security routes
       case securityDashboard:
         return MaterialPageRoute(builder: (_) => const SecurityDashboardScreen());
-      case visitorLiveStatus:
-        return MaterialPageRoute(builder: (_) => const VisitorLiveStatusScreen());  
+      // case visitorLiveStatus:
+      //   return MaterialPageRoute(builder: (_) => const VisitorLiveStatusScreen());  
 
       // Default Route
       default:
