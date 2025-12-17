@@ -19,6 +19,7 @@ class SecurityDashboardScreen extends StatelessWidget {
 
     final w = MediaQuery.of(context).size.width;
     final h = MediaQuery.of(context).size.height;
+    final bool isSmall = w < 600;
 
     return Scaffold(
       backgroundColor: Colors.grey[100],
@@ -39,88 +40,142 @@ class SecurityDashboardScreen extends StatelessWidget {
                 SizedBox(height: h * 0.025),
 
                 /// Title
-                Text(
-                  "Welcome back, $userName!",
-                  style: GoogleFonts.poppins(
-                    color: const Color(0xFF8A03FF),
-                    fontSize: w * 0.06,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                SizedBox(height: h * 0.003),
-                Text(
-                  "Here’s today’s visitor activity.",
-                  style: GoogleFonts.poppins(
-                    color: Colors.black87,
-                    fontSize: w * 0.035,
-                  ),
-                ),
+                Container(
+                        width: double.infinity,
+                        padding: EdgeInsets.all(isSmall ? 12 : 16),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          border: Border.all(color: Colors.purple, width: 1.2),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              "Welcome back, $userName!",
+                              style: GoogleFonts.poppins(
+                                fontSize: isSmall ? 16 : 18,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.purple,
+                              ),
+                            ),
+                            SizedBox(height: isSmall ? 4 : 6),
+                            Text(
+                              "Here's today's Visitor Activity",
+                              style: GoogleFonts.poppins(
+                                color: Colors.black54,
+                                fontSize: isSmall ? 12 : 14,
+                                fontWeight: FontWeight.w400,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
 
                 SizedBox(height: h * 0.025),
+                
+                /// Visitor Statistics Card
+                Container(
+                  width: double.infinity,
+                  padding: EdgeInsets.all(w * 0.04),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    children: [
+                      _visitorCard(
+                        context,
+                        title: "Checked-In Visitors",
+                        count: "142",
+                        bgColor: const Color(0xFFEDEAFF),
+                        icon: Icons.login,
+                      ),
+                      SizedBox(height: h * 0.015),
 
-                /// Visitor Cards
-                _visitorCard(
-                  context,
-                  title: "Checked-In Visitors",
-                  count: "142",
-                  bgColor: const Color(0xFFEDEAFF),
-                  icon: Icons.login,
-                ),
-                SizedBox(height: h * 0.015),
+                      _visitorCard(
+                        context,
+                        title: "Checked-Out Visitors",
+                        count: "89",
+                        bgColor: const Color(0xFFD6EAFB),
+                        icon: Icons.logout,
+                      ),
+                      SizedBox(height: h * 0.015),
 
-                _visitorCard(
-                  context,
-                  title: "Checked-Out Visitors",
-                  count: "89",
-                  bgColor: const Color(0xFFD6EAFB),
-                  icon: Icons.logout,
-                ),
-                SizedBox(height: h * 0.015),
-
-                _visitorCard(
-                  context,
-                  title: "Inside Premises",
-                  count: "53",
-                  bgColor: const Color(0xFFE4FFD9),
-                  icon: Icons.people,
+                      _visitorCard(
+                        context,
+                        title: "Inside Premises",
+                        count: "53",
+                        bgColor: const Color(0xFFE4FFD9),
+                        icon: Icons.people,
+                      ),
+                    ],
+                  ),
                 ),
 
                 SizedBox(height: h * 0.03),
 
-                /// Quick Actions
-                Text(
-                  "Quick Actions",
-                  style: GoogleFonts.poppins(
-                    fontSize: w * 0.05,
-                    fontWeight: FontWeight.w600,
+                /// Quick Actions Card
+                Container(
+                  width: double.infinity,
+                  padding: EdgeInsets.all(w * 0.04),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
                   ),
-                ),
-                SizedBox(height: h * 0.015),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        "Quick Actions",
+                        style: GoogleFonts.poppins(
+                          fontSize: w * 0.045,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      SizedBox(height: h * 0.02),
+                      
+                      _actionButton(
+                        context,
+                        title: "Scan QR",
+                        bg: const Color(0xFFEDEAFF),
+                        icon: Icons.qr_code_scanner,
+                        action: 'scan_qr',
+                      ),
+                      SizedBox(height: h * 0.015),
 
-                _actionButton(
-                  context,
-                  title: "Scan QR",
-                  bg: const Color(0xFFEDEAFF),
-                  icon: Icons.qr_code_scanner,
-                  action: 'scan_qr',
-                ),
-                SizedBox(height: h * 0.015),
+                      _actionButton(
+                        context,
+                        title: "Manual Check-In",
+                        bg: const Color(0xFFFFE0E3),
+                        icon: Icons.edit,
+                        action: 'manual_checkin',
+                      ),
+                      SizedBox(height: h * 0.015),
 
-                _actionButton(
-                  context,
-                  title: "Manual Check-In",
-                  bg: const Color(0xFFFFE0E3),
-                  icon: Icons.edit,
-                  action: 'manual_checkin',
-                ),
-                SizedBox(height: h * 0.015),
-
-                _actionButton(
-                  context,
-                  title: "Manual Check-Out",
-                  bg: const Color(0xFFCCE7F6),
-                  icon: Icons.exit_to_app,
-                  action: 'manual_checkout',
+                      _actionButton(
+                        context,
+                        title: "Manual Check-Out",
+                        bg: const Color(0xFFCCE7F6),
+                        icon: Icons.exit_to_app,
+                        action: 'manual_checkout',
+                      ),
+                    ],
+                  ),
                 ),
 
                 SizedBox(height: h * 0.025),

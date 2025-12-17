@@ -419,11 +419,16 @@ class _VisitorVerifyScreenState extends State<VisitorVerifyScreen> {
                           onPressed: () async {
                             setState(() => _isLoading = true);
                             try {
-                              final passId = widget.visitorData['pass_id'];
-                              if (passId == null) throw Exception('Pass ID not found');
+                              var passId = widget.visitorData['pass_id'];
+                              passId ??= widget.visitorData['id']; // Fallback to 'id'
+                              
+                              if (passId == null) {
+                                debugPrint("❌ Pass ID missing. Available keys: ${widget.visitorData.keys.toList()}");
+                                throw Exception('Pass ID not found in response');
+                              }
 
                               await _visitorApiService.checkInVisitor(
-                                passId: passId,
+                                passId: passId.toString(),
                                 otp: widget.otp,
                                 notes: 'Checked in via App',
                               );
