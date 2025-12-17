@@ -1,13 +1,15 @@
+import 'dart:convert';
 import 'dart:ui';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
-import 'package:gatecheck/Security_Screens/visitor_verify.dart';
+import 'package:gatecheck/Security_Screens/checkin_sucess_screen.dart';
+import 'package:gatecheck/Security_Screens/checkout_sucess_screen.dart';
 import 'package:gatecheck/Services/Visitor_service/visitor_service.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
 class QrScannerScreen extends StatefulWidget {
-  const QrScannerScreen({Key? key}) : super(key: key);
+  const QrScannerScreen({super.key});
 
   @override
   State<QrScannerScreen> createState() => _QrScannerScreenState();
@@ -17,7 +19,7 @@ class _QrScannerScreenState extends State<QrScannerScreen>
     with SingleTickerProviderStateMixin {
   final MobileScannerController _controller = MobileScannerController();
   final VisitorApiService _visitorApiService = VisitorApiService();
-  
+
   bool _flashOn = false;
   bool _popupVisible = false;
   bool _isLoading = false;
@@ -28,6 +30,35 @@ class _QrScannerScreenState extends State<QrScannerScreen>
     super.dispose();
   }
 
+  void _showErrorDialog(String message) {
+    _popupVisible = true;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        title: Text(
+          "Error",
+          style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
+        ),
+        content: Text(message, style: GoogleFonts.poppins()),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              _popupVisible = false;
+              _controller.start();
+            },
+            child: Text(
+              "OK",
+              style: GoogleFonts.poppins(color: const Color(0xFFB57AFF)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final h = MediaQuery.of(context).size.height;
@@ -36,174 +67,93 @@ class _QrScannerScreenState extends State<QrScannerScreen>
     return Scaffold(
       body: Stack(
         children: [
-          // --- Blur Background ---
-          // Positioned.fill(
-          //   child: ImageFiltered(
-          //     imageFilter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
-          //     child: Container(
-          //       decoration: const BoxDecoration(
-          //         image: DecorationImage(
-          //           image: AssetImage("assets/bg.jpg"),
-          //           fit: BoxFit.cover,
-          //         ),
-          //       ),
-          //     ),
-          //   ),
-          // ),
-
           // --- QR Scanner ---
           Positioned.fill(
             child: MobileScanner(
               controller: _controller,
               onDetect: (barcode) async {
-                if (!_popupVisible && !_isLoading) {
-                  final String? code = barcode.barcodes.first.rawValue;
-                  if (code == null) return;
+                if (_popupVisible || _isLoading) return;
 
-                  setState(() {
-                     _isLoading = true;
-                  });
-                  _controller.stop();
+                final String? code = barcode.barcodes.first.rawValue;
+                if (code == null) return;
 
-                  try {
-                    // Call API
-                    final response = await _visitorApiService.scanQrCode(code);
-                    
-                    if (mounted) {
-                       setState(() {
-                        _isLoading = false;
-                      });
-                      
-                      final responseData = response.data;
+                setState(() => _isLoading = true);
+                _controller.stop();
 
-                      // Check for specific error in success response (200 OK)
-                      if (responseData is Map<String, dynamic> &&
-                          responseData['error'] ==
-                              "One-time pass already used. Re-entry not allowed." &&
-                          responseData['status'] == "Outside") {
-                        
-                         setState(() {
-                           _popupVisible = true;
-                         });
+                try {
+                  final response = await _visitorApiService.scanQrCode(code);
 
-                         showDialog(
-                          context: context,
-                          builder: (ctx) => AlertDialog(
-                            title: Text(
-                              "Entry Denied",
-                              style: GoogleFonts.poppins(
-                                  fontWeight: FontWeight.bold),
-                            ),
-                            content: Text(
-                              responseData['error'].toString(),
-                              style: GoogleFonts.poppins(),
-                            ),
-                            actions: [
-                              TextButton(
-                                onPressed: () {
-                                  setState(() {
-                                    _popupVisible = false;
-                                  });
-                                  Navigator.of(ctx).pop();
-                                  _controller.start(); // Restart scanner
-                                },
-                                child: Text(
-                                  "OK",
-                                  style: GoogleFonts.poppins(
-                                      color: const Color(0xFFB57AFF)),
-                                ),
-                              ),
-                            ],
-                          ),
-                        );
-                        return; // Stop further execution
-                      }
-                      final visitorData = responseData is Map<String, dynamic> ? responseData : <String, dynamic>{};
-                      
-                      // Check if 'data' key exists and use that, or use the root
-                      final finalData = (visitorData['data'] ?? visitorData) as Map<String, dynamic>;
+                  if (!mounted) return;
 
-                      // Navigate to Verify Screen
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => VisitorVerifyScreen(
-                            visitorData: finalData,
-                            otp: code, // Passing QR code as OTP/Reference
-                          ),
-                        ),
-                      ).then((_) {
-                         // When returning, restart scanner
-                         if (mounted) {
-                           _controller.start();
-                         }
-                      });
-                    }
-                  } catch (e) {
-                      if (mounted) {
-                        setState(() {
-                          _isLoading = false;
-                          _popupVisible = false; 
-                        });
-                        _controller.start(); 
-                        
-                        String errorMsg = "Scan failed";
-                        if (e is DioException) {
-                          final responseData = e.response?.data;
-                          if (responseData is Map<String, dynamic> &&
-                              responseData['error'] ==
-                                  "One-time pass already used. Re-entry not allowed." &&
-                              responseData['status'] == "Outside") {
-                            // Show Popup for this specific error
-                            showDialog(
-                              context: context,
-                              builder: (ctx) => AlertDialog(
-                                title: Text(
-                                  "Entry Denied",
-                                  style: GoogleFonts.poppins(
-                                      fontWeight: FontWeight.bold),
-                                ),
-                                content: Text(
-                                  responseData['error'].toString(),
-                                  style: GoogleFonts.poppins(),
-                                ),
-                                actions: [
-                                  TextButton(
-                                    onPressed: () {
-                                      Navigator.of(ctx).pop();
-                                      _controller.start(); // Restart scanner
-                                    },
-                                    child: Text(
-                                      "OK",
-                                      style: GoogleFonts.poppins(
-                                          color: const Color(0xFFB57AFF)),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            );
-                            return; // Stop further execution (no SnackBar)
-                          }
+                  setState(() => _isLoading = false);
 
-                           errorMsg = _visitorApiService.getErrorMessage(e);
-                        } else if (e.toString().contains("Invalid QR format")) {
-                           errorMsg = "Invalid QR Format: Please scan a valid GateCheck pass.";
-                        } else {
-                           errorMsg = e.toString().replaceAll('Exception: ', '');
-                        }
-                        
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              errorMsg, 
-                              style: GoogleFonts.poppins(color: Colors.white),
-                            ),
-                            backgroundColor: Colors.red,
-                            behavior: SnackBarBehavior.floating,
-                          ),
-                        );
-                      }
+                  // --------- NORMALIZE RESPONSE ---------
+                  dynamic rawData = response.data;
+                  Map<String, dynamic> responseData = {};
+
+                  if (rawData is String) {
+                    responseData = jsonDecode(rawData);
+                  } else if (rawData is Map<String, dynamic>) {
+                    responseData = rawData;
                   }
+
+                  // --------- 🔴 ERROR CHECK (MAIN FIX) ---------
+                  final String? errorMessage = responseData['error'];
+
+                  if (errorMessage != null && errorMessage.isNotEmpty) {
+                    _showErrorDialog(errorMessage);
+                    return; // ⛔ STOP HERE — NO NAVIGATION
+                  }
+
+                  // --------- ✅ SUCCESS ---------
+                  final visitorData =
+                      (responseData['data'] ?? responseData)
+                          as Map<String, dynamic>;
+
+                  // --------- 🔍 DETECT ENTRY/EXIT ACTION ---------
+                  final String action = visitorData['action'] ?? 'ENTRY';
+                  final String status = visitorData['status'] ?? '';
+
+                  if (action == 'EXIT' || status == 'Outside') {
+                    // 🚪 VISITOR EXITING - GO TO CHECKOUT
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => CheckOutSuccessScreen(
+                          visitorData: visitorData,
+                          qrCode: code,
+                        ),
+                      ),
+                    ).then((_) {
+                      if (mounted) _controller.start();
+                    });
+                  } else {
+                    // 🚶 VISITOR ENTERING - GO TO CHECKIN
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => CheckInSuccessScreen(
+                          visitorData: visitorData,
+                          qrCode: code,
+                        ),
+                      ),
+                    ).then((_) {
+                      if (mounted) _controller.start();
+                    });
+                  }
+                } on DioException catch (e) {
+                  setState(() => _isLoading = false);
+
+                  final backendError = e.response?.data is Map<String, dynamic>
+                      ? e.response?.data['error']
+                      : null;
+
+                  _showErrorDialog(
+                    backendError ?? _visitorApiService.getErrorMessage(e),
+                  );
+                } catch (e) {
+                  setState(() => _isLoading = false);
+                  _showErrorDialog("Invalid QR Code");
                 }
               },
             ),
@@ -233,14 +183,17 @@ class _QrScannerScreenState extends State<QrScannerScreen>
                   ),
                 ),
                 if (_isLoading)
-                   Padding(
-                     padding: const EdgeInsets.only(top: 8.0),
-                     child: SizedBox(
-                       height: 20,
-                       width: 20,
-                       child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFFB57AFF)),
-                     ),
-                   ),
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8.0),
+                    child: SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Color(0xFFB57AFF),
+                      ),
+                    ),
+                  ),
               ],
             ),
           ),

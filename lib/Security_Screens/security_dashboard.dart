@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:gatecheck/Security_Screens/entry_otp_screen.dart';
-import 'package:gatecheck/Security_Screens/manual_check_in.dart';
 import 'package:gatecheck/Security_Screens/qr_scanner.dart';
 import 'package:gatecheck/Security_Screens/security_custom_appbar.dart';
 import 'package:gatecheck/Security_Screens/security_navigation_drawer.dart';
-// import 'package:gatecheck/Security_Screens/visitor_verify.dart'; // Unused
 import 'package:gatecheck/Services/User_services/user_service.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -41,39 +39,39 @@ class SecurityDashboardScreen extends StatelessWidget {
 
                 /// Title
                 Container(
-                        width: double.infinity,
-                        padding: EdgeInsets.all(isSmall ? 12 : 16),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          border: Border.all(color: Colors.purple, width: 1.2),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              "Welcome back, $userName!",
-                              style: GoogleFonts.poppins(
-                                fontSize: isSmall ? 16 : 18,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.purple,
-                              ),
-                            ),
-                            SizedBox(height: isSmall ? 4 : 6),
-                            Text(
-                              "Here's today's Visitor Activity",
-                              style: GoogleFonts.poppins(
-                                color: Colors.black54,
-                                fontSize: isSmall ? 12 : 14,
-                                fontWeight: FontWeight.w400,
-                              ),
-                            ),
-                          ],
+                  width: double.infinity,
+                  padding: EdgeInsets.all(isSmall ? 12 : 16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    border: Border.all(color: Colors.purple, width: 1.2),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        "Welcome back, $userName!",
+                        style: GoogleFonts.poppins(
+                          fontSize: isSmall ? 16 : 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.purple,
                         ),
                       ),
+                      SizedBox(height: isSmall ? 4 : 6),
+                      Text(
+                        "Here's today's Visitor Activity",
+                        style: GoogleFonts.poppins(
+                          color: Colors.black54,
+                          fontSize: isSmall ? 12 : 14,
+                          fontWeight: FontWeight.w400,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
 
                 SizedBox(height: h * 0.025),
-                
+
                 /// Visitor Statistics Card
                 Container(
                   width: double.infinity,
@@ -148,7 +146,7 @@ class SecurityDashboardScreen extends StatelessWidget {
                         ),
                       ),
                       SizedBox(height: h * 0.02),
-                      
+
                       _actionButton(
                         context,
                         title: "Scan QR",
@@ -160,20 +158,20 @@ class SecurityDashboardScreen extends StatelessWidget {
 
                       _actionButton(
                         context,
-                        title: "Manual Check-In",
+                        title: "OTP Check-In/Out",
                         bg: const Color(0xFFFFE0E3),
                         icon: Icons.edit,
-                        action: 'manual_checkin',
+                        action: 'OTP',
                       ),
                       SizedBox(height: h * 0.015),
 
-                      _actionButton(
-                        context,
-                        title: "Manual Check-Out",
-                        bg: const Color(0xFFCCE7F6),
-                        icon: Icons.exit_to_app,
-                        action: 'manual_checkout',
-                      ),
+                      // _actionButton(
+                      //   context,
+                      //   title: "Manual Check-Out",
+                      //   bg: const Color(0xFFCCE7F6),
+                      //   icon: Icons.exit_to_app,
+                      //   action: 'manual_checkout',
+                      // ),
                     ],
                   ),
                 ),
@@ -289,19 +287,21 @@ class SecurityDashboardScreen extends StatelessWidget {
         context,
         MaterialPageRoute(builder: (_) => const QrScannerScreen()),
       );
-    } else if (action == 'manual_checkin') {
+    } else if (action == 'OTP') {
       Navigator.push(
         context,
         MaterialPageRoute(builder: (_) => const EntryOtpScreen()),
       );
-    } else if (action == 'manual_checkout') {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => Scaffold(
-          appBar: AppBar(title: const Text("Manual Check-Out")),
-          body: const Center(child: Text("Check-out flow to be implemented")),
-        )),
-      );
+      // } else if (action == 'manual_checkout') {
+      //   Navigator.push(
+      //     context,
+      //     MaterialPageRoute(
+      //       builder: (_) => Scaffold(
+      //         appBar: AppBar(title: const Text("Manual Check-Out")),
+      //         body: const Center(child: Text("Check-out flow to be implemented")),
+      //       ),
+      //     ),
+      //   );
     }
   }
 }

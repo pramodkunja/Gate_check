@@ -80,7 +80,7 @@ class _VisitorVerifyScreenState extends State<VisitorVerifyScreen> {
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          'Manual Check-In',
+          'Visitors Details',
           style: GoogleFonts.poppins(
             color: Colors.black,
             fontSize: isSmallScreen ? 18 : 20,
@@ -125,7 +125,7 @@ class _VisitorVerifyScreenState extends State<VisitorVerifyScreen> {
                                 ),
                                 SizedBox(width: size.width * 0.02),
                                 Text(
-                                  'OTP Verified',
+                                  'Verified',
                                   style: GoogleFonts.poppins(
                                     color: const Color(0xFF34C759),
                                     fontSize: isSmallScreen ? 13 : 14,
@@ -435,16 +435,16 @@ class _VisitorVerifyScreenState extends State<VisitorVerifyScreen> {
 
                               if (!context.mounted) return;
 
-                              Navigator.pushReplacement(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => CheckInSuccessScreen(
-                                    visitorName: widget.visitorData['visitor_name'] ?? 'Visitor',
-                                    issuedBy: widget.visitorData['created_by_name'] ?? 'Admin',
-                                    visitorImage: '', 
-                                  ),
-                                ),
-                              );
+                              // Navigator.pushReplacement(
+                                // context,
+                                // MaterialPageRoute(
+                                //   builder: (context) => CheckInSuccessScreen(
+                                //     visitorName: widget.visitorData['visitor_name'] ?? 'Visitor',
+                                //     issuedBy: widget.visitorData['created_by_name'] ?? 'Admin',
+                                //     visitorImage: '', 
+                                //   ),
+                                // ),
+                              // ){};
                             } on DioException catch (e) {
                               if (!context.mounted) return;
                               ScaffoldMessenger.of(context).showSnackBar(

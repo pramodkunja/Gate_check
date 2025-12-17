@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:gatecheck/Security_Screens/visitor_verify.dart';
+import 'package:gatecheck/Security_Screens/qr_scanner.dart';
+import 'package:gatecheck/Security_Screens/checkin_sucess_screen.dart';
+import 'package:gatecheck/Security_Screens/checkout_sucess_screen.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:gatecheck/Services/Visitor_service/visitor_service.dart';
 import 'package:dio/dio.dart';
@@ -16,8 +18,6 @@ class _EntryOtpScreenState extends State<EntryOtpScreen> {
     6,
     (index) => TextEditingController(),
   );
-  
-
 
   final List<FocusNode> focusNodes = List.generate(6, (index) => FocusNode());
   final VisitorApiService _visitorApiService = VisitorApiService();
@@ -44,8 +44,6 @@ class _EntryOtpScreenState extends State<EntryOtpScreen> {
   Future<void> verifyOtp() async {
     String otp = controllers.map((c) => c.text).join();
 
-
-
     if (otp.length != 6) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Please enter the complete 6-digit OTP")),
@@ -57,37 +55,65 @@ class _EntryOtpScreenState extends State<EntryOtpScreen> {
 
     try {
       final response = await _visitorApiService.verifyEntryOtp(otp);
-      
+
       if (!mounted) return;
 
       final responseData = response.data;
-      
+
       // Check for logical errors in 200 OK response
-      if (responseData is Map<String, dynamic> && responseData.containsKey('error')) {
+      if (responseData is Map<String, dynamic> &&
+          responseData.containsKey('error')) {
         _showErrorDialog(responseData['error'].toString());
         return;
       }
 
-      // Backend returns data in 'visitor' key
-      final visitorData = (responseData is Map<String, dynamic> && responseData.containsKey('visitor'))
+      // Backend returns data in 'visitor' key (or top-level)
+      final visitorData =
+          (responseData is Map<String, dynamic> &&
+              responseData.containsKey('visitor'))
           ? responseData['visitor'] as Map<String, dynamic>
-          : (responseData is Map<String, dynamic> ? responseData : <String, dynamic>{});
+          : (responseData is Map<String, dynamic>
+                ? responseData
+                : <String, dynamic>{});
 
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => VisitorVerifyScreen(
-            visitorData: visitorData,
-            otp: otp,
+      // If backend explicitly returned an error key, show it
+      if (responseData is Map<String, dynamic> &&
+          responseData.containsKey('error') &&
+          (responseData['error']?.toString().isNotEmpty ?? false)) {
+        _showErrorDialog(responseData['error'].toString());
+        return;
+      }
+
+      // Determine action/status to route to check-in or check-out
+      final String action =
+          (visitorData['action'] ?? responseData['action'] ?? '').toString();
+      final String status =
+          (visitorData['status'] ?? responseData['status'] ?? '').toString();
+
+      if (action.toUpperCase() == 'EXIT' || status.toLowerCase() == 'outside') {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) =>
+                CheckOutSuccessScreen(visitorData: visitorData, qrCode: otp),
           ),
-        ),
-      );
+        );
+      } else {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) =>
+                CheckInSuccessScreen(visitorData: visitorData, qrCode: otp),
+          ),
+        );
+      }
     } on DioException catch (e) {
       if (!mounted) return;
       // Show backend error message in popup
       String errorMsg = _visitorApiService.getErrorMessage(e);
-      if (e.response?.data is Map<String, dynamic> && (e.response?.data as Map).containsKey('error')) {
-         errorMsg = e.response!.data['error'].toString();
+      if (e.response?.data is Map<String, dynamic> &&
+          (e.response?.data as Map).containsKey('error')) {
+        errorMsg = e.response!.data['error'].toString();
       }
       _showErrorDialog(errorMsg);
     } catch (e) {
@@ -106,10 +132,7 @@ class _EntryOtpScreenState extends State<EntryOtpScreen> {
           "Verification Failed",
           style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
         ),
-        content: Text(
-          message,
-          style: GoogleFonts.poppins(),
-        ),
+        content: Text(message, style: GoogleFonts.poppins()),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
@@ -137,7 +160,7 @@ class _EntryOtpScreenState extends State<EntryOtpScreen> {
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.black),
         title: Text(
-          "Manual Check-In",
+          "OTP Check-In/Out",
           style: GoogleFonts.poppins(
             color: Colors.black,
             fontSize: w * 0.05,
@@ -198,7 +221,7 @@ class _EntryOtpScreenState extends State<EntryOtpScreen> {
 
                     // Title
                     Text(
-                      "Enter Entry OTP",
+                      "Enter OTP",
                       style: GoogleFonts.poppins(
                         fontSize: w * 0.06,
                         fontWeight: FontWeight.w600,
@@ -217,10 +240,6 @@ class _EntryOtpScreenState extends State<EntryOtpScreen> {
                     ),
 
                     SizedBox(height: h * 0.04),
-
-
-
-                    SizedBox(height: h * 0.03),
 
                     // OTP Fields
                     Row(
@@ -292,31 +311,42 @@ class _EntryOtpScreenState extends State<EntryOtpScreen> {
               SizedBox(height: h * 0.025),
 
               // Scan QR Instead
-              Container(
-                width: w,
-                padding: EdgeInsets.symmetric(vertical: h * 0.017),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(30),
-                  border: Border.all(color: Colors.purple.shade200),
-                ),
-                child: Center(
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        "Scan QR Instead   ",
-                        style: GoogleFonts.poppins(
-                          fontSize: w * 0.045,
-                          color: const Color(0xFF9C27FF),
-                          fontWeight: FontWeight.w600,
+              InkWell(
+                borderRadius: BorderRadius.circular(30),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const QrScannerScreen(),
+                    ),
+                  );
+                },
+                child: Container(
+                  width: w,
+                  padding: EdgeInsets.symmetric(vertical: h * 0.017),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(30),
+                    border: Border.all(color: Colors.purple.shade200),
+                  ),
+                  child: Center(
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          "Scan QR Instead   ",
+                          style: GoogleFonts.poppins(
+                            fontSize: w * 0.045,
+                            color: const Color(0xFF9C27FF),
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
-                      ),
-                      Icon(
-                        Icons.qr_code,
-                        size: w * 0.06,
-                        color: const Color(0xFF9C27FF),
-                      ),
-                    ],
+                        Icon(
+                          Icons.qr_code,
+                          size: w * 0.06,
+                          color: const Color(0xFF9C27FF),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),

@@ -4,15 +4,13 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
 class CheckInSuccessScreen extends StatefulWidget {
-  final String visitorName;
-  final String issuedBy;
-  final String visitorImage;
+  final Map<String, dynamic> visitorData;
+  final String qrCode;
 
   const CheckInSuccessScreen({
     super.key,
-    required this.visitorName,
-    required this.issuedBy,
-    required this.visitorImage,
+    required this.visitorData,
+    required this.qrCode,
   });
 
   @override
@@ -25,6 +23,12 @@ class _CheckInSuccessScreenState extends State<CheckInSuccessScreen>
   late Animation<double> _scaleAnimation;
   late Animation<double> _fadeAnimation;
   late String _checkInTime;
+
+  String _visitorName = '';
+  String _purpose = '';
+  String _visitorImage = '';
+  bool _isLoading = true;
+  String? _errorMessage;
 
   @override
   void initState() {
@@ -49,7 +53,35 @@ class _CheckInSuccessScreenState extends State<CheckInSuccessScreen>
       ),
     );
 
+    _extractVisitorData();
     _animationController.forward();
+  }
+
+  void _extractVisitorData() {
+    try {
+      // Extract name and purpose from visitorData
+      _visitorName =
+          widget.visitorData['visitor_name'] ??
+          widget.visitorData['name'] ??
+          'Visitor';
+
+      _purpose =
+          widget.visitorData['purpose_of_visit'] ??
+          widget.visitorData['meeting_with'] ??
+          'Meeting';
+
+      // _visitorImage = widget.visitorData['visitor_image'] ??
+      //                 widget.visitorData['image'] ?? '';
+
+      setState(() {
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+        _errorMessage = 'Failed to load visitor details';
+      });
+    }
   }
 
   @override
@@ -62,6 +94,43 @@ class _CheckInSuccessScreenState extends State<CheckInSuccessScreen>
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
     final isSmallScreen = size.width < 360;
+
+    if (_isLoading) {
+      return Scaffold(
+        backgroundColor: const Color(0xFFF5F5FF),
+        body: Center(
+          child: CircularProgressIndicator(color: const Color(0xFF7C3AED)),
+        ),
+      );
+    }
+
+    if (_errorMessage != null) {
+      return Scaffold(
+        backgroundColor: const Color(0xFFF5F5FF),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.error_outline, size: 64, color: Colors.red[400]),
+              SizedBox(height: 16),
+              Text(
+                _errorMessage!,
+                style: GoogleFonts.poppins(
+                  fontSize: 16,
+                  color: Colors.red[400],
+                ),
+                textAlign: TextAlign.center,
+              ),
+              SizedBox(height: 32),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text('Go Back'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5FF),
@@ -185,9 +254,9 @@ class _CheckInSuccessScreenState extends State<CheckInSuccessScreen>
                           ),
                         ),
                         child: ClipOval(
-                          child: widget.visitorImage.isNotEmpty
+                          child: _visitorImage.isNotEmpty
                               ? Image.network(
-                                  widget.visitorImage,
+                                  _visitorImage,
                                   fit: BoxFit.cover,
                                   errorBuilder: (context, error, stackTrace) {
                                     return Container(
@@ -228,7 +297,7 @@ class _CheckInSuccessScreenState extends State<CheckInSuccessScreen>
                             ),
                             SizedBox(height: size.height * 0.005),
                             Text(
-                              widget.visitorName,
+                              _visitorName,
                               style: GoogleFonts.poppins(
                                 fontSize: isSmallScreen ? 17 : 19,
                                 fontWeight: FontWeight.w600,
@@ -246,7 +315,7 @@ class _CheckInSuccessScreenState extends State<CheckInSuccessScreen>
                                 SizedBox(width: size.width * 0.015),
                                 Expanded(
                                   child: Text(
-                                    'Meeting with ${widget.issuedBy}',
+                                    'Purpose: $_purpose',
                                     style: GoogleFonts.poppins(
                                       fontSize: isSmallScreen ? 13 : 14,
                                       color: Colors.grey[600],
