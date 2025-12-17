@@ -16,7 +16,7 @@ import 'package:gatecheck/Admin_Screens/Visitors_Screen/visitors_screen.dart';
 class Navigation extends StatefulWidget {
   final String currentRoute;
 
-  const Navigation({ Key? key, required this.currentRoute }) : super(key: key);
+  const Navigation({ super.key, required this.currentRoute });
 
   @override
   State<Navigation> createState() => _NavigationState();
@@ -238,12 +238,12 @@ class _NavigationState extends State<Navigation> {
                     onTap: () => _handleNavigation('Categories'),
                   ),
 
-                   _buildMenuItem(
-                    icon: Icons.security_outlined,
-                    title: 'Security',
-                    isSelected: selectedRoute == 'Security',
-                    onTap: () => _handleNavigation('Security'),
-                  ),
+                  //  _buildMenuItem(
+                  //   icon: Icons.security_outlined,
+                  //   title: 'Security',
+                  //   isSelected: selectedRoute == 'Security',
+                  //   onTap: () => _handleNavigation('Security'),
+                  // ),
                 ],
               ),
             ),
