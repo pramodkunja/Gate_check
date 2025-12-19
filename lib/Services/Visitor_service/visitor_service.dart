@@ -31,6 +31,22 @@ class VisitorApiService {
     }
   }
 
+  // Get visitor status counts
+  Future<Response> getVisitorStatus(String companyId) async {
+    try {
+      debugPrint('🔍 Fetching visitor status counts...');
+      // Assuming companyId might be needed, or just general status. 
+      // User said 'visitors/visitors-status/', implied global or context aware.
+      // I'll stick to the requested URL.
+      final response = await _apiService.dio.get('/visitors/visitors-status/');
+      debugPrint('✅ Visitor status fetched successfully: ${response.data}');
+      return response;
+    } on DioException catch (e) {
+      debugPrint('❌ Error fetching visitor status: ${e.message}');
+      rethrow;
+    }
+  }
+
   // Create a new visitor
   Future<Response> createVisitor(Map<String, dynamic> visitorData) async {
     try {

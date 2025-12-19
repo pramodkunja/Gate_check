@@ -91,7 +91,7 @@ class _EntryOtpScreenState extends State<EntryOtpScreen> {
           (visitorData['status'] ?? responseData['status'] ?? '').toString();
 
       if (action.toUpperCase() == 'EXIT' || status.toLowerCase() == 'outside') {
-        Navigator.push(
+        Navigator.pushReplacement(
           context,
           MaterialPageRoute(
             builder: (_) =>
@@ -99,7 +99,7 @@ class _EntryOtpScreenState extends State<EntryOtpScreen> {
           ),
         );
       } else {
-        Navigator.push(
+        Navigator.pushReplacement(
           context,
           MaterialPageRoute(
             builder: (_) =>

@@ -116,7 +116,7 @@ class _QrScannerScreenState extends State<QrScannerScreen>
 
                   if (action == 'EXIT' || status == 'Outside') {
                     // 🚪 VISITOR EXITING - GO TO CHECKOUT
-                    Navigator.push(
+                    Navigator.pushReplacement(
                       context,
                       MaterialPageRoute(
                         builder: (_) => CheckOutSuccessScreen(
@@ -124,12 +124,10 @@ class _QrScannerScreenState extends State<QrScannerScreen>
                           qrCode: code,
                         ),
                       ),
-                    ).then((_) {
-                      if (mounted) _controller.start();
-                    });
+                    );
                   } else {
                     // 🚶 VISITOR ENTERING - GO TO CHECKIN
-                    Navigator.push(
+                    Navigator.pushReplacement(
                       context,
                       MaterialPageRoute(
                         builder: (_) => CheckInSuccessScreen(
@@ -137,9 +135,7 @@ class _QrScannerScreenState extends State<QrScannerScreen>
                           qrCode: code,
                         ),
                       ),
-                    ).then((_) {
-                      if (mounted) _controller.start();
-                    });
+                    );
                   }
                 } on DioException catch (e) {
                   setState(() => _isLoading = false);
