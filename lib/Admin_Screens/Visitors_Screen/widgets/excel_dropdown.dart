@@ -36,7 +36,7 @@ class _ExcelDropdownState extends State<ExcelDropdown> {
 
   void _openDropdown() {
     _overlayEntry = _createOverlayEntry();
-    Overlay.of(context)!.insert(_overlayEntry!);
+    Overlay.of(context).insert(_overlayEntry!);
     setState(() {
       _isOpen = true;
     });

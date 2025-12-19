@@ -14,22 +14,23 @@ class SecurityDashboardScreen extends StatefulWidget {
   const SecurityDashboardScreen({super.key});
 
   @override
-  State<SecurityDashboardScreen> createState() => _SecurityDashboardScreenState();
+  State<SecurityDashboardScreen> createState() =>
+      _SecurityDashboardScreenState();
 }
 
 class _SecurityDashboardScreenState extends State<SecurityDashboardScreen> {
   final VisitorApiService _visitorService = VisitorApiService();
-  
+
   // Stats
   String checkedIn = "-";
   String checkedOut = "-";
   String insidePremises = "-";
-  
+
   // Lists to hold visitor data
   List<Visitor> insideVisitorsList = [];
   List<Visitor> outsideVisitorsList = [];
   List<Visitor> checkedInVisitorsList = []; // Combined or specific list
-  
+
   bool isLoading = true;
   String? errorMessage;
 
@@ -46,45 +47,66 @@ class _SecurityDashboardScreenState extends State<SecurityDashboardScreen> {
     });
 
     try {
-      final response = await _visitorService.getVisitorStatus(""); // Assuming empty companyId for now as per previous edit
-      
+      final response = await _visitorService.getVisitorStatus(
+        companyId: '',
+        today: 'true',
+      ); // Fetch today's data
+
       if (response.data != null) {
         final data = response.data;
-        // Check if 'counts' key exists (based on user JSON)
-        final counts = data['counts'] ?? data; 
+        // ignore: unused_local_variable
+        final counts = data['counts'] ?? {};
 
-        // Verify keys from response or default to 0
         setState(() {
-          checkedIn = (counts['checked_in'] ?? 0).toString();
-          checkedOut = (counts['checked_out'] ?? 0).toString();
-          // Backend uses 'on_premises', my previous code looked for 'inside_premises' or similar
-          insidePremises = (counts['on_premises'] ?? counts['inside_premises'] ?? 0).toString();
-          
-          // Parse Lists using helper to handle partial data
+          // Use parsed lists to derive counts so UI matches detail views
+          // Parse Inside Premises Visitors (checked in, not checked out)
           if (data['on_premises_visitors'] != null) {
             insideVisitorsList = (data['on_premises_visitors'] as List)
                 .map((json) => _mapDashboardJson(json, isInside: true))
                 .toList();
           } else {
-             insideVisitorsList = [];
+            insideVisitorsList = [];
           }
-          
+
+          // Parse Outside/Checked-Out Visitors (checked in and checked out)
           if (data['outside_visitors'] != null) {
             outsideVisitorsList = (data['outside_visitors'] as List)
                 .map((json) => _mapDashboardJson(json, isInside: false))
                 .toList();
           } else {
-             outsideVisitorsList = [];
+            outsideVisitorsList = [];
           }
 
-          // Define Checked-In List
-          checkedInVisitorsList = [...insideVisitorsList, ...outsideVisitorsList];
-          
-          // Sort by entry time
-           checkedInVisitorsList.sort((a, b) {
+          // Today's Visitors = All who checked in today (both inside and outside)
+          checkedInVisitorsList = [
+            ...insideVisitorsList,
+            ...outsideVisitorsList,
+          ];
+
+          // Derive counts from lists so UI count matches detail views
+          checkedIn = checkedInVisitorsList.length.toString();
+          insidePremises = insideVisitorsList.length.toString();
+          checkedOut = outsideVisitorsList.length.toString();
+
+          // Sort by entry time (latest first) for combined today's visitors
+          checkedInVisitorsList.sort((a, b) {
             final aTime = a.entryTime ?? DateTime.now();
             final bTime = b.entryTime ?? DateTime.now();
-            return bTime.compareTo(aTime); 
+            return bTime.compareTo(aTime);
+          });
+
+          // Sort inside visitors by entry time
+          insideVisitorsList.sort((a, b) {
+            final aTime = a.entryTime ?? DateTime.now();
+            final bTime = b.entryTime ?? DateTime.now();
+            return bTime.compareTo(aTime);
+          });
+
+          // Sort outside visitors by exit time
+          outsideVisitorsList.sort((a, b) {
+            final aTime = a.exitTime ?? DateTime.now();
+            final bTime = b.exitTime ?? DateTime.now();
+            return bTime.compareTo(aTime);
           });
 
           isLoading = false;
@@ -98,7 +120,7 @@ class _SecurityDashboardScreenState extends State<SecurityDashboardScreen> {
       });
       _showErrorSnackBar(msg);
     } catch (e, stacktrace) {
-      debugPrint("Error parsing dashboard: $e\n$stacktrace"); // Log for debugging
+      debugPrint("Error parsing dashboard: $e\n$stacktrace");
       setState(() {
         errorMessage = "An unexpected error occurred.";
         isLoading = false;
@@ -108,33 +130,42 @@ class _SecurityDashboardScreenState extends State<SecurityDashboardScreen> {
   }
 
   // Helper to map simplified dashboard JSON to full Visitor object
-  Visitor _mapDashboardJson(Map<String, dynamic> json, {required bool isInside}) {
-      // Extract times safely
-      DateTime? entry = json['entry_time'] != null ? DateTime.tryParse(json['entry_time']) : null;
-      DateTime? exit = json['exit_time'] != null ? DateTime.tryParse(json['exit_time']) : null;
-      
-      // Use entry time as visiting date fallback, or today
-      DateTime visitDate = entry ?? DateTime.now();
+  Visitor _mapDashboardJson(
+    Map<String, dynamic> json, {
+    required bool isInside,
+  }) {
+    // Extract times safely
+    DateTime? entry = json['entry_time'] != null
+        ? DateTime.tryParse(json['entry_time'])
+        : null;
+    DateTime? exit = json['exit_time'] != null
+        ? DateTime.tryParse(json['exit_time'])
+        : null;
 
-      return Visitor(
-        id: '', // Missing in dashboard
-        passId: json['pass_id']?.toString() ?? '',
-        name: json['visitor_name']?.toString() ?? 'Unknown',
-        phone: json['mobile_number']?.toString() ?? '',
-        email: '', // Missing
-        category: json['category']?.toString() ?? 'Visitor',
-        passType: 'ONE_TIME', // Default
-        visitingDate: visitDate,
-        visitingTime: entry != null ? "${entry.hour}:${entry.minute}" : "00:00",
-        purpose: 'N/A', // Missing
-        whomToMeet: 'N/A', // Missing
-        comingFrom: '', 
-        status: isInside ? VisitorStatus.approved : VisitorStatus.approved, // Assumed approved if they entered
-        isInside: isInside,
-        isCheckedOut: exit != null,
-        entryTime: entry,
-        exitTime: exit,
-      );
+    // Use entry time as visiting date fallback, or today
+    DateTime visitDate = entry ?? DateTime.now();
+
+    return Visitor(
+      id: '', // Missing in dashboard
+      passId: json['pass_id']?.toString() ?? '',
+      name: json['visitor_name']?.toString() ?? 'Unknown',
+      phone: json['mobile_number']?.toString() ?? '',
+      email: '', // Missing
+      category: json['category']?.toString() ?? 'Visitor',
+      passType: 'ONE_TIME', // Default
+      visitingDate: visitDate,
+      visitingTime: entry != null ? "${entry.hour}:${entry.minute}" : "00:00",
+      purpose: 'N/A', // Missing
+      whomToMeet: 'N/A', // Missing
+      comingFrom: '',
+      status: isInside
+          ? VisitorStatus.approved
+          : VisitorStatus.approved, // Assumed approved if they entered
+      isInside: isInside,
+      isCheckedOut: exit != null,
+      entryTime: entry,
+      exitTime: exit,
+    );
   }
 
   void _navigateToList(String title, List<Visitor> list) async {
@@ -185,7 +216,8 @@ class _SecurityDashboardScreenState extends State<SecurityDashboardScreen> {
         child: RefreshIndicator(
           onRefresh: _fetchVisitorCounts,
           child: SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(), // Allow refresh even if content is short
+            physics:
+                const AlwaysScrollableScrollPhysics(), // Allow refresh even if content is short
             child: Padding(
               padding: EdgeInsets.symmetric(horizontal: w * 0.04),
               child: Column(
@@ -251,22 +283,28 @@ class _SecurityDashboardScreenState extends State<SecurityDashboardScreen> {
                             child: Center(child: CircularProgressIndicator()),
                           )
                         else if (errorMessage != null)
-                           Padding(
+                          Padding(
                             padding: const EdgeInsets.all(20.0),
                             child: Center(
                               child: Column(
                                 children: [
-                                  const Icon(Icons.error_outline, color: Colors.red, size: 30),
+                                  const Icon(
+                                    Icons.error_outline,
+                                    color: Colors.red,
+                                    size: 30,
+                                  ),
                                   const SizedBox(height: 8),
                                   Text(
                                     errorMessage!,
                                     textAlign: TextAlign.center,
-                                    style: GoogleFonts.poppins(color: Colors.red),
+                                    style: GoogleFonts.poppins(
+                                      color: Colors.red,
+                                    ),
                                   ),
                                   TextButton(
-                                    onPressed: _fetchVisitorCounts, 
-                                    child: const Text("Retry")
-                                  )
+                                    onPressed: _fetchVisitorCounts,
+                                    child: const Text("Retry"),
+                                  ),
                                 ],
                               ),
                             ),
@@ -278,9 +316,12 @@ class _SecurityDashboardScreenState extends State<SecurityDashboardScreen> {
                             count: checkedIn,
                             bgColor: const Color(0xFFEDEAFF),
                             icon: Icons.login,
-                            onTap: () => _navigateToList("Today's Visitors", checkedInVisitorsList),
+                            onTap: () => _navigateToList(
+                              "Today's Visitors",
+                              checkedInVisitorsList,
+                            ),
                           ),
-                      
+
                           SizedBox(height: h * 0.015),
 
                           _visitorCard(
@@ -289,10 +330,13 @@ class _SecurityDashboardScreenState extends State<SecurityDashboardScreen> {
                             count: insidePremises,
                             bgColor: const Color(0xFFE4FFD9),
                             icon: Icons.people,
-                            onTap: () => _navigateToList('Inside Premises', insideVisitorsList),
+                            onTap: () => _navigateToList(
+                              'Inside Premises',
+                              insideVisitorsList,
+                            ),
                           ),
 
-                           SizedBox(height: h * 0.015),
+                          SizedBox(height: h * 0.015),
 
                           _visitorCard(
                             context,
@@ -300,7 +344,10 @@ class _SecurityDashboardScreenState extends State<SecurityDashboardScreen> {
                             count: checkedOut,
                             bgColor: const Color(0xFFD6EAFB),
                             icon: Icons.logout,
-                            onTap: () => _navigateToList('Checked Out Visitors', outsideVisitorsList),
+                            onTap: () => _navigateToList(
+                              'Checked Out Visitors',
+                              outsideVisitorsList,
+                            ),
                           ),
                         ],
                       ],
@@ -388,42 +435,43 @@ class _SecurityDashboardScreenState extends State<SecurityDashboardScreen> {
           borderRadius: BorderRadius.circular(w * 0.035),
         ),
         child: Row(
-        children: [
-          Container(
-            width: w * 0.10,
-            height: w * 0.10,
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              shape: BoxShape.circle,
+          children: [
+            Container(
+              width: w * 0.10,
+              height: w * 0.10,
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, size: w * 0.055, color: Colors.black87),
             ),
-            child: Icon(icon, size: w * 0.055, color: Colors.black87),
-          ),
-          SizedBox(width: w * 0.04),
+            SizedBox(width: w * 0.04),
 
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: GoogleFonts.poppins(
-                    fontSize: w * 0.038,
-                    fontWeight: FontWeight.w600,
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: GoogleFonts.poppins(
+                      fontSize: w * 0.038,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
-                ),
-                Text(
-                  count,
-                  style: GoogleFonts.poppins(
-                    fontSize: w * 0.055,
-                    fontWeight: FontWeight.bold,
+                  Text(
+                    count,
+                    style: GoogleFonts.poppins(
+                      fontSize: w * 0.055,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
-    ),);
+    );
   }
 
   /// Action Button

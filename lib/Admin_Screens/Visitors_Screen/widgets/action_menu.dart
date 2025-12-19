@@ -4,7 +4,6 @@ import '../models/visitor_model.dart';
 import '../utils/colors.dart';
 import 'manual_pass_dialog.dart';
 import 'qr_code_dialog.dart';
-import 'reschedule_dialog.dart';
 
 class ActionMenu extends StatefulWidget {
   final Visitor visitor;

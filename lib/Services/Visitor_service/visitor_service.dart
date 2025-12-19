@@ -22,7 +22,7 @@ class VisitorApiService {
 
       debugPrint('🔍 Fetching visitors from: $endpoint');
       final response = await _apiService.dio.get(endpoint);
-      
+
       debugPrint('✅ Visitors fetched successfully');
       return response;
     } on DioException catch (e) {
@@ -32,13 +32,22 @@ class VisitorApiService {
   }
 
   // Get visitor status counts
-  Future<Response> getVisitorStatus(String companyId) async {
+  Future<Response> getVisitorStatus({
+    String? companyId,
+    String? today,
+    String? date,
+  }) async {
     try {
       debugPrint('🔍 Fetching visitor status counts...');
-      // Assuming companyId might be needed, or just general status. 
-      // User said 'visitors/visitors-status/', implied global or context aware.
-      // I'll stick to the requested URL.
-      final response = await _apiService.dio.get('/visitors/visitors-status/');
+      final queryParams = <String, dynamic>{};
+
+      if (today != null) queryParams['today'] = today;
+      if (date != null) queryParams['date'] = date;
+
+      final response = await _apiService.dio.get(
+        '/visitors/visitors-status/',
+        queryParameters: queryParams.isNotEmpty ? queryParams : null,
+      );
       debugPrint('✅ Visitor status fetched successfully: ${response.data}');
       return response;
     } on DioException catch (e) {
@@ -183,7 +192,8 @@ class VisitorApiService {
         '/visitors/otp/',
         data: {
           'otp': otp,
-          'action': 'entry', // Assuming action is entry based on endpoint context
+          'action':
+              'entry', // Assuming action is entry based on endpoint context
         },
       );
       debugPrint('✅ OTP Verified. Visitor details fetched.');
@@ -302,45 +312,42 @@ class VisitorApiService {
   }
   // -------------------- Scan QR Code --------------------
 
+  Future<Response> scanQrCode(String code) async {
+    try {
+      debugPrint('📷 Raw QR Code Data: $code');
 
-Future<Response> scanQrCode(String code) async {
-  try {
-    debugPrint('📷 Raw QR Code Data: $code');
+      // ✅ Decode QR JSON
+      final Map<String, dynamic> qrData = jsonDecode(code);
 
-    // ✅ Decode QR JSON
-    final Map<String, dynamic> qrData = jsonDecode(code);
+      final String passId = qrData['pass_id'];
 
-    final String passId = qrData['pass_id'];
+      debugPrint('✅ Extracted pass_id: $passId');
 
-    debugPrint('✅ Extracted pass_id: $passId');
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('authToken') ?? '';
 
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('authToken') ?? '';
-
-    final response = await _apiService.dio.post(
-      '/visitors/qr-scan/',
-      data: {
-        'pass_id': passId, // ✅ ONLY pass_id
-      },
-      options: Options(
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json',
+      final response = await _apiService.dio.post(
+        '/visitors/qr-scan/',
+        data: {
+          'pass_id': passId, // ✅ ONLY pass_id
         },
-      ),
-    );
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $token',
+            'Content-Type': 'application/json',
+          },
+        ),
+      );
 
-    debugPrint('✅ QR Code Scanned & Check-in Successful');
-    return response;
-
-  } on FormatException {
-    debugPrint('❌ QR Code is not valid JSON');
-    throw Exception('Invalid QR format');
-
-  } on DioException catch (e) {
-    debugPrint('❌ Error scanning QR code: ${e.message}');
-    debugPrint('❌ Response: ${e.response?.data}');
-    rethrow;
+      debugPrint('✅ QR Code Scanned & Check-in Successful');
+      return response;
+    } on FormatException {
+      debugPrint('❌ QR Code is not valid JSON');
+      throw Exception('Invalid QR format');
+    } on DioException catch (e) {
+      debugPrint('❌ Error scanning QR code: ${e.message}');
+      debugPrint('❌ Response: ${e.response?.data}');
+      rethrow;
+    }
   }
-}
 }

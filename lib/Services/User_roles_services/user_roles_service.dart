@@ -72,6 +72,7 @@ class UserRoleService {
         
         if (companyIdStr != null) {
           final initialCount = userRoles.length;
+          // ignore: unused_local_variable
           final companyId = int.tryParse(companyIdStr);
           
           final filteredRoles = userRoles.where((role) {

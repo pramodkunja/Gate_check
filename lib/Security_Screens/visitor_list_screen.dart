@@ -27,7 +27,7 @@ class _VisitorListScreenState extends State<VisitorListScreen> {
     super.initState();
     _currentVisitors = widget.visitors;
   }
-  
+
   // Method to handle refresh triggered by child cards
   Future<void> _handleRefresh() async {
     if (widget.onRefresh != null) {
@@ -35,18 +35,18 @@ class _VisitorListScreenState extends State<VisitorListScreen> {
       // NOTE: In a real app, strict state management would push correct data down.
       // Here, onRefresh reloads DASHBOARD data, but THIS screen was passed a static list.
       // Ideally, this screen should fetch its own data or Navigator should pop.
-      // However, to keep it simple as per request: 
-      // We'll rely on the user navigating back and forth OR 
+      // However, to keep it simple as per request:
+      // We'll rely on the user navigating back and forth OR
       // if `onRefresh` logic in parent could update the list passed here? No, widgets are immutable.
       // Best approach for now: Just allow the action (Check In/Out) to happen.
       // The dashboard WILL update when we go back.
       // The current list might become stale if we don't refetch specific list.
       // But we don't have an endpoint for "just inside visitors" easily without full dashboard call.
-      
+
       // OPTION: We pop the screen after an action?
-      // "when I tap... I need to view...". 
+      // "when I tap... I need to view...".
       // Let's just keep the list as is. If items are removed (e.g. checked out), they might ideally vanish.
-      // But for this iteration, let's display them. 
+      // But for this iteration, let's display them.
       setState(() {});
     }
   }
@@ -80,9 +80,7 @@ class _VisitorListScreenState extends State<VisitorListScreen> {
               itemBuilder: (context, index) {
                 return VisitorCard(
                   visitor: _currentVisitors[index],
-                  // Accessing user role in security context...
-                  // VisitorCard uses 'userRole' param. We should pass 'security'.
-                  userRole: 'security', 
+                  userRole: 'security',
                   onRefresh: _handleRefresh,
                 );
               },

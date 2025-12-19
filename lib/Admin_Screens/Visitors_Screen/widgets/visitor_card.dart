@@ -14,12 +14,16 @@ class VisitorCard extends StatelessWidget {
   final Visitor visitor;
   final Function()? onRefresh;
   final String? userRole;
+  final bool hideMenu;
+  final bool hideCheckoutButton;
 
   const VisitorCard({
     super.key,
     required this.visitor,
     this.onRefresh,
     this.userRole,
+    this.hideMenu = false,
+    this.hideCheckoutButton = false,
   });
 
   // Safe refresh to avoid setState-during-build asserts in parent
@@ -46,6 +50,36 @@ class VisitorCard extends StatelessWidget {
       default:
         return AppColors.iconGray;
     }
+  }
+
+  Color _getDisplayStageColor() {
+    final stage = visitor.displayStage.toLowerCase();
+    switch (stage) {
+      case 'checked_in':
+        return AppColors.primary; // Purple for checked-in
+      case 'checked_out':
+      case 'visited':
+        return AppColors.approved; // Green for checked-out/visited
+      case 'approved':
+        return AppColors.approved; // Green for approved
+      case 'pending':
+        return Colors.orange; // Orange for pending
+      case 'rejected':
+        return AppColors.rejected; // Red for rejected
+      case 'past':
+        return AppColors.past; // Gray for past
+      default:
+        return AppColors.iconGray; // Default gray
+    }
+  }
+
+  String _getDisplayStageLabel() {
+    final stage = visitor.displayStage;
+    // Convert CHECKED_IN to "Checked In", etc.
+    return stage
+        .split('_')
+        .map((word) => word[0].toUpperCase() + word.substring(1).toLowerCase())
+        .join(' ');
   }
 
   String _getPassTypeLabel() {
@@ -232,7 +266,9 @@ class VisitorCard extends StatelessWidget {
     String? otp;
     if (result is String && result.isNotEmpty) {
       otp = result;
-    } else if (result is Map && result['otp'] is String && (result['otp'] as String).isNotEmpty) {
+    } else if (result is Map &&
+        result['otp'] is String &&
+        (result['otp'] as String).isNotEmpty) {
       otp = result['otp'] as String;
     } else if (result == true) {
       // screen returned boolean only — can't proceed without OTP
@@ -325,13 +361,17 @@ class VisitorCard extends StatelessWidget {
     String? otp;
     if (result is String && result.isNotEmpty) {
       otp = result;
-    } else if (result is Map && result['otp'] is String && (result['otp'] as String).isNotEmpty) {
+    } else if (result is Map &&
+        result['otp'] is String &&
+        (result['otp'] as String).isNotEmpty) {
       otp = result['otp'] as String;
     } else if (result == true) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('OTP not returned by Entry screen. Cannot check out.'),
+            content: Text(
+              'OTP not returned by Entry screen. Cannot check out.',
+            ),
             backgroundColor: Colors.red,
           ),
         );
@@ -419,12 +459,15 @@ class VisitorCard extends StatelessWidget {
     };
 
     // previous: final isPast = visitor.isPast && !visitor.isCheckedOut;
-    final isPast = visitor.isPast &&
+    final isPast =
+        visitor.isPast &&
         !visitor.isCheckedOut &&
         !terminalStatuses.contains(visitor.status);
 
     final isToday = _isScheduledForToday();
-    final formattedDate = DateFormat('yyyy-MM-dd').format(visitor.visitingDate.toLocal());
+    final formattedDate = DateFormat(
+      'yyyy-MM-dd',
+    ).format(visitor.visitingDate.toLocal());
 
     // Normalize role checking - handle various cases
     final role = userRole?.toLowerCase().trim();
@@ -448,7 +491,8 @@ class VisitorCard extends StatelessWidget {
                 foregroundColor: AppColors.primary,
                 padding: EdgeInsets.symmetric(vertical: screenHeight * 0.015),
                 shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8)),
+                  borderRadius: BorderRadius.circular(8),
+                ),
                 elevation: 0,
               ),
               child: Text(
@@ -465,7 +509,9 @@ class VisitorCard extends StatelessWidget {
         }
       }
       // Approve/Reject buttons - Only for Admin or null roles when pending and today
-      else if ((isAdmin || role == null) && isToday && visitor.status == VisitorStatus.pending) {
+      else if ((isAdmin || role == null) &&
+          isToday &&
+          visitor.status == VisitorStatus.pending) {
         actionSection = Row(
           children: [
             Expanded(
@@ -476,7 +522,8 @@ class VisitorCard extends StatelessWidget {
                   foregroundColor: Colors.white,
                   padding: EdgeInsets.symmetric(vertical: screenHeight * 0.015),
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8)),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                   elevation: 0,
                 ),
                 child: Text(
@@ -497,7 +544,8 @@ class VisitorCard extends StatelessWidget {
                   foregroundColor: Colors.white,
                   padding: EdgeInsets.symmetric(vertical: screenHeight * 0.015),
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8)),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                   elevation: 0,
                 ),
                 child: Text(
@@ -512,75 +560,87 @@ class VisitorCard extends StatelessWidget {
           ],
         );
       }
-      // Check In button - Only for Security when approved and not checked in
-      else if (isSecurity && visitor.status == VisitorStatus.approved && !visitor.isCheckedIn) {
-        actionSection = SizedBox(
-          width: double.infinity,
-          child: ElevatedButton(
-            onPressed: () => _handleCheckIn(context),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primaryLight,
-              foregroundColor: AppColors.primary,
-              padding: EdgeInsets.symmetric(vertical: screenHeight * 0.015),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8)),
-              elevation: 0,
-            ),
-            child: Text(
-              'Check In',
-              style: GoogleFonts.inter(
-                fontSize: screenWidth * 0.035,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        );
-      }
-      // Check Out button - Only for Security when checked in
-      else if (isSecurity && visitor.isCheckedIn) {
-        actionSection = SizedBox(
-          width: double.infinity,
-          child: ElevatedButton(
-            onPressed: () => _handleCheckOut(context),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primaryLight,
-              foregroundColor: AppColors.primary,
-              padding: EdgeInsets.symmetric(vertical: screenHeight * 0.015),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8)),
-              elevation: 0,
-            ),
-            child: Text(
-              'Check Out',
-              style: GoogleFonts.inter(
-                fontSize: screenWidth * 0.035,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        );
+      // Check In button - HIDDEN for all roles (no check-in from card view)
+      // else if (isSecurity && visitor.status == VisitorStatus.approved && !visitor.isCheckedIn) {
+      //   ... button code removed
+      // }
+      // Check Out button - HIDDEN for all roles (no check-out from card view)
+      // else if (isSecurity && visitor.isCheckedIn && !hideCheckoutButton) {
+      //   ... button code removed
+      // }
+      else {
+        actionSection = null;
       }
     }
 
     // --- Status badge: prefer explicit isCheckedOut / isCheckedIn checks before enum status
     Widget statusBadge() {
-      // Visited (checked-out)
-      if (visitor.isCheckedOut) {
+      // Prefer backend `current_stage` for display when available
+      final ds = visitor.displayStage.toLowerCase();
+      if (ds.contains('checked_out') ||
+          ds.contains('checked out') ||
+          ds.contains('visited')) {
+        final color = _getDisplayStageColor();
         return Container(
           padding: EdgeInsets.symmetric(
             horizontal: screenWidth * 0.03,
             vertical: screenHeight * 0.008,
           ),
           decoration: BoxDecoration(
-            color: AppColors.approved.withOpacity(0.1),
+            color: color.withOpacity(0.1),
             borderRadius: BorderRadius.circular(20),
           ),
           child: Text(
-            'Visited',
+            'Checked Out',
             style: GoogleFonts.inter(
               fontSize: screenWidth * 0.03,
               fontWeight: FontWeight.w500,
-              color: AppColors.approved,
+              color: color,
+            ),
+          ),
+        );
+      }
+
+      if (ds.contains('checked_in') || ds.contains('checked in')) {
+        final color = _getDisplayStageColor();
+        return Container(
+          padding: EdgeInsets.symmetric(
+            horizontal: screenWidth * 0.03,
+            vertical: screenHeight * 0.008,
+          ),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Text(
+            'Checked In',
+            style: GoogleFonts.inter(
+              fontSize: screenWidth * 0.03,
+              fontWeight: FontWeight.w500,
+              color: color,
+            ),
+          ),
+        );
+      }
+
+      // Fallback to flags if displayStage doesn't indicate checked in/out
+      if (visitor.isCheckedOut) {
+        final color = _getDisplayStageColor();
+        return Container(
+          padding: EdgeInsets.symmetric(
+            horizontal: screenWidth * 0.03,
+            vertical: screenHeight * 0.008,
+          ),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Text(
+            'Checked Out',
+            style: GoogleFonts.inter(
+              fontSize: screenWidth * 0.03,
+              fontWeight: FontWeight.w500,
+              color: color,
             ),
           ),
         );
@@ -631,22 +691,25 @@ class VisitorCard extends StatelessWidget {
         );
       }
 
-      // Default: use enum-backed status label/color (this will show 'Rejected' for rejected visitors)
+      // Default: use displayStage (which prefers currentStage) with color mapping
+      final displayColor = _getDisplayStageColor();
+      final displayLabel = _getDisplayStageLabel();
+
       return Container(
         padding: EdgeInsets.symmetric(
           horizontal: screenWidth * 0.03,
           vertical: screenHeight * 0.008,
         ),
         decoration: BoxDecoration(
-          color: (visitor.status.color).withOpacity(0.1),
+          color: displayColor.withOpacity(0.1),
           borderRadius: BorderRadius.circular(20),
         ),
         child: Text(
-          visitor.status.displayName,
+          displayLabel,
           style: GoogleFonts.inter(
             fontSize: screenWidth * 0.03,
             fontWeight: FontWeight.w500,
-            color: visitor.status.color,
+            color: displayColor,
           ),
         ),
       );
@@ -714,14 +777,16 @@ class VisitorCard extends StatelessWidget {
                 statusBadge(),
 
                 SizedBox(width: screenWidth * 0.02),
-                // ActionMenu - hide reschedule for security and hide entirely if checked out
-                ActionMenu(
-                  visitor: visitor,
-                  onRefresh: onRefresh,
-                  showReschedule: !isSecurity &&
-                      !visitor.isCheckedOut &&
-                      visitor.status != VisitorStatus.rejected,
-                ),
+                // ActionMenu - hide reschedule for security and hide entirely if checked out or hideMenu flag is set
+                if (!hideMenu && !isSecurity)
+                  ActionMenu(
+                    visitor: visitor,
+                    onRefresh: onRefresh,
+                    showReschedule:
+                        !isSecurity &&
+                        !visitor.isCheckedOut &&
+                        visitor.status != VisitorStatus.rejected,
+                  ),
               ],
             ),
             SizedBox(height: screenHeight * 0.02),

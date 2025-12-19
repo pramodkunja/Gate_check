@@ -17,7 +17,6 @@ import 'package:gatecheck/User_Screens/Reports_screens/reports.dart';
 
 // Security Screens
 import 'package:gatecheck/Security_Screens/security_dashboard.dart';
-import 'package:gatecheck/Security_Screens/visitor_live_status.dart';
 
 class AppRoutes {
   // Route Names

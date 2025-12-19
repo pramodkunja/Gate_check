@@ -370,6 +370,7 @@ class _EditVisitorDialogState extends State<_EditVisitorDialog> {
 
   @override
   Widget build(BuildContext context) {
+    // ignore: unused_local_variable
     final w = MediaQuery.of(context).size.width;
     return AlertDialog(
       title: const Text('Edit Visitor'),

@@ -70,7 +70,8 @@ class _RegularVisitorsScreenState extends State<RegularVisitorsScreen> {
     try {
       final response = await _visitorService.getVisitors(companyId);
 
-      if ((response.statusCode == 200 || response.statusCode == 304) && response.data != null) {
+      if ((response.statusCode == 200 || response.statusCode == 304) &&
+          response.data != null) {
         final List<dynamic> data = response.data as List<dynamic>;
         setState(() {
           visitors = data.map((json) => Visitor.fromJson(json)).toList();
@@ -110,29 +111,34 @@ class _RegularVisitorsScreenState extends State<RegularVisitorsScreen> {
 
         // Normalize selected status for robust comparison
         final selStatus = selectedStatus.trim().toLowerCase();
-        final visitorStatusName = visitor.status.displayName
-            .trim()
-            .toLowerCase();
-        final visitorApiStatus = visitor.status.apiValue.trim().toLowerCase();
+        final visitorDisplayStage = visitor.displayStage.trim().toLowerCase();
 
-        // Determine if this visitor is considered 'Past' (scheduled date before today)
-        final bool isPast = visitor.isPast && !visitor.isCheckedOut;
+        // Determine if this visitor is considered 'Past'
+        // Past: visitor was created, visiting date completed (before today), and visitor did NOT visit (no entry)
+        final today = DateTime(
+          DateTime.now().year,
+          DateTime.now().month,
+          DateTime.now().day,
+        );
+        final bool isPast =
+            visitor.createdAt != null &&
+            visitor.visitingDate.isBefore(today) &&
+            (visitor.entryTime == null);
 
         bool matchesStatus;
         if (selStatus == 'all status') {
           matchesStatus = true;
         } else if (selStatus == 'visited') {
-          // 'Visited' means checked out (exit time is recorded)
-          matchesStatus = visitor.isCheckedOut == true;
+          // 'Visited' means checked out or stage indicates checked_out
+          matchesStatus =
+              visitor.isCheckedOut == true ||
+              visitorDisplayStage == 'checked_out';
         } else if (selStatus == 'past') {
-          // 'Past' means scheduled date is before today and NOT checked out
           matchesStatus = isPast;
         } else {
-          // For 'Approved', 'Pending', 'Rejected': match by status AND exclude 'Past' and 'Visited'
-          // This ensures they show only pending/approved/rejected visitors who haven't visited yet
+          // For other statuses: match against displayStage (which includes CHECKED_IN, etc.)
           matchesStatus =
-              (visitorStatusName == selStatus ||
-                  visitorApiStatus == selStatus) &&
+              visitorDisplayStage == selStatus &&
               !isPast &&
               !visitor.isCheckedOut;
         }
@@ -233,9 +239,7 @@ class _RegularVisitorsScreenState extends State<RegularVisitorsScreen> {
     return Scaffold(
       drawer: isAdmin
           ? const Navigation(currentRoute: 'GateCheck')
-          : const UserNavigation(
-              currentRoute: 'GateCheck',
-            ),
+          : const UserNavigation(currentRoute: 'GateCheck'),
       appBar: isAdmin
           ? CustomAppBar(
               userName: userName,
