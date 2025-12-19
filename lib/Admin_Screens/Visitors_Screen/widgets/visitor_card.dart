@@ -876,7 +876,7 @@ class VisitorCard extends StatelessWidget {
             SizedBox(height: screenHeight * 0.015),
             _buildInfoRow(
               Icons.access_time,
-              '${visitor.visitingTime} - ${visitor.purpose}',
+              _formatTimeDisplay(),
               screenWidth,
               screenHeight,
             ),
@@ -915,5 +915,21 @@ class VisitorCard extends StatelessWidget {
         ),
       ],
     );
+  }
+
+  /// Format time display: show entry and exit times if available, otherwise visiting time
+  String _formatTimeDisplay() {
+    // If visitor has entry time, prefer showing entry and exit times
+    if (visitor.entryTime != null) {
+      final entryStr = DateFormat('HH:mm').format(visitor.entryTime!);
+      if (visitor.exitTime != null) {
+        final exitStr = DateFormat('HH:mm').format(visitor.exitTime!);
+        return '$entryStr - $exitStr';
+      } else {
+        return 'Entry: $entryStr';
+      }
+    }
+    // Fallback to visiting time and purpose
+    return '${visitor.visitingTime} - ${visitor.purpose}';
   }
 }

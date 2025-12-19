@@ -5,12 +5,14 @@ class VisitorCard extends StatelessWidget {
   final String name;
   final String time;
   final String status;
+  final String? exitTime;
 
   const VisitorCard({
     super.key,
     required this.name,
     required this.time,
     required this.status,
+    this.exitTime,
   });
 
   @override
@@ -132,12 +134,25 @@ class VisitorCard extends StatelessWidget {
 
           // Check-in Time
           Text(
-            time,
+            'Entry: $time',
             style: GoogleFonts.poppins(
               fontSize: w * 0.035,
               color: Colors.grey[700],
             ),
           ),
+
+          // Exit Time (if available)
+          if (exitTime != null && exitTime!.isNotEmpty)
+            Padding(
+              padding: EdgeInsets.only(top: h * 0.005),
+              child: Text(
+                'Exit: $exitTime',
+                style: GoogleFonts.poppins(
+                  fontSize: w * 0.035,
+                  color: Colors.grey[700],
+                ),
+              ),
+            ),
 
           SizedBox(height: h * 0.03),
 
