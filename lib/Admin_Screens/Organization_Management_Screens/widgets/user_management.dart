@@ -394,55 +394,55 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                 ],
               ),
             ),
-            Container(
-              margin: EdgeInsets.symmetric(horizontal: isSmallScreen ? 12 : 16),
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.grey.withOpacity(0.1),
-                    blurRadius: 4,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: Colors.purple.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Icon(Icons.business, color: Colors.purple),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      _organization.name,
-                      style: GoogleFonts.poppins(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Flexible(
-                    child: Text(
-                      '${_organization.users.length} ${isSmallScreen ? 'Users' : 'Total Users'}',
-                      style: GoogleFonts.poppins(
-                        fontSize: 14,
-                        color: Colors.grey[600],
-                      ),
-                      textAlign: TextAlign.end,
-                    ),
-                  ),
-                ],
-              ),
-            ),
+            // Container(
+            //   margin: EdgeInsets.symmetric(horizontal: isSmallScreen ? 12 : 16),
+            //   padding: const EdgeInsets.all(16),
+            //   decoration: BoxDecoration(
+            //     color: Colors.white,
+            //     borderRadius: BorderRadius.circular(12),
+            //     boxShadow: [
+            //       BoxShadow(
+            //         color: Colors.grey.withOpacity(0.1),
+            //         blurRadius: 4,
+            //         offset: const Offset(0, 2),
+            //       ),
+            //     ],
+            //   ),
+            //   child: Row(
+            //     children: [
+            //       Container(
+            //         padding: const EdgeInsets.all(8),
+            //         decoration: BoxDecoration(
+            //           color: Colors.purple.withOpacity(0.1),
+            //           borderRadius: BorderRadius.circular(8),
+            //         ),
+            //         child: const Icon(Icons.business, color: Colors.purple),
+            //       ),
+            //       const SizedBox(width: 12),
+            //       Expanded(
+            //         child: Text(
+            //           _organization.name,
+            //           style: GoogleFonts.poppins(
+            //             fontSize: 16,
+            //             fontWeight: FontWeight.w600,
+            //           ),
+            //           overflow: TextOverflow.ellipsis,
+            //         ),
+            //       ),
+            //       const SizedBox(width: 8),
+            //       Flexible(
+            //         child: Text(
+            //           '${_organization.users.length} ${isSmallScreen ? 'Users' : 'Total Users'}',
+            //           style: GoogleFonts.poppins(
+            //             fontSize: 14,
+            //             color: Colors.grey[600],
+            //           ),
+            //           textAlign: TextAlign.end,
+            //         ),
+            //       ),
+            //     ],
+            //   ),
+            // ),
             const SizedBox(height: 16),
             Padding(
               padding: EdgeInsets.symmetric(

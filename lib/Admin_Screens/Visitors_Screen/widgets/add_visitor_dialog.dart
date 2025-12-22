@@ -32,7 +32,7 @@ class _AddVisitorDialogState extends State<AddVisitorDialog> {
   final _companyDetailsController = TextEditingController();
 
   String selectedGender = 'Select gender';
-  String selectedPassType = 'One Time';
+  String selectedPassType = 'Select pass type';
 
   // categories loaded from backend
   List<Map<String, dynamic>> categories = [];
@@ -67,7 +67,7 @@ class _AddVisitorDialogState extends State<AddVisitorDialog> {
       final resp = await VisitorApiService().getCategories();
       // Expecting a list of objects like [{"id":15,"name":"Vendor","is_active":true,...}, ...]
       final data = resp.data;
-      
+
       List<Map<String, dynamic>> fetchedCategories = [];
 
       if (data is List) {
@@ -78,16 +78,19 @@ class _AddVisitorDialogState extends State<AddVisitorDialog> {
                 return {
                   'id': e['id'],
                   'name': e['name']?.toString() ?? '',
-                  'is_active': e['is_active'] ?? false, // Default to false if missing
+                  'is_active':
+                      e['is_active'] ?? false, // Default to false if missing
                 };
               }
               return {'id': null, 'name': e.toString(), 'is_active': false};
             })
             // Filter to include only categories that are active, have an ID, and a non-empty name
-            .where((m) =>
-                m['id'] != null &&
-                (m['name'] as String).isNotEmpty &&
-                m['is_active'] == true) // <-- The updated filtering logic
+            .where(
+              (m) =>
+                  m['id'] != null &&
+                  (m['name'] as String).isNotEmpty &&
+                  m['is_active'] == true,
+            ) // <-- The updated filtering logic
             .toList();
       }
 
@@ -108,7 +111,6 @@ class _AddVisitorDialogState extends State<AddVisitorDialog> {
         selectedCategory = 'Select category';
         selectedCategoryId = null;
       }
-
 
       // Prepare dropdown selected value (keep 'Select category' until user picks)
       if (!mounted) return;
@@ -212,8 +214,8 @@ class _AddVisitorDialogState extends State<AddVisitorDialog> {
         return 'ONE_TIME';
       case 'Recurring':
         return 'RECURRING';
-      case 'Permanent':
-        return 'PERMANENT';
+      // case 'Permanent':
+      //   return 'PERMANENT';
       default:
         return 'ONE_TIME';
     }
@@ -235,12 +237,11 @@ class _AddVisitorDialogState extends State<AddVisitorDialog> {
       return;
     }
 
-    // Recurring-specific validations
+    // Recurring-specific validations: require recurring days, but Valid Until is optional
     if (selectedPassType == 'Recurring') {
-      if (_recurringDaysController.text.trim().isEmpty ||
-          _validUntilDate == null) {
+      if (_recurringDaysController.text.trim().isEmpty) {
         setState(() {
-          _dialogError = 'Please provide recurring days and valid until date.';
+          _dialogError = 'Please provide recurring days.';
         });
         return;
       }
@@ -489,10 +490,16 @@ class _AddVisitorDialogState extends State<AddVisitorDialog> {
                       _buildDropdown(
                         label: 'Pass Type',
                         value: selectedPassType,
-                        items: const ['One Time', 'Recurring', 'Permanent'],
+                        items: const [
+                          'Select pass type',
+                          'One Time',
+                          'Recurring',
+                        ],
                         onChanged: (value) {
                           setState(() {
                             selectedPassType = value!;
+                            // Clear any previous top-level dialog error when pass type changes
+                            _dialogError = null;
                             if (selectedPassType != 'Recurring') {
                               _recurringDaysController.clear();
                               _validUntilDate = null;
@@ -937,6 +944,14 @@ class _AddVisitorDialogState extends State<AddVisitorDialog> {
               borderRadius: BorderRadius.circular(8),
               borderSide: BorderSide(color: AppColors.primary),
             ),
+            errorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: BorderSide(color: AppColors.rejected, width: 1.5),
+            ),
+            focusedErrorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: BorderSide(color: AppColors.rejected, width: 1.5),
+            ),
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 12,
               vertical: 12,
@@ -949,6 +964,14 @@ class _AddVisitorDialogState extends State<AddVisitorDialog> {
             );
           }).toList(),
           onChanged: isSubmitting ? null : onChanged,
+          validator: (v) {
+            if (!isRequired) return null;
+            final placeholder = (items.isNotEmpty) ? items.first : '';
+            if (v == null || v.trim().isEmpty) return 'Please select $label';
+            if (placeholder.isNotEmpty && v == placeholder)
+              return 'Please select $label';
+            return null;
+          },
         ),
       ],
     );
@@ -957,7 +980,7 @@ class _AddVisitorDialogState extends State<AddVisitorDialog> {
   Widget _buildDatePicker({
     required String label,
     required DateTime? selectedDate,
-    required VoidCallback onTap,
+    required Future<void> Function() onTap,
     bool isRequired = false,
   }) {
     return Column(
@@ -984,33 +1007,71 @@ class _AddVisitorDialogState extends State<AddVisitorDialog> {
           ],
         ),
         const SizedBox(height: 8),
-        InkWell(
-          onTap: isSubmitting ? null : onTap,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-            decoration: BoxDecoration(
-              border: Border.all(color: AppColors.border),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Row(
+        FormField<DateTime>(
+          initialValue: selectedDate,
+          validator: (_) {
+            if (isRequired && selectedDate == null)
+              return 'Please select $label';
+            return null;
+          },
+          builder: (state) {
+            final hasError = state.errorText != null;
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(
-                  child: Text(
-                    selectedDate != null
-                        ? '${selectedDate.month.toString().padLeft(2, '0')}/${selectedDate.day.toString().padLeft(2, '0')}/${selectedDate.year}'
-                        : 'mm/dd/yyyy',
-                    style: GoogleFonts.poppins(
-                      fontSize: 13,
-                      color: selectedDate != null
-                          ? AppColors.textPrimary
-                          : AppColors.textSecondary,
+                InkWell(
+                  onTap: isSubmitting
+                      ? null
+                      : () async {
+                          await onTap();
+                          state.didChange(selectedDate);
+                        },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 12,
+                    ),
+                    decoration: BoxDecoration(
+                      border: Border.all(
+                        color: hasError ? AppColors.rejected : AppColors.border,
+                      ),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            selectedDate != null
+                                ? '${selectedDate.month.toString().padLeft(2, '0')}/${selectedDate.day.toString().padLeft(2, '0')}/${selectedDate.year}'
+                                : 'mm/dd/yyyy',
+                            style: GoogleFonts.poppins(
+                              fontSize: 13,
+                              color: selectedDate != null
+                                  ? AppColors.textPrimary
+                                  : AppColors.textSecondary,
+                            ),
+                          ),
+                        ),
+                        Icon(
+                          Icons.calendar_today,
+                          size: 16,
+                          color: AppColors.iconGray,
+                        ),
+                      ],
                     ),
                   ),
                 ),
-                Icon(Icons.calendar_today, size: 16, color: AppColors.iconGray),
+                if (hasError)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 6, left: 6),
+                    child: Text(
+                      state.errorText!,
+                      style: TextStyle(color: AppColors.rejected, fontSize: 12),
+                    ),
+                  ),
               ],
-            ),
-          ),
+            );
+          },
         ),
       ],
     );
@@ -1019,7 +1080,7 @@ class _AddVisitorDialogState extends State<AddVisitorDialog> {
   Widget _buildTimePicker({
     required String label,
     required TimeOfDay? selectedTime,
-    required VoidCallback onTap,
+    required Future<void> Function() onTap,
     bool isRequired = false,
   }) {
     return Column(
@@ -1046,33 +1107,71 @@ class _AddVisitorDialogState extends State<AddVisitorDialog> {
           ],
         ),
         const SizedBox(height: 8),
-        InkWell(
-          onTap: isSubmitting ? null : onTap,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-            decoration: BoxDecoration(
-              border: Border.all(color: AppColors.border),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Row(
+        FormField<TimeOfDay>(
+          initialValue: selectedTime,
+          validator: (_) {
+            if (isRequired && selectedTime == null)
+              return 'Please select $label';
+            return null;
+          },
+          builder: (state) {
+            final hasError = state.errorText != null;
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(
-                  child: Text(
-                    selectedTime != null
-                        ? '${selectedTime.hour.toString().padLeft(2, '0')}:${selectedTime.minute.toString().padLeft(2, '0')}'
-                        : '--:--',
-                    style: GoogleFonts.poppins(
-                      fontSize: 13,
-                      color: selectedTime != null
-                          ? AppColors.textPrimary
-                          : AppColors.textSecondary,
+                InkWell(
+                  onTap: isSubmitting
+                      ? null
+                      : () async {
+                          await onTap();
+                          state.didChange(selectedTime);
+                        },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 12,
+                    ),
+                    decoration: BoxDecoration(
+                      border: Border.all(
+                        color: hasError ? AppColors.rejected : AppColors.border,
+                      ),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            selectedTime != null
+                                ? '${selectedTime.hour.toString().padLeft(2, '0')}:${selectedTime.minute.toString().padLeft(2, '0')}'
+                                : '--:--',
+                            style: GoogleFonts.poppins(
+                              fontSize: 13,
+                              color: selectedTime != null
+                                  ? AppColors.textPrimary
+                                  : AppColors.textSecondary,
+                            ),
+                          ),
+                        ),
+                        Icon(
+                          Icons.access_time,
+                          size: 16,
+                          color: AppColors.iconGray,
+                        ),
+                      ],
                     ),
                   ),
                 ),
-                Icon(Icons.access_time, size: 16, color: AppColors.iconGray),
+                if (state.errorText != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 6, left: 6),
+                    child: Text(
+                      state.errorText!,
+                      style: TextStyle(color: AppColors.rejected, fontSize: 12),
+                    ),
+                  ),
               ],
-            ),
-          ),
+            );
+          },
         ),
       ],
     );

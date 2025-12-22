@@ -475,38 +475,42 @@ class VisitorCard extends StatelessWidget {
     final isAdmin = role == 'admin';
 
     // If visitor has checked out, do not show any action buttons
+    // Check both the flag AND the displayStage to catch all checked-out states
+    final isDisplayedCheckedOut =
+        visitor.isCheckedOut ||
+        visitor.displayStage.toLowerCase().contains('checked_out') ||
+        visitor.displayStage.toLowerCase().contains('checked out') ||
+        visitor.displayStage.toLowerCase().contains('visited');
+
     Widget? actionSection;
-    if (visitor.isCheckedOut) {
+    if (isDisplayedCheckedOut) {
       actionSection = null;
     } else {
-      // --- If visitor is past and not checked out, allow reschedule for ALL roles EXCEPT security
-      if (isPast) {
-        if (!isSecurity) {
-          actionSection = SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: () => _handleReschedule(context),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primaryLight,
-                foregroundColor: AppColors.primary,
-                padding: EdgeInsets.symmetric(vertical: screenHeight * 0.015),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                elevation: 0,
+      // --- Reschedule button: Only show when visitor is PAST (not checked out, not checked in)
+      // and the user is NOT security
+      if (isPast && !isSecurity) {
+        actionSection = SizedBox(
+          width: double.infinity,
+          child: ElevatedButton(
+            onPressed: () => _handleReschedule(context),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primaryLight,
+              foregroundColor: AppColors.primary,
+              padding: EdgeInsets.symmetric(vertical: screenHeight * 0.015),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
               ),
-              child: Text(
-                'Reschedule',
-                style: GoogleFonts.inter(
-                  fontSize: screenWidth * 0.035,
-                  fontWeight: FontWeight.w600,
-                ),
+              elevation: 0,
+            ),
+            child: Text(
+              'Reschedule',
+              style: GoogleFonts.inter(
+                fontSize: screenWidth * 0.035,
+                fontWeight: FontWeight.w600,
               ),
             ),
-          );
-        } else {
-          actionSection = null;
-        }
+          ),
+        );
       }
       // Approve/Reject buttons - Only for Admin or null roles when pending and today
       else if ((isAdmin || role == null) &&
@@ -784,7 +788,7 @@ class VisitorCard extends StatelessWidget {
                     onRefresh: onRefresh,
                     showReschedule:
                         !isSecurity &&
-                        !visitor.isCheckedOut &&
+                        !isDisplayedCheckedOut &&
                         visitor.status != VisitorStatus.rejected,
                   ),
               ],
