@@ -11,6 +11,8 @@ import 'package:open_file/open_file.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:url_launcher/url_launcher.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:device_info_plus/device_info_plus.dart';
 
 class ReportsScreen extends StatefulWidget {
   const ReportsScreen({super.key});
@@ -179,11 +181,89 @@ class _MonthlyReportTabState extends State<MonthlyReportTab> {
   String? loadingAction;
   int? loadingMonth;
 
+  Future<bool> _requestStoragePermission() async {
+    if (kIsWeb) return true; // No permissions needed for web
+    if (!Platform.isAndroid) return true; // iOS handles permissions differently
+
+    // Check Android SDK version
+    final deviceInfo = DeviceInfoPlugin();
+    final androidInfo = await deviceInfo.androidInfo;
+    
+    // For Android 13+ (SDK 33+), write permission is not required for public downloads
+    if (androidInfo.version.sdkInt >= 33) {
+      return true;
+    }
+
+    // Check current permission status
+    PermissionStatus storageStatus = await Permission.storage.status;
+    
+    // If already granted, return true
+    if (storageStatus.isGranted || storageStatus.isLimited) {
+      return true;
+    }
+    
+    // Request permission
+    PermissionStatus status = await Permission.storage.request();
+    
+    if (status.isGranted || status.isLimited) {
+      return true;
+    } else if (status.isPermanentlyDenied) {
+      // Show dialog to open app settings
+      if (mounted) {
+        final result = await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: Text('Storage Permission Required', style: GoogleFonts.poppins()),
+            content: Text(
+              'Please grant storage permission from app settings to download reports.',
+              style: GoogleFonts.poppins(),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: Text('Cancel', style: GoogleFonts.poppins()),
+              ),
+              TextButton(
+                onPressed: () {
+                  openAppSettings();
+                  Navigator.pop(context, true);
+                },
+                child: Text('Open Settings', style: GoogleFonts.poppins()),
+              ),
+            ],
+          ),
+        );
+        return result ?? false;
+      }
+      return false;
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Storage permission is required to download reports',
+              style: GoogleFonts.poppins(),
+            ),
+            backgroundColor: Colors.orange,
+            duration: const Duration(seconds: 3),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+      return false;
+    }
+  }
+
   Future<void> _downloadReport(
     String type,
     int monthIndex,
     bool isPreview,
   ) async {
+    // Request permission before downloading (skip for preview)
+    if (!isPreview && !await _requestStoragePermission()) {
+      return; // Permission denied, don't proceed
+    }
+
     setState(() {
       isLoading = true;
       loadingAction = type;
@@ -198,11 +278,13 @@ class _MonthlyReportTabState extends State<MonthlyReportTab> {
       if (type == 'PDF') {
         endpoint =
             '/reports/monthly-visitor-pdf/?year=$selectedYear&month=$month${isPreview ? '&preview=true' : ''}';
-        fileName = 'Report_${months[monthIndex]}_$selectedYear.pdf';
+        final timestamp = DateTime.now().millisecondsSinceEpoch;
+        fileName = 'Report_${months[monthIndex]}_${selectedYear}_$timestamp.pdf';
       } else if (type == 'Excel') {
         endpoint =
             '/reports/monthly-visitor-excel/?year=$selectedYear&month=$month';
-        fileName = 'Report_${months[monthIndex]}_$selectedYear.xlsx';
+        final timestamp = DateTime.now().millisecondsSinceEpoch;
+        fileName = 'Report_${months[monthIndex]}_${selectedYear}_$timestamp.xlsx';
       }
 
       if (isPreview) {
@@ -280,7 +362,7 @@ class _MonthlyReportTabState extends State<MonthlyReportTab> {
       if (mounted) {
         String message = isPreview
             ? 'Opening preview...'
-            : 'File saved to Downloads folder';
+            : 'File saved: $fileName';
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(message, style: GoogleFonts.poppins()),
@@ -720,6 +802,79 @@ class _CustomizedReportTabState extends State<CustomizedReportTab> {
   bool isLoading = false;
   String? loadingAction;
 
+  Future<bool> _requestStoragePermission() async {
+    if (kIsWeb) return true; // No permissions needed for web
+    if (!Platform.isAndroid) return true; // iOS handles permissions differently
+
+    // Check Android SDK version
+    final deviceInfo = DeviceInfoPlugin();
+    final androidInfo = await deviceInfo.androidInfo;
+    
+    // For Android 13+ (SDK 33+), write permission is not required for public downloads
+    if (androidInfo.version.sdkInt >= 33) {
+      return true;
+    }
+
+    // Check current permission status
+    PermissionStatus storageStatus = await Permission.storage.status;
+    
+    // If already granted, return true
+    if (storageStatus.isGranted || storageStatus.isLimited) {
+      return true;
+    }
+    
+    // Request permission
+    PermissionStatus status = await Permission.storage.request();
+    
+    if (status.isGranted || status.isLimited) {
+      return true;
+    } else if (status.isPermanentlyDenied) {
+      // Show dialog to open app settings
+      if (mounted) {
+        final result = await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: Text('Storage Permission Required', style: GoogleFonts.poppins()),
+            content: Text(
+              'Please grant storage permission from app settings to download reports.',
+              style: GoogleFonts.poppins(),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: Text('Cancel', style: GoogleFonts.poppins()),
+              ),
+              TextButton(
+                onPressed: () {
+                  openAppSettings();
+                  Navigator.pop(context, true);
+                },
+                child: Text('Open Settings', style: GoogleFonts.poppins()),
+              ),
+            ],
+          ),
+        );
+        return result ?? false;
+      }
+      return false;
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Storage permission is required to download reports',
+              style: GoogleFonts.poppins(),
+            ),
+            backgroundColor: Colors.orange,
+            duration: const Duration(seconds: 3),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+      return false;
+    }
+  }
+
   @override
   void dispose() {
     fromDateController.dispose();
@@ -746,17 +901,22 @@ class _CustomizedReportTabState extends State<CustomizedReportTab> {
       return;
     }
 
+    // Request permission before downloading (skip for preview)
+    if (!isPreview && !await _requestStoragePermission()) {
+      return; // Permission denied, don't proceed
+    }
+
     setState(() {
       isLoading = true;
       loadingAction = type;
     });
 
     try {
-      // Format dates for API (YYYY-MM-DD)
+      // Format dates for API (DD-MM-YYYY)
       final fromDateFormatted =
-          "${fromDate!.year}-${fromDate!.month.toString().padLeft(2, '0')}-${fromDate!.day.toString().padLeft(2, '0')}";
+          "${fromDate!.day.toString().padLeft(2, '0')}-${fromDate!.month.toString().padLeft(2, '0')}-${fromDate!.year}";
       final toDateFormatted =
-          "${toDate!.year}-${toDate!.month.toString().padLeft(2, '0')}-${toDate!.day.toString().padLeft(2, '0')}";
+          "${toDate!.day.toString().padLeft(2, '0')}-${toDate!.month.toString().padLeft(2, '0')}-${toDate!.year}";
 
       String endpoint = '';
       String fileName = '';
@@ -764,25 +924,32 @@ class _CustomizedReportTabState extends State<CustomizedReportTab> {
       if (type == 'PDF') {
         endpoint =
             '/reports/custom-visitor-pdf/?from_date=$fromDateFormatted&to_date=$toDateFormatted${isPreview ? '&preview=true' : ''}';
+        final timestamp = DateTime.now().millisecondsSinceEpoch;
         fileName =
-            'Custom_Report_${fromDate!.day}-${fromDate!.month}-${fromDate!.year}_to_${toDate!.day}-${toDate!.month}-${toDate!.year}.pdf';
+            'Custom_Report_${fromDate!.day}-${fromDate!.month}-${fromDate!.year}_to_${toDate!.day}-${toDate!.month}-${toDate!.year}_$timestamp.pdf';
       } else if (type == 'Excel') {
         endpoint =
             '/reports/custom-visitor-excel/?from_date=$fromDateFormatted&to_date=$toDateFormatted';
+        final timestamp = DateTime.now().millisecondsSinceEpoch;
         fileName =
-            'Custom_Report_${fromDate!.day}-${fromDate!.month}-${fromDate!.year}_to_${toDate!.day}-${toDate!.month}-${toDate!.year}.xlsx';
+            'Custom_Report_${fromDate!.day}-${fromDate!.month}-${fromDate!.year}_to_${toDate!.day}-${toDate!.month}-${toDate!.year}_$timestamp.xlsx';
       }
 
-      // Add time parameters if provided
+      // Add time parameters if provided, else default to full day
       if (fromTime != null) {
         final fromTimeStr =
             '${fromTime!.hour.toString().padLeft(2, '0')}:${fromTime!.minute.toString().padLeft(2, '0')}';
         endpoint += '&from_time=$fromTimeStr';
+      } else {
+        endpoint += '&from_time=00:00';
       }
+      
       if (toTime != null) {
         final toTimeStr =
             '${toTime!.hour.toString().padLeft(2, '0')}:${toTime!.minute.toString().padLeft(2, '0')}';
         endpoint += '&to_time=$toTimeStr';
+      } else {
+        endpoint += '&to_time=23:59';
       }
 
       if (isPreview) {
@@ -854,7 +1021,7 @@ class _CustomizedReportTabState extends State<CustomizedReportTab> {
       if (mounted) {
         String message = isPreview
             ? 'Opening preview...'
-            : 'File saved to Downloads folder';
+            : 'File saved: $fileName';
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(message, style: GoogleFonts.poppins()),
@@ -929,17 +1096,36 @@ class _CustomizedReportTabState extends State<CustomizedReportTab> {
       return;
     }
 
-    final directory = await getApplicationDocumentsDirectory();
-    final filePath = '${directory.path}/$fileName';
+    // For mobile platforms - use Downloads directory (same as monthly reports)
+    Directory? directory;
+    if (Platform.isAndroid) {
+      directory = Directory('/storage/emulated/0/Download');
+      if (!await directory.exists()) {
+        directory = await getExternalStorageDirectory();
+      }
+    } else {
+      directory = await getApplicationDocumentsDirectory();
+    }
 
+    final filePath = '${directory!.path}/$fileName';
+    debugPrint('📁 Saving custom report file to: $filePath');
+
+    // Download with progress + manual status check
     final response = await ApiService().dio.download(
       endpoint,
       filePath,
       options: Options(
         responseType: ResponseType.bytes,
         followRedirects: false,
-        validateStatus: (status) => true,
+        validateStatus: (status) => true, // we check manually
       ),
+      onReceiveProgress: (received, total) {
+        if (total != -1) {
+          debugPrint(
+            'Download progress: ${(received / total * 100).toStringAsFixed(0)}%',
+          );
+        }
+      },
     );
 
     final statusCode = response.statusCode ?? 0;
@@ -953,8 +1139,34 @@ class _CustomizedReportTabState extends State<CustomizedReportTab> {
       );
     }
 
+    debugPrint('✅ Custom report file saved successfully at: $filePath');
+
+    // Open the file
     if (openFile) {
-      await OpenFile.open(filePath);
+      final result = await OpenFile.open(filePath);
+      debugPrint('📂 Open file result: ${result.message}');
+    } else {
+      // Show file location to user with auto-dismiss
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'File saved to Downloads folder',
+              style: GoogleFonts.poppins(),
+            ),
+            action: SnackBarAction(
+              label: 'Open',
+              onPressed: () {
+                OpenFile.open(filePath);
+                ScaffoldMessenger.of(context).hideCurrentSnackBar();
+              },
+            ),
+            duration: const Duration(seconds: 3),
+            backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
     }
   }
 

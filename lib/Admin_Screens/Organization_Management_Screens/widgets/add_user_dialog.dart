@@ -145,12 +145,6 @@ class _AddUserDialogState extends State<AddUserDialog> {
 
   void _submit() {
     if (_formKey.currentState!.validate()) {
-      if (_selectedRole == null) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Please select a role')));
-        return;
-      }
       if (widget.companyId == null) {
         ScaffoldMessenger.of(
           context,
@@ -165,17 +159,20 @@ class _AddUserDialogState extends State<AddUserDialog> {
         mobileNumber: _mobileController.text.trim(),
         // ✅ Use current controller text (updated from API)
         companyName: _companyController.text.trim(),
-        role: _selectedRole!,
+        role: _selectedRole ?? '',
         aliasName: _aliasController.text.trim(),
         block: _blockController.text.trim(),
         floor: _floorController.text.trim(),
         dateAdded: null,
       );
-      widget.onAdd(
-        user,
-        widget.companyId!,
-      ); // pass companyId as extra parameter
+      // Pop dialog first so SnackBar renders from parent Scaffold, not dialog
       Navigator.pop(context);
+      if (mounted) {
+        widget.onAdd(
+          user,
+          widget.companyId!,
+        ); // pass companyId as extra parameter
+      }
     }
   }
 
