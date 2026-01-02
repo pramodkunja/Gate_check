@@ -482,13 +482,18 @@ class VisitorCard extends StatelessWidget {
         visitor.displayStage.toLowerCase().contains('checked out') ||
         visitor.displayStage.toLowerCase().contains('visited');
 
+    final isDisplayedCheckedIn =
+        visitor.isCheckedIn ||
+        visitor.displayStage.toLowerCase().contains('checked_in') ||
+        visitor.displayStage.toLowerCase().contains('checked in');
+
     Widget? actionSection;
     if (isDisplayedCheckedOut) {
       actionSection = null;
     } else {
       // --- Reschedule button: Only show when visitor is PAST (not checked out, not checked in)
       // and the user is NOT security
-      if (isPast && !isSecurity) {
+      if (isPast && !isSecurity && !isDisplayedCheckedIn) {
         actionSection = SizedBox(
           width: double.infinity,
           child: ElevatedButton(

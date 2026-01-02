@@ -152,7 +152,7 @@ class _SecurityDashboardScreenState extends State<SecurityDashboardScreen> {
       phone: json['mobile_number']?.toString() ?? '',
       email: '', // Missing
       category: json['category']?.toString() ?? 'Visitor',
-      passType: 'ONE_TIME', // Default
+      passType: json['pass_type']?.toString().toUpperCase() ?? 'ONE_TIME',
       visitingDate: visitDate,
       visitingTime: entry != null ? "${entry.hour}:${entry.minute}" : "00:00",
       purpose: 'N/A', // Missing
