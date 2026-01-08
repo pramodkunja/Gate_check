@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:gatecheck/routes/app_routes.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -46,10 +47,10 @@ class _SplashScreenState extends State<SplashScreen> {
             
             Text(
               'Gate Check',
-              style: TextStyle(
+              style: GoogleFonts.poppins(
                 fontSize: size.width * 0.08, // Responsive font size
                 fontWeight: FontWeight.bold,
-                color: Colors.black87,
+                color: const Color(0xFF6A1B9A),
                 letterSpacing: 1.2,
               ),
             ),
