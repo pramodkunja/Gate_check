@@ -19,7 +19,7 @@ class MyApp extends StatelessWidget {
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
       // Set initial route
-      initialRoute: AppRoutes.login,
+      initialRoute: AppRoutes.splash,
       // Use the route generator
       onGenerateRoute: AppRoutes.generateRoute,
     );

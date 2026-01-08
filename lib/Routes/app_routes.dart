@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 // Auth Screens
 import 'package:gatecheck/Auth_Screens/gatecheck_signin.dart';
 import 'package:gatecheck/Auth_Screens/password.dart';
+import 'package:gatecheck/splash_screen.dart';
 
 // Admin Screens
 import 'package:gatecheck/Admin_Screens/Dashboard_Screens/dashboard_screen.dart';
@@ -22,6 +23,7 @@ class AppRoutes {
   // Route Names
   
   // Auth Routes
+  static const String splash = '/';
   static const String login = '/login';
   static const String signIn = '/signin';
   
@@ -46,6 +48,8 @@ static const String visitorLiveStatus = '/security/visitor-live-status';
   static Route<dynamic> generateRoute(RouteSettings settings) {
     switch (settings.name) {
       // Auth Routes
+      case splash:
+        return MaterialPageRoute(builder: (_) => const SplashScreen());
       case login:
         return MaterialPageRoute(builder: (_) => const GateCheckSignIn());
       
