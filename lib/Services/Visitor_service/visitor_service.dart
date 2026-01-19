@@ -1,6 +1,8 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:gatecheck/Services/Auth_Services/api_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
 
 class VisitorApiService {
   final ApiService _apiService = ApiService();
@@ -8,14 +10,48 @@ class VisitorApiService {
   // Get all visitors for a company
   Future<Response> getVisitors(int companyId) async {
     try {
-      debugPrint('🔍 Fetching visitors for company: $companyId');
-      final response = await _apiService.dio.get(
-        '/visitors/company/$companyId/visitors/',
-      );
+      final isSuperUser = await _apiService.isSuperUser();
+      debugPrint('🔍 Fetching visitors. Is SuperUser: $isSuperUser');
+
+      String endpoint;
+      if (isSuperUser) {
+        endpoint = '/visitors/visitors/';
+      } else {
+        endpoint = '/visitors/visitors/';
+      }
+
+      debugPrint('🔍 Fetching visitors from: $endpoint');
+      final response = await _apiService.dio.get(endpoint);
+
       debugPrint('✅ Visitors fetched successfully');
       return response;
     } on DioException catch (e) {
       debugPrint('❌ Error fetching visitors: ${e.message}');
+      rethrow;
+    }
+  }
+
+  // Get visitor status counts
+  Future<Response> getVisitorStatus({
+    String? companyId,
+    String? today,
+    String? date,
+  }) async {
+    try {
+      debugPrint('🔍 Fetching visitor status counts...');
+      final queryParams = <String, dynamic>{};
+
+      if (today != null) queryParams['today'] = today;
+      if (date != null) queryParams['date'] = date;
+
+      final response = await _apiService.dio.get(
+        '/visitors/visitors-status/',
+        queryParameters: queryParams.isNotEmpty ? queryParams : null,
+      );
+      debugPrint('✅ Visitor status fetched successfully: ${response.data}');
+      return response;
+    } on DioException catch (e) {
+      debugPrint('❌ Error fetching visitor status: ${e.message}');
       rethrow;
     }
   }
@@ -148,6 +184,26 @@ class VisitorApiService {
     }
   }
 
+  // Verify Entry OTP (Entry)
+  Future<Response> verifyEntryOtp(String otp) async {
+    try {
+      debugPrint('🔍 Verifying Entry OTP: $otp');
+      final response = await _apiService.dio.post(
+        '/visitors/otp/',
+        data: {
+          'otp': otp,
+          'action':
+              'entry', // Assuming action is entry based on endpoint context
+        },
+      );
+      debugPrint('✅ OTP Verified. Visitor details fetched.');
+      return response;
+    } on DioException catch (e) {
+      debugPrint('❌ Error verifying OTP: ${e.message}');
+      rethrow;
+    }
+  }
+
   // Check-in visitor (Entry)
   Future<Response> checkInVisitor({
     required String passId,
@@ -233,5 +289,65 @@ class VisitorApiService {
   // Helper to get error message
   String getErrorMessage(DioException error) {
     return _apiService.getErrorMessage(error);
+  }
+
+  // -------------------- Bulk Upload Visitors --------------------
+  Future<Response> uploadBulkVisitors(
+    List<Map<String, dynamic>> visitors,
+  ) async {
+    try {
+      debugPrint("📤 Uploading bulk visitors...");
+
+      final response = await _apiService.dio.post(
+        '/reports/bulk-upload-visitors/',
+        data: {'visitors': visitors},
+      );
+
+      debugPrint("✅ Bulk upload success");
+      return response;
+    } on DioException catch (e) {
+      debugPrint("❌ Bulk upload error: ${e.message}");
+      rethrow;
+    }
+  }
+  // -------------------- Scan QR Code --------------------
+
+  Future<Response> scanQrCode(String code) async {
+    try {
+      debugPrint('📷 Raw QR Code Data: $code');
+
+      // ✅ Decode QR JSON
+      final Map<String, dynamic> qrData = jsonDecode(code);
+
+      final String passId = qrData['pass_id'];
+
+      debugPrint('✅ Extracted pass_id: $passId');
+
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('authToken') ?? '';
+
+      final response = await _apiService.dio.post(
+        '/visitors/qr-scan/',
+        data: {
+          'pass_id': passId, // ✅ ONLY pass_id
+        },
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $token',
+            'Content-Type': 'application/json',
+          },
+        ),
+      );
+
+      debugPrint('✅ QR Code Scanned & Check-in Successful');
+      return response;
+    } on FormatException {
+      debugPrint('❌ QR Code is not valid JSON');
+      throw Exception('Invalid QR format');
+    } on DioException catch (e) {
+      debugPrint('❌ Error scanning QR code: ${e.message}');
+      debugPrint('❌ Response: ${e.response?.data}');
+      rethrow;
+    }
   }
 }

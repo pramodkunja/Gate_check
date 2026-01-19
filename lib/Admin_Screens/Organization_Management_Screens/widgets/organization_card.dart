@@ -1,11 +1,15 @@
 // widgets/organization_card.dart
 import 'package:flutter/material.dart';
 import 'package:gatecheck/Admin_Screens/Organization_Management_Screens/models/models.dart';
+import 'package:gatecheck/Services/Auth_Services/api_service.dart';
+import 'package:gatecheck/Services/User_services/user_service.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-class OrganizationCard extends StatelessWidget {
+class OrganizationCard extends StatefulWidget {
   final Organization organization;
   final int? userCount; // Add optional userCount parameter
+  final String? userRole;
+  final bool? isSuperuser;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
   final VoidCallback onAddUser;
@@ -15,6 +19,8 @@ class OrganizationCard extends StatelessWidget {
     super.key,
     required this.organization,
     this.userCount, // Optional parameter
+    this.userRole,
+    this.isSuperuser,
     required this.onEdit,
     required this.onDelete,
     required this.onAddUser,
@@ -22,10 +28,33 @@ class OrganizationCard extends StatelessWidget {
   });
 
   @override
+  State<OrganizationCard> createState() => _OrganizationCardState();
+}
+
+class _OrganizationCardState extends State<OrganizationCard> {
+  late String? _resolvedUserRole;
+  bool? _resolvedIsSuperuser;
+
+  @override
+  void initState() {
+    super.initState();
+    // Resolve role from passed prop or UserService
+    _resolvedUserRole = widget.userRole ?? UserService().getUserRole();
+    // If isSuperuser provided, use it; otherwise fetch from ApiService/SharedPreferences
+    if (widget.isSuperuser != null) {
+      _resolvedIsSuperuser = widget.isSuperuser;
+    } else {
+      ApiService().isSuperUser().then((v) {
+        if (mounted) setState(() => _resolvedIsSuperuser = v);
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     // Use passed userCount if available, otherwise fall back to organization.memberCount
-    final displayCount = userCount ?? organization.memberCount;
-    
+    final displayCount = widget.userCount ?? widget.organization.memberCount;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
@@ -64,7 +93,7 @@ class OrganizationCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        organization.name,
+                        widget.organization.name,
                         style: GoogleFonts.poppins(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
@@ -82,14 +111,18 @@ class OrganizationCard extends StatelessWidget {
                 ),
                 IconButton(
                   icon: const Icon(Icons.edit_outlined),
-                  onPressed: onEdit,
+                  onPressed: widget.onEdit,
                   color: Colors.purple,
                 ),
-                IconButton(
-                  icon: const Icon(Icons.delete_outline),
-                  onPressed: onDelete,
-                  color: Colors.red,
-                ),
+                // Hide delete for Admin users who are not superusers
+                if (!(_resolvedUserRole != null &&
+                    _resolvedUserRole!.toLowerCase().trim() == 'admin' &&
+                    _resolvedIsSuperuser == false))
+                  IconButton(
+                    icon: const Icon(Icons.delete_outline),
+                    onPressed: widget.onDelete,
+                    color: Colors.red,
+                  ),
               ],
             ),
             const SizedBox(height: 12),
@@ -103,7 +136,7 @@ class OrganizationCard extends StatelessWidget {
                 const SizedBox(width: 4),
                 Expanded(
                   child: Text(
-                    organization.location,
+                    widget.organization.location,
                     style: GoogleFonts.poppins(
                       fontSize: 14,
                       color: Colors.grey[700],
@@ -114,15 +147,12 @@ class OrganizationCard extends StatelessWidget {
             ),
             const SizedBox(height: 4),
             Text(
-              'PIN: ${organization.pinCode}',
-              style: GoogleFonts.poppins(
-                fontSize: 14,
-                color: Colors.grey[700],
-              ),
+              'PIN: ${widget.organization.pinCode}',
+              style: GoogleFonts.poppins(fontSize: 14, color: Colors.grey[700]),
             ),
             const SizedBox(height: 8),
             Text(
-              organization.address,
+              widget.organization.address,
               style: GoogleFonts.poppins(
                 fontSize: 13,
                 color: Colors.grey[600],
@@ -134,12 +164,9 @@ class OrganizationCard extends StatelessWidget {
               children: [
                 Expanded(
                   child: OutlinedButton.icon(
-                    onPressed: onAddUser,
+                    onPressed: widget.onAddUser,
                     icon: const Icon(Icons.person_add_outlined, size: 20),
-                    label: Text(
-                      'Add User',
-                      style: GoogleFonts.poppins(),
-                    ),
+                    label: Text('Add User', style: GoogleFonts.poppins()),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: Colors.purple,
                       side: const BorderSide(color: Colors.purple),
@@ -150,12 +177,9 @@ class OrganizationCard extends StatelessWidget {
                 const SizedBox(width: 12),
                 Expanded(
                   child: OutlinedButton.icon(
-                    onPressed: onViewUsers,
+                    onPressed: widget.onViewUsers,
                     icon: const Icon(Icons.visibility_outlined, size: 20),
-                    label: Text(
-                      'View Users',
-                      style: GoogleFonts.poppins(),
-                    ),
+                    label: Text('View Users', style: GoogleFonts.poppins()),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: Colors.purple,
                       side: const BorderSide(color: Colors.purple),

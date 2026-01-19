@@ -11,6 +11,8 @@ import 'package:gatecheck/Services/Admin_Services/organization_services.dart';
 import 'package:gatecheck/Services/User_services/user_service.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:dio/dio.dart';
+import 'package:gatecheck/Services/Auth_Services/api_service.dart';
+import 'package:gatecheck/widgets/common_search_bar.dart';
 
 class OrganizationManagementScreen extends StatefulWidget {
   const OrganizationManagementScreen({super.key});
@@ -32,11 +34,20 @@ class _OrganizationManagementScreenState
 
   bool _isLoading = false;
   String? _errorMessage;
+  bool _isSuperUser = false;
 
   @override
   void initState() {
     super.initState();
+    _checkSuperUser();
     _loadOrganizations();
+  }
+
+  Future<void> _checkSuperUser() async {
+    final isSuper = await ApiService().isSuperUser();
+    setState(() {
+      _isSuperUser = isSuper;
+    });
   }
 
   // -------------------- Load Organizations from API --------------------
@@ -163,7 +174,7 @@ class _OrganizationManagementScreenState
     return usersData.map((userData) {
       return User(
         id: userData['id']?.toString() ?? '',
-        name:
+        username:
             userData['name']?.toString() ??
             userData['username']?.toString() ??
             '',
@@ -299,12 +310,13 @@ class _OrganizationManagementScreenState
       _showLoadingDialog();
 
       final userData = {
-        'name': newUser.name,
+        'username': newUser.username,
         'email': newUser.email,
         'mobile_number': newUser.mobileNumber,
         'company_name': org.name,
         'company_id': org.id,
         'company': companyId,
+        'alias_name': newUser.aliasName ?? '',
         'role': newUser.role,
         'block': newUser.block,
         'floor': newUser.floor,
@@ -318,7 +330,8 @@ class _OrganizationManagementScreenState
         _showSuccessSnackBar('User added successfully');
         await _loadOrganizations(); // Reload to get updated user list
       } else {
-        _showErrorSnackBar('Failed to add user');
+        final errorMessage = _orgService.getErrorMessageFromResponse(response);
+        _showErrorSnackBar(errorMessage);
       }
     } on DioException catch (e) {
       Navigator.pop(context); // Close loading dialog
@@ -453,31 +466,32 @@ class _OrganizationManagementScreenState
                               ],
                             ),
                             const SizedBox(height: 12),
-                            SizedBox(
-                              width: double.infinity,
-                              child: OutlinedButton.icon(
-                                onPressed: () {
-                                  showDialog(
-                                    context: context,
-                                    builder: (context) => AddOrganizationDialog(
-                                      onAdd: _addOrganization,
+                            if (_isSuperUser)
+                              SizedBox(
+                                width: double.infinity,
+                                child: OutlinedButton.icon(
+                                  onPressed: () {
+                                    showDialog(
+                                      context: context,
+                                      builder: (context) => AddOrganizationDialog(
+                                        onAdd: _addOrganization,
+                                      ),
+                                    );
+                                  },
+                                  icon: const Icon(Icons.add, size: 20),
+                                  label: Text(
+                                    'Add Organization',
+                                    style: GoogleFonts.poppins(fontSize: 13),
+                                  ),
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: Colors.purple,
+                                    side: const BorderSide(color: Colors.purple),
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 12,
                                     ),
-                                  );
-                                },
-                                icon: const Icon(Icons.add, size: 20),
-                                label: Text(
-                                  'Add Organization',
-                                  style: GoogleFonts.poppins(fontSize: 13),
-                                ),
-                                style: OutlinedButton.styleFrom(
-                                  foregroundColor: Colors.purple,
-                                  side: const BorderSide(color: Colors.purple),
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 12,
                                   ),
                                 ),
                               ),
-                            ),
                           ],
                         )
                       : Row(
@@ -516,70 +530,40 @@ class _OrganizationManagementScreenState
                                 ],
                               ),
                             ),
-                            OutlinedButton.icon(
-                              onPressed: () {
-                                showDialog(
-                                  context: context,
-                                  builder: (context) => AddOrganizationDialog(
-                                    onAdd: _addOrganization,
+                            if (_isSuperUser)
+                              OutlinedButton.icon(
+                                onPressed: () {
+                                  showDialog(
+                                    context: context,
+                                    builder: (context) => AddOrganizationDialog(
+                                      onAdd: _addOrganization,
+                                    ),
+                                  );
+                                },
+                                icon: const Icon(Icons.add, size: 18),
+                                label: Text(
+                                  'Add\nOrganization',
+                                  style: GoogleFonts.poppins(
+                                    fontSize: isMediumScreen ? 11 : 12,
                                   ),
-                                );
-                              },
-                              icon: const Icon(Icons.add, size: 18),
-                              label: Text(
-                                'Add\nOrganization',
-                                style: GoogleFonts.poppins(
-                                  fontSize: isMediumScreen ? 11 : 12,
+                                  textAlign: TextAlign.center,
                                 ),
-                                textAlign: TextAlign.center,
-                              ),
-                              style: OutlinedButton.styleFrom(
-                                foregroundColor: Colors.purple,
-                                side: const BorderSide(color: Colors.purple),
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: isMediumScreen ? 12 : 16,
-                                  vertical: 8,
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: Colors.purple,
+                                  side: const BorderSide(color: Colors.purple),
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: isMediumScreen ? 12 : 16,
+                                    vertical: 8,
+                                  ),
                                 ),
                               ),
-                            ),
                           ],
                         ),
                   const SizedBox(height: 16),
-                  TextField(
+                  CommonSearchBar(
                     controller: _searchController,
+                    hintText: 'Search Organizations...',
                     onChanged: _filterOrganizations,
-                    style: GoogleFonts.poppins(
-                      fontSize: isSmallScreen ? 14 : 16,
-                    ),
-                    decoration: InputDecoration(
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      hintText: 'Search Organizations...',
-                      hintStyle: GoogleFonts.poppins(
-                        fontSize: isSmallScreen ? 14 : 16,
-                      ),
-                      prefixIcon: Icon(
-                        Icons.search,
-                        size: isSmallScreen ? 20 : 24,
-                      ),
-                      suffixIcon: _searchController.text.isNotEmpty
-                          ? IconButton(
-                              icon: Icon(
-                                Icons.clear,
-                                size: isSmallScreen ? 20 : 24,
-                              ),
-                              onPressed: () {
-                                _searchController.clear();
-                                _filterOrganizations('');
-                              },
-                            )
-                          : null,
-                      contentPadding: EdgeInsets.symmetric(
-                        horizontal: isSmallScreen ? 12 : 16,
-                        vertical: isSmallScreen ? 12 : 16,
-                      ),
-                    ),
                   ),
                 ],
               ),

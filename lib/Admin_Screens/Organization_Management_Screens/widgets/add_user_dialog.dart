@@ -1,5 +1,6 @@
 // dialogs/add_user_dialog.dart
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:gatecheck/Admin_Screens/Organization_Management_Screens/models/models.dart';
 import 'package:gatecheck/Services/Admin_Services/organization_services.dart';
 import 'package:gatecheck/Services/Roles_services/roles_service.dart';
@@ -43,6 +44,7 @@ class _AddUserDialogState extends State<AddUserDialog> {
 
   // ✅ Roles from backend
   List<Map<String, dynamic>> _rolesFromApi = [];
+  // ignore: unused_field
   bool _isLoadingRoles = false;
   String? _rolesError;
 
@@ -113,8 +115,9 @@ class _AddUserDialogState extends State<AddUserDialog> {
       final fetchedRoles = await _roleService.getAllRoles();
       setState(() {
         // Keep only active roles (adjust if you want all)
-        _rolesFromApi =
-            fetchedRoles.where((r) => r['is_active'] == true).toList();
+        _rolesFromApi = fetchedRoles
+            .where((r) => r['is_active'] == true)
+            .toList();
         _isLoadingRoles = false;
       });
 
@@ -142,40 +145,34 @@ class _AddUserDialogState extends State<AddUserDialog> {
 
   void _submit() {
     if (_formKey.currentState!.validate()) {
-      if (_selectedRole == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please select a role')),
-        );
-        return;
-      }
       if (widget.companyId == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Company ID is missing')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Company ID is missing')));
         return;
       }
 
       final user = User(
         id: '', // Will be assigned by API
-        name: _nameController.text.trim(),
+        username: _nameController.text.trim(),
         email: _emailController.text.trim(),
         mobileNumber: _mobileController.text.trim(),
         // ✅ Use current controller text (updated from API)
         companyName: _companyController.text.trim(),
-        role: _selectedRole!,
-        aliasName: _aliasController.text.trim().isEmpty
-            ? null
-            : _aliasController.text.trim(),
-        block: _blockController.text.trim().isEmpty
-            ? null
-            : _blockController.text.trim(),
-        floor: _floorController.text.trim().isEmpty
-            ? null
-            : _floorController.text.trim(),
+        role: _selectedRole ?? '',
+        aliasName: _aliasController.text.trim(),
+        block: _blockController.text.trim(),
+        floor: _floorController.text.trim(),
         dateAdded: null,
       );
-      widget.onAdd(user, widget.companyId!); // pass companyId as extra parameter
+      // Pop dialog first so SnackBar renders from parent Scaffold, not dialog
       Navigator.pop(context);
+      if (mounted) {
+        widget.onAdd(
+          user,
+          widget.companyId!,
+        ); // pass companyId as extra parameter
+      }
     }
   }
 
@@ -237,6 +234,11 @@ class _AddUserDialogState extends State<AddUserDialog> {
                       TextFormField(
                         controller: _nameController,
                         style: GoogleFonts.poppins(fontSize: 16),
+                        inputFormatters: [
+                          FilteringTextInputFormatter.allow(
+                            RegExp(r'[a-zA-Z\s]'),
+                          ),
+                        ],
                         decoration: InputDecoration(
                           labelText: 'User Name *',
                           labelStyle: GoogleFonts.poppins(fontSize: 18),
@@ -269,8 +271,9 @@ class _AddUserDialogState extends State<AddUserDialog> {
                           if (value == null || value.trim().isEmpty) {
                             return 'Please enter email address';
                           }
-                          if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
-                              .hasMatch(value)) {
+                          if (!RegExp(
+                            r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+                          ).hasMatch(value)) {
                             return 'Please enter a valid email';
                           }
                           return null;
@@ -283,15 +286,22 @@ class _AddUserDialogState extends State<AddUserDialog> {
                         decoration: InputDecoration(
                           labelText: 'Mobile Number *',
                           labelStyle: GoogleFonts.poppins(fontSize: 18),
-                          hintText: 'Enter mobile number',
+                          hintText: 'Enter 10-digit mobile number',
                           hintStyle: GoogleFonts.poppins(fontSize: 16),
                           prefixIcon: const Icon(Icons.phone_outlined),
                           border: const OutlineInputBorder(),
                         ),
                         keyboardType: TextInputType.phone,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                          LengthLimitingTextInputFormatter(10),
+                        ],
                         validator: (value) {
                           if (value == null || value.trim().isEmpty) {
                             return 'Please enter mobile number';
+                          }
+                          if (value.trim().length != 10) {
+                            return 'Mobile number must be exactly 10 digits';
                           }
                           return null;
                         },
@@ -321,64 +331,64 @@ class _AddUserDialogState extends State<AddUserDialog> {
                         ),
                         enabled: false, // read-only field
                       ),
-                      const SizedBox(height: 16),
+                      // const SizedBox(height: 16),
 
                       // ✅ Role dropdown from API
-                      DropdownButtonFormField<String>(
-                        initialValue: _selectedRole,
-                        style: GoogleFonts.poppins(
-                          fontSize: 16,
-                          color: Colors.black87,
-                        ),
-                        decoration: InputDecoration(
-                          labelText: 'Role *',
-                          labelStyle: GoogleFonts.poppins(fontSize: 18),
-                          prefixIcon: const Icon(Icons.work_outline),
-                          border: const OutlineInputBorder(),
-                          suffixIcon: _isLoadingRoles
-                              ? const Padding(
-                                  padding: EdgeInsets.all(12),
-                                  child: SizedBox(
-                                    width: 20,
-                                    height: 20,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                    ),
-                                  ),
-                                )
-                              : null,
-                        ),
-                        hint: Text(
-                          _isLoadingRoles
-                              ? 'Loading roles...'
-                              : 'Select a role',
-                          style: GoogleFonts.poppins(fontSize: 16),
-                        ),
-                        items: _rolesFromApi.map((roleMap) {
-                          final roleName =
-                              roleMap['name']?.toString() ?? 'Unnamed role';
-                          return DropdownMenuItem<String>(
-                            value: roleName,
-                            child: Text(
-                              roleName,
-                              style: GoogleFonts.poppins(fontSize: 16),
-                            ),
-                          );
-                        }).toList(),
-                        onChanged: _isLoadingRoles || _rolesFromApi.isEmpty
-                            ? null
-                            : (value) {
-                                setState(() {
-                                  _selectedRole = value;
-                                });
-                              },
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please select a role';
-                          }
-                          return null;
-                        },
-                      ),
+                      // DropdownButtonFormField<String>(
+                      //   initialValue: _selectedRole,
+                      //   style: GoogleFonts.poppins(
+                      //     fontSize: 16,
+                      //     color: Colors.black87,
+                      //   ),
+                      //   decoration: InputDecoration(
+                      //     labelText: 'Role *',
+                      //     labelStyle: GoogleFonts.poppins(fontSize: 18),
+                      //     prefixIcon: const Icon(Icons.work_outline),
+                      //     border: const OutlineInputBorder(),
+                      //     suffixIcon: _isLoadingRoles
+                      //         ? const Padding(
+                      //             padding: EdgeInsets.all(12),
+                      //             child: SizedBox(
+                      //               width: 20,
+                      //               height: 20,
+                      //               child: CircularProgressIndicator(
+                      //                 strokeWidth: 2,
+                      //               ),
+                      //             ),
+                      //           )
+                      //         : null,
+                      //   ),
+                      //   hint: Text(
+                      //     _isLoadingRoles
+                      //         ? 'Loading roles...'
+                      //         : 'Select a role',
+                      //     style: GoogleFonts.poppins(fontSize: 16),
+                      //   ),
+                      //   items: _rolesFromApi.map((roleMap) {
+                      //     final roleName =
+                      //         roleMap['name']?.toString() ?? 'Unnamed role';
+                      //     return DropdownMenuItem<String>(
+                      //       value: roleName,
+                      //       child: Text(
+                      //         roleName,
+                      //         style: GoogleFonts.poppins(fontSize: 16),
+                      //       ),
+                      //     );
+                      //   }).toList(),
+                      //   onChanged: _isLoadingRoles || _rolesFromApi.isEmpty
+                      //       ? null
+                      //       : (value) {
+                      //           setState(() {
+                      //             _selectedRole = value;
+                      //           });
+                      //         },
+                      //   validator: (value) {
+                      //     if (value == null || value.isEmpty) {
+                      //       return 'Please select a role';
+                      //     }
+                      //     return null;
+                      //   },
+                      // ),
                       if (_rolesError != null) ...[
                         const SizedBox(height: 8),
                         Text(
@@ -395,39 +405,57 @@ class _AddUserDialogState extends State<AddUserDialog> {
                         controller: _aliasController,
                         style: GoogleFonts.poppins(fontSize: 16),
                         decoration: InputDecoration(
-                          labelText: 'Alias Name',
+                          labelText: 'Alias Name *',
                           labelStyle: GoogleFonts.poppins(fontSize: 18),
-                          hintText: 'Enter alias name (optional)',
+                          hintText: 'Enter alias name',
                           hintStyle: GoogleFonts.poppins(fontSize: 16),
                           prefixIcon: const Icon(Icons.badge_outlined),
                           border: const OutlineInputBorder(),
                         ),
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'Please enter alias name';
+                          }
+                          return null;
+                        },
                       ),
                       const SizedBox(height: 16),
                       TextFormField(
                         controller: _blockController,
                         style: GoogleFonts.poppins(fontSize: 16),
                         decoration: InputDecoration(
-                          labelText: 'Block/Building',
+                          labelText: 'Block/Building *',
                           labelStyle: GoogleFonts.poppins(fontSize: 18),
-                          hintText: 'Enter block or building (optional)',
+                          hintText: 'Enter block or building',
                           hintStyle: GoogleFonts.poppins(fontSize: 16),
                           prefixIcon: const Icon(Icons.apartment_outlined),
                           border: const OutlineInputBorder(),
                         ),
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'Please enter block or building';
+                          }
+                          return null;
+                        },
                       ),
                       const SizedBox(height: 16),
                       TextFormField(
                         controller: _floorController,
                         style: GoogleFonts.poppins(fontSize: 16),
                         decoration: InputDecoration(
-                          labelText: 'Floor',
+                          labelText: 'Floor *',
                           labelStyle: GoogleFonts.poppins(fontSize: 18),
-                          hintText: 'Enter floor (optional)',
+                          hintText: 'Enter floor number',
                           hintStyle: GoogleFonts.poppins(fontSize: 16),
                           prefixIcon: const Icon(Icons.layers_outlined),
                           border: const OutlineInputBorder(),
                         ),
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'Please enter floor';
+                          }
+                          return null;
+                        },
                       ),
                     ],
                   ),

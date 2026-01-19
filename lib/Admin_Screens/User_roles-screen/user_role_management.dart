@@ -9,6 +9,7 @@ import 'package:gatecheck/Admin_Screens/User_roles-screen/user_role_model.dart';
 import 'package:gatecheck/Services/User_roles_services/user_roles_service.dart';
 import 'package:gatecheck/Services/User_services/user_service.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:gatecheck/widgets/common_search_bar.dart';
 
 class UserRolesManagementScreen extends StatefulWidget {
   const UserRolesManagementScreen({super.key});
@@ -180,7 +181,7 @@ class _UserRolesManagementScreenState extends State<UserRolesManagementScreen> {
                 style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
               ),
               content: DropdownButtonFormField<int>(
-                value: tempRoleId != 0 ? tempRoleId : null,
+                initialValue: tempRoleId != 0 ? tempRoleId : null,
                 items: _availableRoles
                     .where((r) => r['id'] != 0)
                     .map(
@@ -344,7 +345,7 @@ class _UserRolesManagementScreenState extends State<UserRolesManagementScreen> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     DropdownButtonFormField<int>(
-                      value: selectedUserId,
+                      initialValue: selectedUserId,
                       hint: Text('Select User', style: GoogleFonts.poppins()),
                       items: availableUsers.map((u) {
                         // ✅ Use availableUsers instead of backendUsers
@@ -373,7 +374,7 @@ class _UserRolesManagementScreenState extends State<UserRolesManagementScreen> {
                     ),
                     const SizedBox(height: 12),
                     DropdownButtonFormField<int>(
-                      value: selectedRoleId != 0 ? selectedRoleId : null,
+                      initialValue: selectedRoleId != 0 ? selectedRoleId : null,
                       hint: Text('Select Role', style: GoogleFonts.poppins()),
                       items: _availableRoles
                           .where((r) => r['id'] != 0)
@@ -902,26 +903,16 @@ class _UserRolesManagementScreenState extends State<UserRolesManagementScreen> {
   }
 
   Widget _buildSearchField() {
-    return TextField(
+    return CommonSearchBar(
       controller: _searchController,
       onChanged: _onSearchChanged,
-      enabled: !_isLoading,
-      decoration: InputDecoration(
-        prefixIcon: const Icon(Icons.search),
-        hintText: 'Search users...',
-        filled: true,
-        fillColor: Colors.white,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(30),
-          borderSide: BorderSide.none,
-        ),
-      ),
+      hintText: 'Search users...',
     );
   }
 
   Widget _buildRoleDropdown() {
     return DropdownButtonFormField<int>(
-      value: _selectedRoleId,
+      initialValue: _selectedRoleId,
       items: _availableRoles.map((r) {
         return DropdownMenuItem<int>(
           value: r['id'] as int,

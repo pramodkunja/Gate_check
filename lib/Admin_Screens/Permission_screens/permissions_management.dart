@@ -7,6 +7,7 @@ import 'package:gatecheck/Services/User_services/user_service.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:intl/intl.dart';
+import 'package:gatecheck/widgets/common_search_bar.dart';
 
 class PermissionManagementScreen extends StatefulWidget {
   const PermissionManagementScreen({super.key});
@@ -243,7 +244,7 @@ class _PermissionManagementScreenState
         firstLetter: firstLetter,
         email: email,
       ),
-      drawer: Navigation(currentRoute: 'Permissions'),
+      drawer: Navigation(currentRoute: 'Permissions',),
       backgroundColor: greyColor,
       body: SafeArea(
         child: _isLoading
@@ -351,23 +352,9 @@ class _PermissionManagementScreenState
                       children: [
                         Expanded(
                           flex: 3,
-                          child: TextField(
+                          child: CommonSearchBar(
                             controller: _searchController,
-                            decoration: InputDecoration(
-                              prefixIcon: const Icon(Icons.search),
-                              hintText: 'Search permissions…',
-                              hintStyle: GoogleFonts.poppins(fontSize: 14),
-                              filled: true,
-                              fillColor: Colors.white,
-                              contentPadding: const EdgeInsets.symmetric(
-                                vertical: 0,
-                                horizontal: 12,
-                              ),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(30),
-                                borderSide: BorderSide.none,
-                              ),
-                            ),
+                            hintText: 'Search permissions…',
                             onChanged: (value) => setState(() {}),
                           ),
                         ),

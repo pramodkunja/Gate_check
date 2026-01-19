@@ -8,14 +8,12 @@ class CategoryCard extends StatelessWidget {
   final Category category;
   final VoidCallback onEdit;
   final VoidCallback onView;
-  final VoidCallback onDelete;
 
   const CategoryCard({
     super.key,
     required this.category,
     required this.onEdit,
     required this.onView,
-    required this.onDelete,
   });
 
   @override
@@ -95,13 +93,7 @@ class CategoryCard extends StatelessWidget {
                     icon: const Icon(Icons.remove_red_eye, size: 20),
                   ),
                 ),
-                Tooltip(
-                  message: 'Delete',
-                  child: IconButton(
-                    onPressed: onDelete,
-                    icon: const Icon(Icons.delete, size: 20, color: Colors.red),
-                  ),
-                ),
+                
               ],
             ),
           ],

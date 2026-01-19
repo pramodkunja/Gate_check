@@ -19,6 +19,7 @@ class AppConstants {
     'Pending',
     'Rejected',
     'Visited',
+    'Past',
   ];
 
   static const List<String> genders = [

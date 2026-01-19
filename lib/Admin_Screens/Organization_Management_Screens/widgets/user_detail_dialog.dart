@@ -2,15 +2,11 @@
 import 'package:flutter/material.dart';
 import 'package:gatecheck/Admin_Screens/Organization_Management_Screens/models/models.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:intl/intl.dart';
 
 class UserDetailsDialog extends StatelessWidget {
   final User user;
 
-  const UserDetailsDialog({
-    super.key,
-    required this.user,
-  });
+  const UserDetailsDialog({super.key, required this.user});
 
   @override
   Widget build(BuildContext context) {
@@ -18,9 +14,7 @@ class UserDetailsDialog extends StatelessWidget {
     final screenWidth = MediaQuery.of(context).size.width;
 
     return Dialog(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       insetPadding: EdgeInsets.symmetric(
         horizontal: screenWidth > 600 ? 40 : 16,
         vertical: 24,
@@ -65,40 +59,58 @@ class UserDetailsDialog extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildDetailRow('Name', user.name),
+                    _buildDetailRow('Name', user.username, icon: Icons.person),
                     const SizedBox(height: 16),
-                    _buildDetailRow('Email', user.email),
+                    _buildDetailRow('Email', user.email, icon: Icons.email),
                     const SizedBox(height: 16),
-                    _buildDetailRow('Mobile Number', user.mobileNumber),
+                    _buildDetailRow(
+                      'Mobile Number',
+                      user.mobileNumber,
+                      icon: Icons.phone,
+                    ),
                     const SizedBox(height: 16),
-                    _buildDetailRow('Company', user.companyName),
+                    _buildDetailRow(
+                      'Company',
+                      user.companyName,
+                      icon: Icons.business,
+                    ),
                     const SizedBox(height: 16),
-                    _buildDetailRow('Role', user.role),
+                    _buildDetailRow('Role', user.role, icon: Icons.badge),
                     const SizedBox(height: 16),
                     if (user.aliasName != null) ...[
-                      _buildDetailRow('Alias Name', user.aliasName!),
+                      _buildDetailRow(
+                        'Alias Name',
+                        user.aliasName!,
+                        icon: Icons.alternate_email,
+                      ),
                       const SizedBox(height: 16),
                     ],
                     if (user.block != null) ...[
-                      _buildDetailRow('Block/Building', user.block!),
+                      _buildDetailRow(
+                        'Block/Building',
+                        user.block!,
+                        icon: Icons.apartment,
+                      ),
                       const SizedBox(height: 16),
                     ],
                     if (user.floor != null) ...[
-                      _buildDetailRow('Floor', user.floor!),
+                      _buildDetailRow('Floor', user.floor!, icon: Icons.stairs),
                       const SizedBox(height: 16),
                     ],
                     _buildDetailRow(
                       'Status',
                       user.isActive ? 'Active' : 'Inactive',
+                      icon: Icons.check_circle,
                       valueColor: user.isActive ? Colors.green : Colors.grey,
                     ),
                     const SizedBox(height: 16),
-                    _buildDetailRow(
-                      'Date Added',
-                      user.dateAdded != null
-                          ? DateFormat('yyyy-MM-dd').format(user.dateAdded!)
-                          : 'N/A',
-                    ),
+                    // _buildDetailRow(
+                    //   'Date Added',
+                    //   user.dateAdded != null
+                    //       ? DateFormat('yyyy-MM-dd').format(user.dateAdded!)
+                    //       : 'N/A',
+                    //   icon: Icons.calendar_today,
+                    // ),
                   ],
                 ),
               ),
@@ -127,24 +139,40 @@ class UserDetailsDialog extends StatelessWidget {
     );
   }
 
-  Widget _buildDetailRow(String label, String value, {Color? valueColor}) {
-    return Column(
+  Widget _buildDetailRow(
+    String label,
+    String value, {
+    IconData? icon,
+    Color? valueColor,
+  }) {
+    return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: GoogleFonts.poppins(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            color: Colors.grey[700],
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          value,
-          style: GoogleFonts.poppins(
-            fontSize: 16,
-            color: valueColor ?? Colors.black87,
+        if (icon != null) ...[
+          Icon(icon, size: 20, color: Colors.grey[600]),
+          const SizedBox(width: 12),
+        ],
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: GoogleFonts.poppins(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.grey[700],
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                value,
+                style: GoogleFonts.poppins(
+                  fontSize: 16,
+                  color: valueColor ?? Colors.black87,
+                ),
+              ),
+            ],
           ),
         ),
       ],

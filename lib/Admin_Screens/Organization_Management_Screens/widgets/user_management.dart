@@ -8,6 +8,7 @@ import 'package:gatecheck/Services/Admin_Services/organization_services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:dio/dio.dart';
 import '../widgets/user_card.dart';
+import 'package:gatecheck/widgets/common_search_bar.dart';
 
 class UserManagementScreen extends StatefulWidget {
   final Organization organization;
@@ -111,7 +112,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
 
     return User(
       id: data['id']?.toString() ?? '',
-      name:
+      username:
           data['username']?.toString() ??
           data['alias_name']?.toString() ??
           data['name']?.toString() ??
@@ -141,7 +142,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
         _filteredUsers = _organization.users
             .where(
               (user) =>
-                  user.name.toLowerCase().contains(query.toLowerCase()) ||
+                  user.username.toLowerCase().contains(query.toLowerCase()) ||
                   user.email.toLowerCase().contains(query.toLowerCase()) ||
                   user.mobileNumber.toLowerCase().contains(query.toLowerCase()),
             )
@@ -156,7 +157,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
       _showLoadingDialog();
 
       final userData = {
-        'username': user.name,
+        'username': user.username,
         'email': user.email,
         'mobile_number': user.mobileNumber,
         'company': companyId, // required field key
@@ -208,12 +209,12 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
       _showLoadingDialog();
 
       final userData = {
-        'username': user.name,
+        'username': user.username,
         'email': user.email,
         'mobile_number': user.mobileNumber,
         'company_name': _organization.name,
         'company_id': _organization.id,
-        'alias_name': user.name,
+        'alias_name': user.username,
         'roles': user.role.isNotEmpty ? [user.role] : [],
         'block': user.block ?? '',
         'floor': user.floor ?? '',
@@ -393,55 +394,55 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                 ],
               ),
             ),
-            Container(
-              margin: EdgeInsets.symmetric(horizontal: isSmallScreen ? 12 : 16),
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.grey.withOpacity(0.1),
-                    blurRadius: 4,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: Colors.purple.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Icon(Icons.business, color: Colors.purple),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      _organization.name,
-                      style: GoogleFonts.poppins(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Flexible(
-                    child: Text(
-                      '${_organization.users.length} ${isSmallScreen ? 'Users' : 'Total Users'}',
-                      style: GoogleFonts.poppins(
-                        fontSize: 14,
-                        color: Colors.grey[600],
-                      ),
-                      textAlign: TextAlign.end,
-                    ),
-                  ),
-                ],
-              ),
-            ),
+            // Container(
+            //   margin: EdgeInsets.symmetric(horizontal: isSmallScreen ? 12 : 16),
+            //   padding: const EdgeInsets.all(16),
+            //   decoration: BoxDecoration(
+            //     color: Colors.white,
+            //     borderRadius: BorderRadius.circular(12),
+            //     boxShadow: [
+            //       BoxShadow(
+            //         color: Colors.grey.withOpacity(0.1),
+            //         blurRadius: 4,
+            //         offset: const Offset(0, 2),
+            //       ),
+            //     ],
+            //   ),
+            //   child: Row(
+            //     children: [
+            //       Container(
+            //         padding: const EdgeInsets.all(8),
+            //         decoration: BoxDecoration(
+            //           color: Colors.purple.withOpacity(0.1),
+            //           borderRadius: BorderRadius.circular(8),
+            //         ),
+            //         child: const Icon(Icons.business, color: Colors.purple),
+            //       ),
+            //       const SizedBox(width: 12),
+            //       Expanded(
+            //         child: Text(
+            //           _organization.name,
+            //           style: GoogleFonts.poppins(
+            //             fontSize: 16,
+            //             fontWeight: FontWeight.w600,
+            //           ),
+            //           overflow: TextOverflow.ellipsis,
+            //         ),
+            //       ),
+            //       const SizedBox(width: 8),
+            //       Flexible(
+            //         child: Text(
+            //           '${_organization.users.length} ${isSmallScreen ? 'Users' : 'Total Users'}',
+            //           style: GoogleFonts.poppins(
+            //             fontSize: 14,
+            //             color: Colors.grey[600],
+            //           ),
+            //           textAlign: TextAlign.end,
+            //         ),
+            //       ),
+            //     ],
+            //   ),
+            // ),
             const SizedBox(height: 16),
             Padding(
               padding: EdgeInsets.symmetric(
@@ -478,30 +479,10 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                     ),
                   ),
                   const SizedBox(height: 12),
-                  TextField(
+                  CommonSearchBar(
                     controller: _searchController,
+                    hintText: 'Search by name or email...',
                     onChanged: _filterUsers,
-                    enabled: !_isLoading,
-                    style: GoogleFonts.poppins(fontSize: 16),
-                    decoration: InputDecoration(
-                      hintText: 'Search by name or email...',
-                      hintStyle: GoogleFonts.poppins(fontSize: 16),
-                      prefixIcon: const Icon(Icons.search),
-                      filled: true,
-                      fillColor: Colors.white,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      suffixIcon: _searchController.text.isNotEmpty
-                          ? IconButton(
-                              icon: const Icon(Icons.clear),
-                              onPressed: () {
-                                _searchController.clear();
-                                _filterUsers('');
-                              },
-                            )
-                          : null,
-                    ),
                   ),
                 ],
               ),
@@ -747,7 +728,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                               text: 'Are you sure you want to delete ',
                             ),
                             TextSpan(
-                              text: user.name,
+                              text: user.username,
                               style: const TextStyle(
                                 fontWeight: FontWeight.w600,
                               ),

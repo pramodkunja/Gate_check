@@ -12,6 +12,8 @@ import 'package:open_file/open_file.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:url_launcher/url_launcher.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:device_info_plus/device_info_plus.dart';
 
 class ReportsScreen extends StatefulWidget {
   const ReportsScreen({super.key});
@@ -59,7 +61,9 @@ class _ReportsScreenState extends State<ReportsScreen>
         firstLetter: firstLetter,
         email: email,
       ),
-      drawer: const Navigation(currentRoute: AppRoutes.adminReports,),
+      drawer: const Navigation(
+        currentRoute: '',
+      ),
       backgroundColor: const Color(0xFFF8F9FA),
       body: SafeArea(
         child: Padding(
@@ -178,11 +182,89 @@ class _MonthlyReportTabState extends State<MonthlyReportTab> {
   String? loadingAction;
   int? loadingMonth;
 
+  Future<bool> _requestStoragePermission() async {
+    if (kIsWeb) return true; // No permissions needed for web
+    if (!Platform.isAndroid) return true; // iOS handles permissions differently
+
+    // Check Android SDK version
+    final deviceInfo = DeviceInfoPlugin();
+    final androidInfo = await deviceInfo.androidInfo;
+    
+    // For Android 13+ (SDK 33+), write permission is not required for public downloads
+    if (androidInfo.version.sdkInt >= 33) {
+      return true;
+    }
+
+    // Check current permission status
+    PermissionStatus storageStatus = await Permission.storage.status;
+    
+    // If already granted, return true
+    if (storageStatus.isGranted || storageStatus.isLimited) {
+      return true;
+    }
+    
+    // Request permission
+    PermissionStatus status = await Permission.storage.request();
+    
+    if (status.isGranted || status.isLimited) {
+      return true;
+    } else if (status.isPermanentlyDenied) {
+      // Show dialog to open app settings
+      if (mounted) {
+        final result = await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: Text('Storage Permission Required', style: GoogleFonts.poppins()),
+            content: Text(
+              'Please grant storage permission from app settings to download reports.',
+              style: GoogleFonts.poppins(),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: Text('Cancel', style: GoogleFonts.poppins()),
+              ),
+              TextButton(
+                onPressed: () {
+                  openAppSettings();
+                  Navigator.pop(context, true);
+                },
+                child: Text('Open Settings', style: GoogleFonts.poppins()),
+              ),
+            ],
+          ),
+        );
+        return result ?? false;
+      }
+      return false;
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Storage permission is required to download reports',
+              style: GoogleFonts.poppins(),
+            ),
+            backgroundColor: Colors.orange,
+            duration: const Duration(seconds: 3),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+      return false;
+    }
+  }
+
   Future<void> _downloadReport(
     String type,
     int monthIndex,
     bool isPreview,
   ) async {
+    // Request permission before downloading (skip for preview)
+    if (!isPreview && !await _requestStoragePermission()) {
+      return; // Permission denied, don't proceed
+    }
+
     setState(() {
       isLoading = true;
       loadingAction = type;
@@ -197,11 +279,13 @@ class _MonthlyReportTabState extends State<MonthlyReportTab> {
       if (type == 'PDF') {
         endpoint =
             '/reports/monthly-visitor-pdf/?year=$selectedYear&month=$month${isPreview ? '&preview=true' : ''}';
-        fileName = 'Report_${months[monthIndex]}_$selectedYear.pdf';
+        final timestamp = DateTime.now().millisecondsSinceEpoch;
+        fileName = 'Report_${months[monthIndex]}_${selectedYear}_$timestamp.pdf';
       } else if (type == 'Excel') {
         endpoint =
             '/reports/monthly-visitor-excel/?year=$selectedYear&month=$month';
-        fileName = 'Report_${months[monthIndex]}_$selectedYear.xlsx';
+        final timestamp = DateTime.now().millisecondsSinceEpoch;
+        fileName = 'Report_${months[monthIndex]}_${selectedYear}_$timestamp.xlsx';
       }
 
       if (isPreview) {
@@ -227,16 +311,35 @@ class _MonthlyReportTabState extends State<MonthlyReportTab> {
           final tempFile = '${tempDir.path}/preview_$fileName';
 
           try {
-            await ApiService().dio.download(
+            // Capture response to inspect status
+            final response = await ApiService().dio.download(
               endpoint,
               tempFile,
               options: Options(
                 responseType: ResponseType.bytes,
-                followRedirects: true,
-                validateStatus: (status) => status! < 500,
+                followRedirects: false,
+                validateStatus: (status) => true, // we handle manually
                 headers: {'Authorization': 'Bearer $token'},
               ),
             );
+
+            final statusCode = response.statusCode ?? 0;
+            debugPrint('🔎 Monthly preview download status: $statusCode');
+
+            if (statusCode < 200 || statusCode >= 300) {
+              debugPrint(
+                '❌ Monthly preview download failed. Status: $statusCode, data: ${response.data}',
+              );
+
+              // Throw DioException so outer catch handles 404, 500, etc.
+              throw DioException(
+                requestOptions: response.requestOptions,
+                response: response,
+                type: DioExceptionType.badResponse,
+                error:
+                    'Failed to download monthly preview. Status: $statusCode',
+              );
+            }
 
             debugPrint('✅ Preview file downloaded to: $tempFile');
             final result = await OpenFile.open(tempFile);
@@ -245,6 +348,8 @@ class _MonthlyReportTabState extends State<MonthlyReportTab> {
             if (result.type != ResultType.done) {
               throw Exception('Could not open file: ${result.message}');
             }
+          } on DioException {
+            rethrow;
           } catch (e) {
             debugPrint('❌ Preview error: $e');
             rethrow;
@@ -258,7 +363,7 @@ class _MonthlyReportTabState extends State<MonthlyReportTab> {
       if (mounted) {
         String message = isPreview
             ? 'Opening preview...'
-            : 'File saved to Downloads folder';
+            : 'File saved: $fileName';
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(message, style: GoogleFonts.poppins()),
@@ -351,14 +456,14 @@ class _MonthlyReportTabState extends State<MonthlyReportTab> {
     final filePath = '${directory!.path}/$fileName';
     debugPrint('📁 Saving file to: $filePath');
 
-    // Download with progress
-    await ApiService().dio.download(
+    // Download with progress + manual status check
+    final response = await ApiService().dio.download(
       endpoint,
       filePath,
       options: Options(
         responseType: ResponseType.bytes,
-        followRedirects: true,
-        validateStatus: (status) => status! < 500,
+        followRedirects: false,
+        validateStatus: (status) => true, // we check manually
       ),
       onReceiveProgress: (received, total) {
         if (total != -1) {
@@ -368,6 +473,17 @@ class _MonthlyReportTabState extends State<MonthlyReportTab> {
         }
       },
     );
+
+    final statusCode = response.statusCode ?? 0;
+    if (statusCode < 200 || statusCode >= 300) {
+      debugPrint('❌ File download failed. Status: $statusCode');
+      throw DioException(
+        requestOptions: response.requestOptions,
+        response: response,
+        type: DioExceptionType.badResponse,
+        error: 'Failed to download file. Status: $statusCode',
+      );
+    }
 
     debugPrint('✅ File saved successfully at: $filePath');
 
@@ -431,7 +547,7 @@ class _MonthlyReportTabState extends State<MonthlyReportTab> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: DropdownButtonFormField<String>(
-                    value: selectedYear,
+                    initialValue: selectedYear,
                     decoration: InputDecoration(
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -509,18 +625,13 @@ class _MonthlyReportTabState extends State<MonthlyReportTab> {
                         ],
                       ),
                       const SizedBox(height: 10),
-
-                      // --- START: REPLACED WRAP (Option A: force three buttons same line) ---
                       LayoutBuilder(
                         builder: (context, constraints) {
-                          const double gap = 8; // same as your Wrap spacing
+                          const double gap = 8;
                           final double available = constraints.maxWidth;
 
-                          // Compute width for each button so 3 buttons fit on one line when possible.
-                          // We subtract gaps between buttons (2 gaps for 3 buttons).
                           double buttonWidth = (available - (gap * 2)) / 3;
 
-                          // Clamp to sensible min/max so buttons don't become too small or too wide.
                           if (buttonWidth < 84) buttonWidth = 84;
                           if (buttonWidth > 220) buttonWidth = 220;
 
@@ -561,8 +672,6 @@ class _MonthlyReportTabState extends State<MonthlyReportTab> {
                           );
                         },
                       ),
-
-                      // --- END: REPLACED WRAP ---
                     ],
                   ),
                 ),
@@ -580,17 +689,14 @@ class _MonthlyReportTabState extends State<MonthlyReportTab> {
     int monthIndex,
     bool isLoadingThis,
   ) {
-    // Responsive OutlinedButton with icon + spinner while loading.
     return LayoutBuilder(
       builder: (context, constraints) {
-        // Determine available width per button: if infinite, fallback to screen fraction.
         final screenWidth = MediaQuery.of(context).size.width;
         double available =
             constraints.maxWidth.isFinite && constraints.maxWidth > 0
-            ? constraints.maxWidth
-            : screenWidth * 0.3;
+                ? constraints.maxWidth
+                : screenWidth * 0.3;
 
-        // Some Wrap items may be small; clamp sensible icon/text sizes.
         double iconSize = (available * 0.08);
         if (iconSize < 14) iconSize = 14;
         if (iconSize > 22) iconSize = 22;
@@ -697,6 +803,79 @@ class _CustomizedReportTabState extends State<CustomizedReportTab> {
   bool isLoading = false;
   String? loadingAction;
 
+  Future<bool> _requestStoragePermission() async {
+    if (kIsWeb) return true; // No permissions needed for web
+    if (!Platform.isAndroid) return true; // iOS handles permissions differently
+
+    // Check Android SDK version
+    final deviceInfo = DeviceInfoPlugin();
+    final androidInfo = await deviceInfo.androidInfo;
+    
+    // For Android 13+ (SDK 33+), write permission is not required for public downloads
+    if (androidInfo.version.sdkInt >= 33) {
+      return true;
+    }
+
+    // Check current permission status
+    PermissionStatus storageStatus = await Permission.storage.status;
+    
+    // If already granted, return true
+    if (storageStatus.isGranted || storageStatus.isLimited) {
+      return true;
+    }
+    
+    // Request permission
+    PermissionStatus status = await Permission.storage.request();
+    
+    if (status.isGranted || status.isLimited) {
+      return true;
+    } else if (status.isPermanentlyDenied) {
+      // Show dialog to open app settings
+      if (mounted) {
+        final result = await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: Text('Storage Permission Required', style: GoogleFonts.poppins()),
+            content: Text(
+              'Please grant storage permission from app settings to download reports.',
+              style: GoogleFonts.poppins(),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: Text('Cancel', style: GoogleFonts.poppins()),
+              ),
+              TextButton(
+                onPressed: () {
+                  openAppSettings();
+                  Navigator.pop(context, true);
+                },
+                child: Text('Open Settings', style: GoogleFonts.poppins()),
+              ),
+            ],
+          ),
+        );
+        return result ?? false;
+      }
+      return false;
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Storage permission is required to download reports',
+              style: GoogleFonts.poppins(),
+            ),
+            backgroundColor: Colors.orange,
+            duration: const Duration(seconds: 3),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+      return false;
+    }
+  }
+
   @override
   void dispose() {
     fromDateController.dispose();
@@ -723,17 +902,22 @@ class _CustomizedReportTabState extends State<CustomizedReportTab> {
       return;
     }
 
+    // Request permission before downloading (skip for preview)
+    if (!isPreview && !await _requestStoragePermission()) {
+      return; // Permission denied, don't proceed
+    }
+
     setState(() {
       isLoading = true;
       loadingAction = type;
     });
 
     try {
-      // Format dates for API (YYYY-MM-DD)
+      // Format dates for API (DD-MM-YYYY)
       final fromDateFormatted =
-          "${fromDate!.year}-${fromDate!.month.toString().padLeft(2, '0')}-${fromDate!.day.toString().padLeft(2, '0')}";
+          "${fromDate!.day.toString().padLeft(2, '0')}-${fromDate!.month.toString().padLeft(2, '0')}-${fromDate!.year}";
       final toDateFormatted =
-          "${toDate!.year}-${toDate!.month.toString().padLeft(2, '0')}-${toDate!.day.toString().padLeft(2, '0')}";
+          "${toDate!.day.toString().padLeft(2, '0')}-${toDate!.month.toString().padLeft(2, '0')}-${toDate!.year}";
 
       String endpoint = '';
       String fileName = '';
@@ -741,25 +925,32 @@ class _CustomizedReportTabState extends State<CustomizedReportTab> {
       if (type == 'PDF') {
         endpoint =
             '/reports/custom-visitor-pdf/?from_date=$fromDateFormatted&to_date=$toDateFormatted${isPreview ? '&preview=true' : ''}';
+        final timestamp = DateTime.now().millisecondsSinceEpoch;
         fileName =
-            'Custom_Report_${fromDate!.day}-${fromDate!.month}-${fromDate!.year}_to_${toDate!.day}-${toDate!.month}-${toDate!.year}.pdf';
+            'Custom_Report_${fromDate!.day}-${fromDate!.month}-${fromDate!.year}_to_${toDate!.day}-${toDate!.month}-${toDate!.year}_$timestamp.pdf';
       } else if (type == 'Excel') {
         endpoint =
             '/reports/custom-visitor-excel/?from_date=$fromDateFormatted&to_date=$toDateFormatted';
+        final timestamp = DateTime.now().millisecondsSinceEpoch;
         fileName =
-            'Custom_Report_${fromDate!.day}-${fromDate!.month}-${fromDate!.year}_to_${toDate!.day}-${toDate!.month}-${toDate!.year}.xlsx';
+            'Custom_Report_${fromDate!.day}-${fromDate!.month}-${fromDate!.year}_to_${toDate!.day}-${toDate!.month}-${toDate!.year}_$timestamp.xlsx';
       }
 
-      // Add time parameters if provided
+      // Add time parameters if provided, else default to full day
       if (fromTime != null) {
         final fromTimeStr =
             '${fromTime!.hour.toString().padLeft(2, '0')}:${fromTime!.minute.toString().padLeft(2, '0')}';
         endpoint += '&from_time=$fromTimeStr';
+      } else {
+        endpoint += '&from_time=00:00';
       }
+      
       if (toTime != null) {
         final toTimeStr =
             '${toTime!.hour.toString().padLeft(2, '0')}:${toTime!.minute.toString().padLeft(2, '0')}';
         endpoint += '&to_time=$toTimeStr';
+      } else {
+        endpoint += '&to_time=23:59';
       }
 
       if (isPreview) {
@@ -782,16 +973,33 @@ class _CustomizedReportTabState extends State<CustomizedReportTab> {
           final tempFile = '${tempDir.path}/preview_$fileName';
 
           try {
-            await ApiService().dio.download(
+            final response = await ApiService().dio.download(
               endpoint,
               tempFile,
               options: Options(
                 responseType: ResponseType.bytes,
-                followRedirects: true,
-                validateStatus: (status) => status! < 500,
+                followRedirects: false,
+                validateStatus: (status) => true, // manual check
                 headers: {'Authorization': 'Bearer $token'},
               ),
             );
+
+            final statusCode = response.statusCode ?? 0;
+            debugPrint('🔎 Custom preview download status: $statusCode');
+
+            if (statusCode < 200 || statusCode >= 300) {
+              debugPrint(
+                '❌ Custom preview failed. Status: $statusCode, data: ${response.data}',
+              );
+
+              throw DioException(
+                requestOptions: response.requestOptions,
+                response: response,
+                type: DioExceptionType.badResponse,
+                error:
+                    'Failed to download custom preview. Status: $statusCode',
+              );
+            }
 
             debugPrint('✅ Preview file downloaded to: $tempFile');
             final result = await OpenFile.open(tempFile);
@@ -800,6 +1008,8 @@ class _CustomizedReportTabState extends State<CustomizedReportTab> {
             if (result.type != ResultType.done) {
               throw Exception('Could not open file: ${result.message}');
             }
+          } on DioException {
+            rethrow;
           } catch (e) {
             debugPrint('❌ Preview error: $e');
             rethrow;
@@ -812,7 +1022,7 @@ class _CustomizedReportTabState extends State<CustomizedReportTab> {
       if (mounted) {
         String message = isPreview
             ? 'Opening preview...'
-            : 'File saved to Downloads folder';
+            : 'File saved: $fileName';
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(message, style: GoogleFonts.poppins()),
@@ -844,6 +1054,7 @@ class _CustomizedReportTabState extends State<CustomizedReportTab> {
             content: Text(errorMessage, style: GoogleFonts.poppins()),
             backgroundColor: Colors.red,
             duration: const Duration(seconds: 4),
+            behavior: SnackBarBehavior.floating,
           ),
         );
       }
@@ -855,6 +1066,7 @@ class _CustomizedReportTabState extends State<CustomizedReportTab> {
             content: Text('Error: $e', style: GoogleFonts.poppins()),
             backgroundColor: Colors.red,
             duration: const Duration(seconds: 4),
+            behavior: SnackBarBehavior.floating,
           ),
         );
       }
@@ -885,20 +1097,77 @@ class _CustomizedReportTabState extends State<CustomizedReportTab> {
       return;
     }
 
-    final directory = await getApplicationDocumentsDirectory();
-    final filePath = '${directory.path}/$fileName';
+    // For mobile platforms - use Downloads directory (same as monthly reports)
+    Directory? directory;
+    if (Platform.isAndroid) {
+      directory = Directory('/storage/emulated/0/Download');
+      if (!await directory.exists()) {
+        directory = await getExternalStorageDirectory();
+      }
+    } else {
+      directory = await getApplicationDocumentsDirectory();
+    }
 
-    await ApiService().dio.download(
+    final filePath = '${directory!.path}/$fileName';
+    debugPrint('📁 Saving custom report file to: $filePath');
+
+    // Download with progress + manual status check
+    final response = await ApiService().dio.download(
       endpoint,
       filePath,
       options: Options(
         responseType: ResponseType.bytes,
         followRedirects: false,
+        validateStatus: (status) => true, // we check manually
       ),
+      onReceiveProgress: (received, total) {
+        if (total != -1) {
+          debugPrint(
+            'Download progress: ${(received / total * 100).toStringAsFixed(0)}%',
+          );
+        }
+      },
     );
 
+    final statusCode = response.statusCode ?? 0;
+    if (statusCode < 200 || statusCode >= 300) {
+      debugPrint('❌ Custom file download failed. Status: $statusCode');
+      throw DioException(
+        requestOptions: response.requestOptions,
+        response: response,
+        type: DioExceptionType.badResponse,
+        error: 'Failed to download custom file. Status: $statusCode',
+      );
+    }
+
+    debugPrint('✅ Custom report file saved successfully at: $filePath');
+
+    // Open the file
     if (openFile) {
-      await OpenFile.open(filePath);
+      final result = await OpenFile.open(filePath);
+      debugPrint('📂 Open file result: ${result.message}');
+    } else {
+      // Show file location to user with auto-dismiss
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'File saved to Downloads folder',
+              style: GoogleFonts.poppins(),
+            ),
+            action: SnackBarAction(
+              label: 'Open',
+              onPressed: () {
+                OpenFile.open(filePath);
+                ScaffoldMessenger.of(context).hideCurrentSnackBar();
+              },
+            ),
+            duration: const Duration(seconds: 3),
+            backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
     }
   }
 
@@ -971,7 +1240,12 @@ class _CustomizedReportTabState extends State<CustomizedReportTab> {
                     'PDF',
                     false,
                   ),
-                  _buildButton('Preview', const Color(0xFF1E88E5), 'PDF', true),
+                  _buildButton(
+                    'Preview',
+                    const Color(0xFF1E88E5),
+                    'PDF',
+                    true,
+                  ),
                 ],
               ),
           ],
@@ -991,16 +1265,32 @@ class _CustomizedReportTabState extends State<CustomizedReportTab> {
       readOnly: true,
       onTap: () async {
         if (isDate) {
+          DateTime today = DateTime.now();
+
+          DateTime initialDate = today;
+          DateTime firstDate = DateTime(2023);
+          DateTime lastDate = today;
+
+          // TO DATE restriction
+          if (label.toLowerCase().contains('to') && fromDate != null) {
+            initialDate = fromDate!;
+            firstDate = fromDate!;
+          }
+
           DateTime? picked = await showDatePicker(
             context: context,
-            initialDate: DateTime.now(),
-            firstDate: DateTime(2023),
-            lastDate: DateTime(2026),
+            initialDate: initialDate,
+            firstDate: firstDate,
+            lastDate: lastDate,
           );
+
           if (picked != null) {
-            controller.text = "${picked.day}-${picked.month}-${picked.year}";
-            if (label.contains('From')) {
+            controller.text =
+                "${picked.day}-${picked.month}-${picked.year}";
+
+            if (label.toLowerCase().contains('from')) {
               fromDate = picked;
+              toDate = null;
             } else {
               toDate = picked;
             }
@@ -1019,6 +1309,8 @@ class _CustomizedReportTabState extends State<CustomizedReportTab> {
             }
           }
         }
+
+        setState(() {});
       },
       decoration: InputDecoration(
         labelText: label,
@@ -1033,14 +1325,13 @@ class _CustomizedReportTabState extends State<CustomizedReportTab> {
   }
 
   Widget _buildButton(String text, Color color, String type, bool isPreview) {
-    // Responsive OutlinedButton with icon + spinner while loading.
     return LayoutBuilder(
       builder: (context, constraints) {
         final screenWidth = MediaQuery.of(context).size.width;
         double available =
             constraints.maxWidth.isFinite && constraints.maxWidth > 0
-            ? constraints.maxWidth
-            : screenWidth * 0.28;
+                ? constraints.maxWidth
+                : screenWidth * 0.28;
 
         double iconSize = (available * 0.08);
         if (iconSize < 14) iconSize = 14;
@@ -1056,7 +1347,7 @@ class _CustomizedReportTabState extends State<CustomizedReportTab> {
             type == 'Excel') {
           iconData = Icons.download_rounded;
         } else if (text.toLowerCase().contains('preview') ||
-            type == 'PDF' && isPreview) {
+            (type == 'PDF' && isPreview)) {
           iconData = Icons.remove_red_eye_outlined;
         }
 
@@ -1068,9 +1359,8 @@ class _CustomizedReportTabState extends State<CustomizedReportTab> {
             maxWidth: available < 140 ? 200 : available,
           ),
           child: OutlinedButton(
-            onPressed: isLoading
-                ? null
-                : () => _downloadCustomReport(type, isPreview),
+            onPressed:
+                isLoading ? null : () => _downloadCustomReport(type, isPreview),
             style: OutlinedButton.styleFrom(
               side: BorderSide(color: isLoading ? Colors.grey : color),
               shape: RoundedRectangleBorder(

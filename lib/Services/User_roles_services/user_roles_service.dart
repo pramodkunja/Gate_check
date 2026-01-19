@@ -18,8 +18,29 @@ class UserRoleService {
   // -------------------- Get All User Roles --------------------
   Future<List<UserRoleModel>> getAllUserRoles() async {
     try {
-      debugPrint('🔍 Fetching all user roles from backend...');
-      final response = await _apiService.dio.get('/roles/user_role/');
+      debugPrint('🔍 Fetching user roles from backend...');
+
+      final isSuperUser = await _apiService.isSuperUser();
+      Response response;
+
+      if (isSuperUser) {
+        debugPrint('🌍 Fetching ALL user roles (SuperUser mode)');
+        response = await _apiService.dio.get('/roles/user_role/');
+      } else {
+        final prefs = await SharedPreferences.getInstance();
+        final companyId = prefs.getString('companyId');
+
+        if (companyId == null || companyId.isEmpty) {
+          debugPrint('⚠️ No companyId found for non-superuser');
+          throw Exception('Company ID not found');
+        }
+
+        debugPrint('🏢 Fetching user roles for company_id: $companyId');
+        response = await _apiService.dio.get(
+          '/roles/user_role/',
+          queryParameters: {'company_id': companyId},
+        );
+      }
 
       debugPrint('💡 Response status: ${response.statusCode}');
       debugPrint('💡 Response data: ${response.data}');
@@ -39,8 +60,35 @@ class UserRoleService {
       final userRoles = dataList
           .map((json) => UserRoleModel.fromJson(json))
           .toList();
-      debugPrint('✅ Fetched ${userRoles.length} user roles');
-      return userRoles;
+
+      if (isSuperUser) {
+        debugPrint('✅ SuperUser: Returning all ${userRoles.length} roles');
+        return userRoles;
+      } else {
+        final prefs = await SharedPreferences.getInstance();
+        final companyIdStr = prefs.getString('companyId');
+        
+        debugPrint('🔍 Filtering roles for company ID: $companyIdStr');
+        
+        if (companyIdStr != null) {
+          final initialCount = userRoles.length;
+          // ignore: unused_local_variable
+          final companyId = int.tryParse(companyIdStr);
+          
+          final filteredRoles = userRoles.where((role) {
+            // Filter logic: keep if role.companyId matches or if it's null (safe fallback)
+            // But usually we strictly want matches. Let's assume strict match.
+            // Converting both to string for safer comparison
+            return role.companyId.toString() == companyIdStr.toString();
+          }).toList();
+          
+          debugPrint('🧹 Local Filter: ${initialCount - filteredRoles.length} roles removed');
+          debugPrint('✅ Returning ${filteredRoles.length} roles for company $companyIdStr');
+          return filteredRoles;
+        }
+        
+        return userRoles;
+      }
     } on DioException catch (e) {
       debugPrint('❌ DioException: ${e.message}');
       debugPrint('Full error data: ${e.response?.data}');
@@ -136,21 +184,31 @@ class UserRoleService {
     try {
       debugPrint('👥 Fetching all users from backend...');
 
-      final prefs = await SharedPreferences.getInstance();
-      final companyId = prefs.getString('companyId');
+      final isSuperUser = await _apiService.isSuperUser();
+      debugPrint('🦸 Is SuperUser: $isSuperUser');
 
-      if (companyId == null || companyId.isEmpty) {
-        debugPrint('⚠️ No companyId found in local storage');
-        throw Exception('Company ID not found');
+      Response response;
+
+      if (isSuperUser) {
+        // Superuser: fetch all users (no company_id param)
+        debugPrint('🌍 Fetching ALL users (SuperUser mode)');
+        response = await _apiService.dio.get('/user/create-user/');
+      } else {
+        // Regular user: fetch users for their company
+        final prefs = await SharedPreferences.getInstance();
+        final companyId = prefs.getString('companyId');
+
+        if (companyId == null || companyId.isEmpty) {
+          debugPrint('⚠️ No companyId found in local storage for non-superuser');
+          throw Exception('Company ID not found');
+        }
+
+        debugPrint('🏢 Fetching users for company_id: $companyId');
+        response = await _apiService.dio.get(
+          '/user/create-user/',
+          queryParameters: {'company_id': companyId},
+        );
       }
-
-      debugPrint('🏢 Using company_id: $companyId');
-
-      // ✅ Hit endpoint with company_id param
-      final response = await _apiService.dio.get(
-        '/user/create-user/',
-        queryParameters: {'company_id': companyId},
-      );
 
       debugPrint('💡 Users Response Status: ${response.statusCode}');
       debugPrint('💡 Users Response Data: ${response.data}');
@@ -187,8 +245,11 @@ class UserRoleService {
       }).toList();
 
       debugPrint('✅ Total Users Fetched: ${users.length}');
-      for (var u in users) {
-        debugPrint('👤 ${u['username']} (${u['id']})');
+      // Optional: limit log output for performance
+      if (users.length <= 10) {
+        for (var u in users) {
+          debugPrint('👤 ${u['username']} (${u['id']})');
+        }
       }
 
       return users;

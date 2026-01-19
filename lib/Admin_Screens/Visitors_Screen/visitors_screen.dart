@@ -13,6 +13,7 @@ import 'widgets/visitor_card.dart';
 import 'widgets/add_visitor_dialog.dart';
 import 'widgets/filter_dropdown.dart';
 import 'widgets/excel_dropdown.dart';
+import 'package:gatecheck/widgets/common_search_bar.dart';
 
 class RegularVisitorsScreen extends StatefulWidget {
   const RegularVisitorsScreen({super.key});
@@ -33,6 +34,14 @@ class _RegularVisitorsScreenState extends State<RegularVisitorsScreen> {
 
   bool isLoading = false;
   String? errorMessage;
+  String? userRole; // ✅ Add this to store user role
+  final TextEditingController _searchController = TextEditingController();
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   // Change this to your actual company ID
   static const int companyId = 1;
@@ -40,7 +49,16 @@ class _RegularVisitorsScreenState extends State<RegularVisitorsScreen> {
   @override
   void initState() {
     super.initState();
+    _loadUserRole(); // ✅ Load user role on init
     _loadVisitors();
+  }
+
+  // ✅ Add this method to load user role
+  void _loadUserRole() {
+    setState(() {
+      userRole = UserService().getUserRole();
+    });
+    debugPrint('🔍 Current user role in RegularVisitorsScreen: $userRole');
   }
 
   Future<void> _loadVisitors() async {
@@ -52,7 +70,8 @@ class _RegularVisitorsScreenState extends State<RegularVisitorsScreen> {
     try {
       final response = await _visitorService.getVisitors(companyId);
 
-      if (response.statusCode == 200 && response.data != null) {
+      if ((response.statusCode == 200 || response.statusCode == 304) &&
+          response.data != null) {
         final List<dynamic> data = response.data as List<dynamic>;
         setState(() {
           visitors = data.map((json) => Visitor.fromJson(json)).toList();
@@ -90,17 +109,50 @@ class _RegularVisitorsScreenState extends State<RegularVisitorsScreen> {
             visitor.passId.toLowerCase().contains(searchQuery.toLowerCase()) ||
             visitor.phone.contains(searchQuery);
 
-        bool matchesStatus =
-            selectedStatus == 'All Status' ||
-            visitor.status.displayName == selectedStatus;
+        // Normalize selected status for robust comparison
+        final selStatus = selectedStatus.trim().toLowerCase();
+        final visitorDisplayStage = visitor.displayStage.trim().toLowerCase();
 
+        // Determine if this visitor is considered 'Past'
+        // Past: visitor was created, visiting date completed (before today), and visitor did NOT visit (no entry)
+        final today = DateTime(
+          DateTime.now().year,
+          DateTime.now().month,
+          DateTime.now().day,
+        );
+        final bool isPast =
+            visitor.createdAt != null &&
+            visitor.visitingDate.isBefore(today) &&
+            (visitor.entryTime == null);
+
+        bool matchesStatus;
+        if (selStatus == 'all status') {
+          matchesStatus = true;
+        } else if (selStatus == 'visited') {
+          // 'Visited' means checked out or stage indicates checked_out
+          matchesStatus =
+              visitor.isCheckedOut == true ||
+              visitorDisplayStage == 'checked_out';
+        } else if (selStatus == 'past') {
+          matchesStatus = isPast;
+        } else {
+          // For other statuses: match against displayStage (which includes CHECKED_IN, etc.)
+          matchesStatus =
+              visitorDisplayStage == selStatus &&
+              !isPast &&
+              !visitor.isCheckedOut;
+        }
+
+        // Convert UI pass type label to API format for comparison
+        String apiPassType = _convertPassTypeToApi(selectedPassType);
         bool matchesPassType =
             selectedPassType == 'All Types' ||
-            visitor.passType == selectedPassType;
+            visitor.passType.toUpperCase() == apiPassType;
 
+        // Category comparison (case-insensitive)
         bool matchesCategory =
             selectedCategory == 'All Categories' ||
-            visitor.category == selectedCategory;
+            visitor.category.toLowerCase() == selectedCategory.toLowerCase();
 
         return matchesSearch &&
             matchesStatus &&
@@ -108,6 +160,21 @@ class _RegularVisitorsScreenState extends State<RegularVisitorsScreen> {
             matchesCategory;
       }).toList();
     });
+  }
+
+  String _convertPassTypeToApi(String displayLabel) {
+    switch (displayLabel.trim().toLowerCase()) {
+      case 'one time':
+        return 'ONE_TIME';
+      case 'recurring':
+        return 'RECURRING';
+      case 'permanent':
+        return 'PERMANENT';
+      case 'all types':
+        return 'ALL_TYPES';
+      default:
+        return displayLabel.toUpperCase();
+    }
   }
 
   Future<void> _addVisitor(Map<String, dynamic> visitorData) async {
@@ -166,14 +233,13 @@ class _RegularVisitorsScreenState extends State<RegularVisitorsScreen> {
     String email = UserService().getUserEmail();
 
     // decide role
-    final String? role = UserService()
-        .getUserRole(); // assume you add this service method
+    final String? role = UserService().getUserRole();
     final bool isAdmin = (role == null || role == 'admin');
 
     return Scaffold(
       drawer: isAdmin
-          ? const Navigation(currentRoute: 'GateCheck') // assume admin drawer
-          : const UserNavigation(), // you should have a user drawer
+          ? const Navigation(currentRoute: 'GateCheck')
+          : const UserNavigation(currentRoute: 'GateCheck'),
       appBar: isAdmin
           ? CustomAppBar(
               userName: userName,
@@ -214,36 +280,15 @@ class _RegularVisitorsScreenState extends State<RegularVisitorsScreen> {
             padding: EdgeInsets.all(screenWidth * 0.04),
             child: Column(
               children: [
-                Container(
-                  decoration: BoxDecoration(
-                    color: AppColors.background,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: TextField(
-                    onChanged: (value) {
-                      setState(() {
-                        searchQuery = value;
-                        _applyFilters();
-                      });
-                    },
-                    decoration: InputDecoration(
-                      hintText: 'Search by Name, ID, or Phone',
-                      hintStyle: GoogleFonts.inter(
-                        color: AppColors.textSecondary,
-                        fontSize: screenWidth * 0.035,
-                      ),
-                      prefixIcon: Icon(
-                        Icons.search,
-                        color: AppColors.iconGray,
-                        size: screenWidth * 0.06,
-                      ),
-                      border: InputBorder.none,
-                      contentPadding: EdgeInsets.symmetric(
-                        horizontal: screenWidth * 0.04,
-                        vertical: screenHeight * 0.018,
-                      ),
-                    ),
-                  ),
+                CommonSearchBar(
+                  controller: _searchController,
+                  hintText: 'Search by Name, ID, or Phone',
+                  onChanged: (value) {
+                    setState(() {
+                      searchQuery = value;
+                      _applyFilters();
+                    });
+                  },
                 ),
                 SizedBox(height: screenHeight * 0.02),
                 Row(
@@ -378,6 +423,7 @@ class _RegularVisitorsScreenState extends State<RegularVisitorsScreen> {
                         return VisitorCard(
                           visitor: filteredVisitors[index],
                           onRefresh: _loadVisitors,
+                          userRole: userRole, // ✅ Pass the user role here
                         );
                       },
                     ),

@@ -43,15 +43,17 @@ class _EntryOtpScreenState extends State<EntryOtpScreen> {
     try {
       final Response response;
 
+      final trimmedOtp = _otpController.text.trim();
+
       if (widget.action == EntryExitAction.entry) {
         response = await _visitorService.checkInVisitor(
           passId: widget.visitor.passId,
-          otp: _otpController.text.trim(),
+          otp: trimmedOtp,
         );
       } else {
         response = await _visitorService.checkOutVisitor(
           passId: widget.visitor.passId,
-          otp: _otpController.text.trim(),
+          otp: trimmedOtp,
         );
       }
 
@@ -67,13 +69,23 @@ class _EntryOtpScreenState extends State<EntryOtpScreen> {
               backgroundColor: Colors.green,
             ),
           );
-          Navigator.of(context).pop(true);
+
+          // <-- RETURN THE OTP STRING BACK TO THE CALLER
+          Navigator.of(context).pop(trimmedOtp);
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                'Visitor cannot check in before the scheduled visiting date.',
+          // Handle error response from backend
+          String errorMessage = 'Invalid OTP. Please try again.';
+          if (response.data != null) {
+            errorMessage = _visitorService.getErrorMessage(
+              DioException(
+                requestOptions: RequestOptions(path: ''),
+                response: response,
               ),
+            );
+          }
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(errorMessage),
               backgroundColor: Colors.redAccent,
             ),
           );
@@ -81,16 +93,8 @@ class _EntryOtpScreenState extends State<EntryOtpScreen> {
       }
     } on DioException catch (e) {
       if (mounted) {
-        String errorMessage = 'Invalid OTP';
-
-        if (e.response?.data != null) {
-          if (e.response!.data is Map) {
-            errorMessage =
-                e.response!.data['message'] ??
-                e.response!.data['error'] ??
-                'Invalid OTP';
-          }
-        }
+        // Use VisitorApiService error handler for consistent error messages
+        String errorMessage = _visitorService.getErrorMessage(e);
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

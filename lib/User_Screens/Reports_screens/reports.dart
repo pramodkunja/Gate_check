@@ -58,7 +58,7 @@ class _UserReportsScreenState extends State<UserReportsScreen>
         firstLetter: firstLetter,
         email: email,
       ),
-      drawer: const UserNavigation(),
+      drawer: const UserNavigation(currentRoute: '',),
       backgroundColor: const Color(0xFFF8F9FA),
       body: SafeArea(
         child: Padding(
@@ -430,7 +430,7 @@ class _MonthlyReportTabState extends State<MonthlyReportTab> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: DropdownButtonFormField<String>(
-                    value: selectedYear,
+                    initialValue: selectedYear,
                     decoration: InputDecoration(
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),

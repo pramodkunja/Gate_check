@@ -22,7 +22,7 @@ class Organization {
 // models/user.dart
 class User {
   final String id;
-  String name;
+  String username;
   String email;
   String mobileNumber;
   String companyName;
@@ -35,7 +35,7 @@ class User {
 
   User({
     required this.id,
-    required this.name,
+    required this.username,
     required this.email,
     required this.mobileNumber,
     required this.companyName,

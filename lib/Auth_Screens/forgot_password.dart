@@ -80,7 +80,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
 
       setState(() => _isSending = false);
 
-      if (response.statusCode == 200) {
+      if (response.statusCode == 200 || response.statusCode == 201) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -117,23 +117,32 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
             }
           });
         }
+      } else {
+        // Backend returned an error status code (400, 404, etc.)
+        if (mounted) {
+          String errorMessage = 'Failed to send reset code. Please try again.';
+          if (response.data != null) {
+            errorMessage = _apiService.getErrorMessage(
+              DioException(
+                requestOptions: RequestOptions(path: ''),
+                response: response,
+              ),
+            );
+          }
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(errorMessage, style: GoogleFonts.poppins()),
+              backgroundColor: Colors.red,
+              duration: const Duration(seconds: 4),
+            ),
+          );
+        }
       }
     } on DioException catch (e) {
       setState(() => _isSending = false);
 
-      String errorMessage = "Failed to send reset code. Please try again.";
-
-      if (e.response?.statusCode == 404) {
-        errorMessage = "No account found with this email address.";
-      } else if (e.response?.statusCode == 400) {
-        errorMessage = e.response?.data['message'] ?? "Invalid email address.";
-      } else if (e.type == DioExceptionType.connectionTimeout ||
-          e.type == DioExceptionType.receiveTimeout) {
-        errorMessage =
-            "Connection timeout. Please check your internet connection.";
-      } else if (e.type == DioExceptionType.connectionError) {
-        errorMessage = "Cannot connect to server. Please try again later.";
-      }
+      // Use ApiService helper to extract backend message when available
+      String errorMessage = _apiService.getErrorMessage(e);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

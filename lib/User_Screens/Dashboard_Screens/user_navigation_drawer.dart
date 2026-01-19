@@ -2,15 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:gatecheck/routes/app_routes.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-class UserNavigation extends StatefulWidget {
-  const UserNavigation({super.key});
+class UserNavigation extends StatelessWidget {
+  final String currentRoute; // 👈 which screen is active?
 
-  @override
-  State<UserNavigation> createState() => _UserNavigationState();
-}
-
-class _UserNavigationState extends State<UserNavigation> {
-  String selectedRoute = '';
+  const UserNavigation({
+    super.key,
+    required this.currentRoute,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -68,25 +66,36 @@ class _UserNavigationState extends State<UserNavigation> {
                 ),
                 children: [
                   _buildMenuItem(
+                    context: context,
                     icon: Icons.dashboard_outlined,
                     title: 'Dashboard',
-                    isSelected: selectedRoute == 'Dashboard',
-                    onTap: () => _handleUserNavigation('Dashboard'),
+                    isSelected: currentRoute == 'Dashboard',
+                    onTap: () => _handleUserNavigation(context, 'Dashboard'),
                   ),
                   SizedBox(height: screenHeight * 0.01),
                   _buildMenuItem(
+                    context: context,
                     icon: Icons.shield_outlined,
                     title: 'GateCheck',
-                    isSelected: selectedRoute == 'GateCheck',
-                    onTap: () => _handleUserNavigation('GateCheck'),
+                    isSelected: currentRoute == 'GateCheck',
+                    onTap: () => _handleUserNavigation(context, 'GateCheck'),
                   ),
                   SizedBox(height: screenHeight * 0.01),
                   _buildMenuItem(
+                    context: context,
                     icon: Icons.person_outline,
                     title: 'Profile',
-                    isSelected: selectedRoute == 'Profile',
-                    onTap: () => _handleUserNavigation('Profile'),
+                    isSelected: currentRoute == 'Profile',
+                    onTap: () => _handleUserNavigation(context, 'Profile'),
                   ),
+                  // if you want Reports visible, add item here too:
+                  // _buildMenuItem(
+                  //   context: context,
+                  //   icon: Icons.bar_chart_outlined,
+                  //   title: 'Reports',
+                  //   isSelected: currentRoute == 'Reports',
+                  //   onTap: () => _handleUserNavigation(context, 'Reports'),
+                  // ),
                 ],
               ),
             ),
@@ -116,6 +125,7 @@ class _UserNavigationState extends State<UserNavigation> {
   }
 
   Widget _buildMenuItem({
+    required BuildContext context,
     required IconData icon,
     required String title,
     required bool isSelected,
@@ -172,11 +182,11 @@ class _UserNavigationState extends State<UserNavigation> {
     );
   }
 
-  void _handleUserNavigation(String route) {
-    setState(() {
-      selectedRoute = route;
-    });
+  void _handleUserNavigation(BuildContext context, String route) {
     Navigator.pop(context);
+
+    // optional: avoid re-navigating to same page
+    // if (route == currentRoute) return;
 
     switch (route) {
       case 'Dashboard':

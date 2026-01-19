@@ -8,6 +8,8 @@ import 'package:gatecheck/Admin_Screens/Organization_Management_Screens/organiza
 import 'package:gatecheck/Admin_Screens/Reports_screens/reports.dart';
 import 'package:gatecheck/Admin_Screens/Visitors_Screen/visitors_screen.dart';
 import 'package:dio/dio.dart';
+import 'package:gatecheck/Services/Visitor_service/visitor_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -34,9 +36,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
     });
 
     try {
-      final response = await ApiService().dio.get(
-        '/visitors/company/1/visitors/',
-      );
+      final prefs = await SharedPreferences.getInstance();
+      final companyIdStr = prefs.getString('companyId');
+      final companyId = int.tryParse(companyIdStr ?? '0') ?? 0;
+
+      // Use the service which handles role-based logic internally
+      final response = await VisitorApiService().getVisitors(companyId);
 
       if (response.statusCode == 200) {
         final List<dynamic> visitors = response.data;
@@ -67,7 +72,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Get current logged-in user from UserService (set at login)
     String userName = UserService().getUserName();
     String firstLetter = userName.isNotEmpty ? userName[0].toUpperCase() : "?";
     String email = UserService().getUserEmail();
@@ -83,7 +87,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         firstLetter: firstLetter,
         email: email,
       ),
-      drawer: const Navigation(currentRoute: 'Dashboard'),
+      drawer: const Navigation(currentRoute: 'Dashboard',),
       body: RefreshIndicator(
         onRefresh: _fetchVisitorCount,
         child: LayoutBuilder(

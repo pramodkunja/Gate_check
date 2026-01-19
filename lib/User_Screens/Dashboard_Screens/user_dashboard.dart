@@ -34,7 +34,7 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
 
     try {
       final response = await ApiService().dio.get(
-        '/visitors/company/1/visitors/',
+        '/visitors/visitors/',
       );
 
       if (response.statusCode == 200) {
@@ -84,7 +84,7 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
         firstLetter: firstLetter,
         email: email,
       ),
-      drawer: const UserNavigation(),
+      drawer: const UserNavigation(currentRoute: 'Dashboard'),
       body: LayoutBuilder(
         builder: (context, constraints) {
           return SingleChildScrollView(

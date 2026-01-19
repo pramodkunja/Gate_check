@@ -8,11 +8,13 @@ import 'qr_code_dialog.dart';
 class ActionMenu extends StatefulWidget {
   final Visitor visitor;
   final Function()? onRefresh;
+  final bool showReschedule;
 
   const ActionMenu({
     super.key,
     required this.visitor,
     this.onRefresh,
+    this.showReschedule = true,
   });
 
   @override
@@ -35,9 +37,11 @@ class _ActionMenuState extends State<ActionMenu> {
   void _openMenu() {
     _overlayEntry = _createOverlayEntry();
     Overlay.of(context).insert(_overlayEntry!);
-    setState(() {
-      _isOpen = true;
-    });
+    if (mounted) {
+      setState(() {
+        _isOpen = true;
+      });
+    }
   }
 
   void _closeMenu() {
@@ -50,10 +54,74 @@ class _ActionMenuState extends State<ActionMenu> {
     }
   }
 
+  // Call onRefresh after current frame to avoid setState during build asserts
+  void _safeRefresh() {
+    if (widget.onRefresh == null) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      try {
+        if (widget.onRefresh != null) widget.onRefresh!();
+      } catch (e, st) {
+        debugPrint('ActionMenu onRefresh error: $e\n$st');
+      }
+    });
+  }
+
   OverlayEntry _createOverlayEntry() {
     RenderBox renderBox = context.findRenderObject() as RenderBox;
     var size = renderBox.size;
     var offset = renderBox.localToGlobal(Offset.zero);
+
+    // Build list of menu items dynamically based on flags
+    final List<Widget> items = [
+      _buildMenuItem(
+        icon: Icons.description,
+        label: 'Manual Pass',
+        onTap: () {
+          _closeMenu();
+          showDialog(
+            context: context,
+            builder: (context) => ManualPassDialog(visitor: widget.visitor),
+          );
+        },
+      ),
+      Divider(height: 1, color: AppColors.border),
+      _buildMenuItem(
+        icon: Icons.qr_code,
+        label: 'QR Pass',
+        onTap: () {
+          _closeMenu();
+          showDialog(
+            context: context,
+            builder: (context) => QrCodeDialog(visitor: widget.visitor),
+          );
+        },
+      ),
+    ];
+
+    // Insert Reschedule item (if allowed) after QR Pass
+    // if (widget.showReschedule) {
+    //   items.addAll([
+    //     Divider(height: 1, color: AppColors.border),
+    //     _buildMenuItem(
+    //       icon: Icons.calendar_today,
+    //       label: 'Reschedule',
+    //       onTap: () {
+    //         _closeMenu();
+    //         // Open reschedule dialog and trigger onSuccess to refresh
+    //         showDialog(
+    //           context: context,
+    //           builder: (context) => RescheduleDialog(
+    //             visitorId: widget.visitor.id,
+    //             visitorName: widget.visitor.name,
+    //             onSuccess: () {
+    //               _safeRefresh();
+    //             },
+    //           ),
+    //         );
+    //       },
+    //     ),
+    //   ]);
+    // }
 
     return OverlayEntry(
       builder: (context) => GestureDetector(
@@ -61,8 +129,10 @@ class _ActionMenuState extends State<ActionMenu> {
         behavior: HitTestBehavior.translucent,
         child: Stack(
           children: [
+            // A full-screen transparent layer to detect taps outside menu
+            Positioned.fill(child: Container(color: Colors.transparent)),
             Positioned(
-              left: offset.dx - 130,
+              left: (offset.dx - 130).clamp(8.0, MediaQuery.of(context).size.width - 170.0),
               top: offset.dy + size.height + 8,
               child: Material(
                 elevation: 8,
@@ -82,38 +152,7 @@ class _ActionMenuState extends State<ActionMenu> {
                   ),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
-                    children: [
-                      _buildMenuItem(
-                        icon: Icons.description,
-                        label: 'Manual Pass',
-                        onTap: () {
-                          _closeMenu();
-                          showDialog(
-                            context: context,
-                            builder: (context) => ManualPassDialog(
-                              visitor: widget.visitor,
-                            ),
-                          );
-                        },
-                      ),
-                      Divider(
-                        height: 1,
-                        color: AppColors.border,
-                      ),
-                      _buildMenuItem(
-                        icon: Icons.qr_code,
-                        label: 'QR Pass',
-                        onTap: () {
-                          _closeMenu();
-                          showDialog(
-                            context: context,
-                            builder: (context) => QrCodeDialog(
-                              visitor: widget.visitor,
-                            ),
-                          );
-                        },
-                      ),
-                    ],
+                    children: items,
                   ),
                 ),
               ),
@@ -136,18 +175,16 @@ class _ActionMenuState extends State<ActionMenu> {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         child: Row(
           children: [
-            Icon(
-              icon,
-              size: 18,
-              color: AppColors.textPrimary,
-            ),
+            Icon(icon, size: 18, color: AppColors.textPrimary),
             const SizedBox(width: 12),
-            Text(
-              label,
-              style: GoogleFonts.inter(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-                color: AppColors.textPrimary,
+            Expanded(
+              child: Text(
+                label,
+                style: GoogleFonts.inter(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.textPrimary,
+                ),
               ),
             ),
           ],
@@ -158,6 +195,11 @@ class _ActionMenuState extends State<ActionMenu> {
 
   @override
   Widget build(BuildContext context) {
+    // Hide entirely when visitor has checked out
+    if (widget.visitor.isCheckedOut) {
+      return const SizedBox.shrink();
+    }
+
     return CompositedTransformTarget(
       link: _layerLink,
       child: IconButton(

@@ -4,8 +4,9 @@ class UserRoleModel {
   final int userRoleId;
   final int userId;
   final int roleId;
-  final String username; // This will store user_name from API
-  final String rolename; // This will store role_name from API
+  final int? companyId; // ✅ Added company ID
+  final String username;
+  final String rolename;
   final String? createdBy;
   final String? modifiedBy;
   final DateTime createdAt;
@@ -17,6 +18,7 @@ class UserRoleModel {
     required this.userRoleId,
     required this.userId,
     required this.roleId,
+    this.companyId,
     required this.username,
     required this.rolename,
     this.createdBy,
@@ -28,16 +30,24 @@ class UserRoleModel {
   });
 
   factory UserRoleModel.fromJson(Map<String, dynamic> json) {
+    // Try to parse company ID from various possible keys
+    int? parseCompanyId(dynamic val) {
+      if (val == null) return null;
+      if (val is int) return val;
+      return int.tryParse(val.toString());
+    }
+
     return UserRoleModel(
       userRoleId: json['user_role_id'] ?? 0,
-      userId: json['user'] ?? 0, // ✅ This is the user ID (integer)
-      roleId: json['role'] ?? 0, // ✅ This is the role ID (integer)
+      userId: json['user'] ?? 0,
+      roleId: json['role'] ?? 0,
+      companyId: parseCompanyId(json['company'] ?? json['company_id']),
       username:
           json['user_name']?.toString() ??
-          '', // ✅ Changed from 'user' to 'user_name'
+          '',
       rolename:
           json['role_name']?.toString() ??
-          '', // ✅ Changed from 'role' to 'role_name'
+          '',
       createdBy: json['created_by']?.toString(),
       modifiedBy: json['modified_by']?.toString(),
       createdAt: json['created_at'] != null
@@ -58,6 +68,7 @@ class UserRoleModel {
       'user_role_id': userRoleId,
       'user': userId,
       'role': roleId,
+      'company': companyId,
       'user_name': username,
       'role_name': rolename,
       'created_by': createdBy,

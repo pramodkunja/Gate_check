@@ -5,7 +5,7 @@ import '../models/category_model.dart';
 
 class AddOrEditCategoryDialog extends StatefulWidget {
   final Category? category;
-  final void Function(Category category) onSave;
+  final Future<void> Function(Category category) onSave;
 
   const AddOrEditCategoryDialog({
     super.key,
@@ -54,7 +54,6 @@ class _AddOrEditCategoryDialogState extends State<AddOrEditCategoryDialog> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Header with title and close button
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -77,7 +76,6 @@ class _AddOrEditCategoryDialogState extends State<AddOrEditCategoryDialog> {
               ),
               const SizedBox(height: 24),
 
-              // Category Name Field
               Text(
                 'Category Name *',
                 style: GoogleFonts.poppins(
@@ -96,11 +94,11 @@ class _AddOrEditCategoryDialogState extends State<AddOrEditCategoryDialog> {
                   ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide(color: Colors.grey),
+                    borderSide: const BorderSide(color: Colors.grey),
                   ),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide(color: Colors.grey),
+                    borderSide: const BorderSide(color: Colors.grey),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
@@ -114,13 +112,11 @@ class _AddOrEditCategoryDialogState extends State<AddOrEditCategoryDialog> {
                     vertical: 12,
                   ),
                 ),
-                validator: (value) => value == null || value.isEmpty
-                    ? 'Enter category name'
-                    : null,
+                validator: (v) =>
+                    (v == null || v.isEmpty) ? 'Enter category name' : null,
               ),
               const SizedBox(height: 20),
 
-              // Description Field
               Text(
                 'Description',
                 style: GoogleFonts.poppins(
@@ -140,11 +136,11 @@ class _AddOrEditCategoryDialogState extends State<AddOrEditCategoryDialog> {
                   ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide(color: Colors.grey),
+                    borderSide: const BorderSide(color: Colors.grey),
                   ),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide(color: Colors.grey),
+                    borderSide: const BorderSide(color: Colors.grey),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
@@ -161,14 +157,13 @@ class _AddOrEditCategoryDialogState extends State<AddOrEditCategoryDialog> {
               ),
               const SizedBox(height: 20),
 
-              // Active Checkbox
               InkWell(
                 onTap: () => setState(() => _isActive = !_isActive),
                 child: Row(
                   children: [
                     Checkbox(
                       value: _isActive,
-                      onChanged: (value) => setState(() => _isActive = value!),
+                      onChanged: (v) => setState(() => _isActive = v ?? true),
                       activeColor: Colors.teal,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(4),
@@ -186,7 +181,6 @@ class _AddOrEditCategoryDialogState extends State<AddOrEditCategoryDialog> {
               ),
               const SizedBox(height: 24),
 
-              // Action Buttons
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
@@ -222,7 +216,6 @@ class _AddOrEditCategoryDialogState extends State<AddOrEditCategoryDialog> {
                             isActive: _isActive,
                           ),
                         );
-                        Navigator.pop(context);
                       }
                     },
                     style: ElevatedButton.styleFrom(

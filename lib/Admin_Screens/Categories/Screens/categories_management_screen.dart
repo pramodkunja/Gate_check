@@ -8,6 +8,7 @@ import 'package:gatecheck/Services/Admin_Services/category_services.dart';
 import 'package:gatecheck/Services/User_services/user_service.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../Dashboard_Screens/custom_appbar.dart';
+import 'package:gatecheck/widgets/common_search_bar.dart';
 
 class CategoriesManagementScreen extends StatefulWidget {
   const CategoriesManagementScreen({super.key});
@@ -38,6 +39,7 @@ class _CategoriesManagementScreenState
 
     try {
       final categoriesData = await _categoryService.getAllCategories();
+      if (!mounted) return;
       setState(() {
         allCategories = categoriesData
             .map((json) => Category.fromJson(json))
@@ -45,15 +47,14 @@ class _CategoriesManagementScreenState
         _isLoading = false;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() => _isLoading = false);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error loading categories: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error loading categories: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
@@ -84,6 +85,16 @@ class _CategoriesManagementScreenState
       builder: (context) => AddOrEditCategoryDialog(
         onSave: (category) async {
           try {
+            // Show loading indicator while saving
+            if (mounted) {
+              showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (_) =>
+                    const Center(child: CircularProgressIndicator()),
+              );
+            }
+
             await _categoryService.createCategory(
               name: category.name,
               description: category.description,
@@ -91,17 +102,22 @@ class _CategoriesManagementScreenState
             );
 
             if (mounted) {
+              Navigator.pop(context); // Close loading dialog
+              Navigator.pop(context); // Close add dialog
+
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
                   content: Text('Category added successfully'),
                   backgroundColor: Colors.green,
                 ),
               );
-            }
 
-            _loadCategories(); // Reload categories
+              // Refresh on current page
+              if (mounted) _loadCategories();
+            }
           } catch (e) {
             if (mounted) {
+              Navigator.pop(context); // Close loading dialog
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: Text('Error adding category: $e'),
@@ -115,44 +131,62 @@ class _CategoriesManagementScreenState
     );
   }
 
-  void _editCategory(Category category) {
-    showDialog(
-      context: context,
-      builder: (context) => AddOrEditCategoryDialog(
-        category: category,
-        onSave: (updatedCategory) async {
-          try {
-            await _categoryService.updateCategory(
-              id: category.id,
-              name: updatedCategory.name,
-              description: updatedCategory.description,
-              isActive: updatedCategory.isActive,
+void _editCategory(Category category) {
+  showDialog(
+    context: context,
+    builder: (context) => AddOrEditCategoryDialog(
+      category: category,
+      onSave: (updatedCategory) async {
+        // 1) Show loading
+        if (!mounted) return;
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (_) => const Center(child: CircularProgressIndicator()),
+        );
+
+        try {
+          await _categoryService.updateCategory(
+            id: category.id,
+            name: updatedCategory.name,
+            description: updatedCategory.description,
+            isActive: updatedCategory.isActive,
+          );
+
+          // 2) Close loading
+          if (mounted) Navigator.of(context).pop();
+
+          // 3) Close edit dialog
+          if (mounted) Navigator.of(context).pop();
+
+          // 4) Notify + refresh
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Category updated successfully'),
+                backgroundColor: Colors.green,
+              ),
             );
-
-            if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Category updated successfully'),
-                  backgroundColor: Colors.green,
-                ),
-              );
-            }
-
-            _loadCategories(); // Reload categories
-          } catch (e) {
-            if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('Error updating category: $e'),
-                  backgroundColor: Colors.red,
-                ),
-              );
-            }
+            _loadCategories();
           }
-        },
-      ),
-    );
-  }
+        } catch (e) {
+          // Close loading if open
+          if (mounted) Navigator.of(context).pop();
+
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Error updating category: $e'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        }
+      },
+    ),
+  );
+}
+
 
   void _viewCategory(Category category) {
     showDialog(
@@ -218,36 +252,7 @@ class _CategoriesManagementScreenState
             onPressed: () => Navigator.pop(context),
             child: const Text('Cancel'),
           ),
-          TextButton(
-            onPressed: () async {
-              Navigator.pop(context);
-
-              try {
-                await _categoryService.deleteCategory(category.id);
-
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Category deleted successfully'),
-                      backgroundColor: Colors.green,
-                    ),
-                  );
-                }
-
-                _loadCategories(); // Reload categories
-              } catch (e) {
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Error deleting category: $e'),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
-                }
-              }
-            },
-            child: const Text('Delete', style: TextStyle(color: Colors.red)),
-          ),
+        
         ],
       ),
     );
@@ -360,18 +365,10 @@ class _CategoriesManagementScreenState
                     Row(
                       children: [
                         Expanded(
-                          child: TextField(
+                          child: CommonSearchBar(
                             controller: _searchController,
+                            hintText: 'Search by category name...',
                             onChanged: (_) => setState(() {}),
-                            decoration: InputDecoration(
-                              hintText: 'Search by category name...',
-                              prefixIcon: const Icon(Icons.search),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              filled: true,
-                              fillColor: Colors.white,
-                            ),
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -386,8 +383,9 @@ class _CategoriesManagementScreenState
                               )
                               .toList(),
                           onChanged: (value) {
-                            if (value != null)
+                            if (value != null) {
                               setState(() => _filterStatus = value);
+                            }
                           },
                         ),
                         const SizedBox(width: 8),
@@ -425,7 +423,6 @@ class _CategoriesManagementScreenState
                                   category: category,
                                   onEdit: () => _editCategory(category),
                                   onView: () => _viewCategory(category),
-                                  onDelete: () => _deleteCategory(category),
                                 );
                               },
                             ),

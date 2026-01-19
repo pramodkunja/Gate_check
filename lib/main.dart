@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:gatecheck/routes/app_routes.dart';
+// import 'package:flutter_downloader/flutter_downloader.dart';
 
 void main() {
   runApp(const MyApp());
@@ -18,7 +19,7 @@ class MyApp extends StatelessWidget {
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
       // Set initial route
-      initialRoute: AppRoutes.login,
+      initialRoute: AppRoutes.splash,
       // Use the route generator
       onGenerateRoute: AppRoutes.generateRoute,
     );

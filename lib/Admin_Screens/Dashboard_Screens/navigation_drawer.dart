@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+// import your screens
 import 'package:gatecheck/Admin_Screens/Categories/Screens/categories_management_screen.dart';
 import 'package:gatecheck/Admin_Screens/Dashboard_Screens/dashboard_screen.dart';
 import 'package:gatecheck/Admin_Screens/Organization_Management_Screens/organization_screen.dart';
@@ -11,13 +14,9 @@ import 'package:gatecheck/Admin_Screens/User_roles-screen/user_role_management.d
 import 'package:gatecheck/Admin_Screens/Visitors_Screen/visitors_screen.dart';
 
 class Navigation extends StatefulWidget {
-  /// 🚩 Name of the current screen, e.g. "Dashboard", "Profile", "Roles"
   final String currentRoute;
 
-  const Navigation({
-    super.key,
-    required this.currentRoute,
-  });
+  const Navigation({ super.key, required this.currentRoute });
 
   @override
   State<Navigation> createState() => _NavigationState();
@@ -27,13 +26,34 @@ class _NavigationState extends State<Navigation> {
   bool isRolesExpanded = false;
   late String selectedRoute;
 
+  bool _isSuperUser = false;
+  String _userRole = '';
+
   @override
   void initState() {
     super.initState();
     selectedRoute = widget.currentRoute;
-
-    // Auto-expand roles group if current screen is one of them
     isRolesExpanded = _isRolesGroup(selectedRoute);
+    _loadUserRoleInfo();
+  }
+
+  Future<void> _loadUserRoleInfo() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _isSuperUser = prefs.getBool('isSuperUser') ?? false;
+      _userRole = prefs.getString('userRole')?.toLowerCase() ?? '';
+      // If not superuser and role is Admin, we collapse roles section by default
+      if (_userRole == 'admin' && !_isSuperUser) {
+        isRolesExpanded = false;
+      }
+    });
+  }
+
+  bool _isRolesGroup(String route) {
+    return route == 'Roles' ||
+        route == 'Permissions' ||
+        route == 'Roles & Permissions' ||
+        route == 'User Roles';
   }
 
   @override
@@ -45,13 +65,6 @@ class _NavigationState extends State<Navigation> {
         isRolesExpanded = _isRolesGroup(selectedRoute);
       });
     }
-  }
-
-  bool _isRolesGroup(String route) {
-    return route == 'Roles' ||
-        route == 'Permissions' ||
-        route == 'Roles & Permissions' ||
-        route == 'User Roles';
   }
 
   @override
@@ -138,63 +151,99 @@ class _NavigationState extends State<Navigation> {
                   ),
                   SizedBox(height: screenHeight * 0.01),
 
-                  // Expandable Roles Section
-                  _buildExpandableMenuItem(
-                    icon: Icons.person_outline,
-                    title: 'Roles',
-                    isExpanded: isRolesExpanded,
-                    onTap: () {
-                      setState(() {
-                        isRolesExpanded = !isRolesExpanded;
-                      });
-                    },
-                  ),
+                  // Roles Section: show differently depending on user
+                  if (_isSuperUser) ...[
+                    // Super-user: full roles section
+                    _buildExpandableMenuItem(
+                      icon: Icons.person_outline,
+                      title: 'Roles',
+                      isExpanded: isRolesExpanded,
+                      onTap: () {
+                        setState(() {
+                          isRolesExpanded = !isRolesExpanded;
+                        });
+                      },
+                    ),
+                    AnimatedSize(
+                      duration: const Duration(milliseconds: 300),
+                      curve: Curves.easeInOut,
+                      child: isRolesExpanded
+                          ? Column(
+                              children: [
+                                _buildSubMenuItem(
+                                  icon: Icons.person_outline,
+                                  title: 'Roles',
+                                  isSelected: selectedRoute == 'Roles',
+                                  onTap: () => _handleNavigation('Roles'),
+                                ),
+                                _buildSubMenuItem(
+                                  icon: Icons.shield_outlined,
+                                  title: 'Permissions',
+                                  isSelected: selectedRoute == 'Permissions',
+                                  onTap: () => _handleNavigation('Permissions'),
+                                ),
+                                _buildSubMenuItem(
+                                  icon: Icons.link,
+                                  title: 'Roles & Permissions',
+                                  isSelected: selectedRoute == 'Roles & Permissions',
+                                  onTap: () => _handleNavigation('Roles & Permissions'),
+                                ),
+                                _buildSubMenuItem(
+                                  icon: Icons.person_outline,
+                                  title: 'User Roles',
+                                  isSelected: selectedRoute == 'User Roles',
+                                  onTap: () => _handleNavigation('User Roles'),
+                                ),
+                              ],
+                            )
+                          : const SizedBox.shrink(),
+                    ),
+                    SizedBox(height: screenHeight * 0.01),
+                  ] else if (_userRole == 'admin' && !_isSuperUser) ...[
+                    // Role == Admin but not superuser: only show User Roles sub-item
+                    _buildExpandableMenuItem(
+                      icon: Icons.person_outline,
+                      title: 'Roles',
+                      isExpanded: isRolesExpanded,
+                      onTap: () {
+                        // we can keep expanded always or toggle, as you like
+                        setState(() {
+                          isRolesExpanded = !isRolesExpanded;
+                        });
+                      },
+                    ),
+                    AnimatedSize(
+                      duration: const Duration(milliseconds: 300),
+                      curve: Curves.easeInOut,
+                      child: isRolesExpanded
+                          ? Column(
+                              children: [
+                                _buildSubMenuItem(
+                                  icon: Icons.person_outline,
+                                  title: 'User Roles',
+                                  isSelected: selectedRoute == 'User Roles',
+                                  onTap: () => _handleNavigation('User Roles'),
+                                ),
+                              ],
+                            )
+                          : const SizedBox.shrink(),
+                    ),
+                    SizedBox(height: screenHeight * 0.01),
+                  ],
 
-                  // Submenu Items
-                  AnimatedSize(
-                    duration: const Duration(milliseconds: 300),
-                    curve: Curves.easeInOut,
-                    child: isRolesExpanded
-                        ? Column(
-                            children: [
-                              _buildSubMenuItem(
-                                icon: Icons.person_outline,
-                                title: 'Roles',
-                                isSelected: selectedRoute == 'Roles',
-                                onTap: () => _handleNavigation('Roles'),
-                              ),
-                              _buildSubMenuItem(
-                                icon: Icons.shield_outlined,
-                                title: 'Permissions',
-                                isSelected: selectedRoute == 'Permissions',
-                                onTap: () => _handleNavigation('Permissions'),
-                              ),
-                              _buildSubMenuItem(
-                                icon: Icons.link,
-                                title: 'Roles & Permissions',
-                                isSelected:
-                                    selectedRoute == 'Roles & Permissions',
-                                onTap: () =>
-                                    _handleNavigation('Roles & Permissions'),
-                              ),
-                              _buildSubMenuItem(
-                                icon: Icons.person_outline,
-                                title: 'User Roles',
-                                isSelected: selectedRoute == 'User Roles',
-                                onTap: () => _handleNavigation('User Roles'),
-                              ),
-                            ],
-                          )
-                        : const SizedBox.shrink(),
-                  ),
-
-                  if (!isRolesExpanded) SizedBox(height: screenHeight * 0.01),
                   _buildMenuItem(
                     icon: Icons.folder_outlined,
                     title: 'Categories',
                     isSelected: selectedRoute == 'Categories',
                     onTap: () => _handleNavigation('Categories'),
                   ),
+
+                  //  _buildMenuItem(
+                  //   icon: Icons.security_outlined,
+                  //   title: 'Security',
+                  //   isSelected: selectedRoute == 'Security',
+                  //   onTap: () => _handleNavigation('Security'),
+                  // ),
                 ],
               ),
             ),
@@ -230,7 +279,6 @@ class _NavigationState extends State<Navigation> {
     required VoidCallback onTap,
   }) {
     final screenWidth = MediaQuery.of(context).size.width;
-
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -286,7 +334,6 @@ class _NavigationState extends State<Navigation> {
     required VoidCallback onTap,
   }) {
     final screenWidth = MediaQuery.of(context).size.width;
-
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -313,9 +360,7 @@ class _NavigationState extends State<Navigation> {
                 ),
               ),
               Icon(
-                isExpanded
-                    ? Icons.keyboard_arrow_up
-                    : Icons.keyboard_arrow_down,
+                isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
                 color: Colors.white,
                 size: screenWidth * 0.055,
               ),
@@ -333,7 +378,6 @@ class _NavigationState extends State<Navigation> {
     required VoidCallback onTap,
   }) {
     final screenWidth = MediaQuery.of(context).size.width;
-
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -351,11 +395,7 @@ class _NavigationState extends State<Navigation> {
           ),
           child: Row(
             children: [
-              Icon(
-                icon,
-                color: const Color(0xFF94A3B8),
-                size: screenWidth * 0.05,
-              ),
+              Icon(icon, color: const Color(0xFF94A3B8), size: screenWidth * 0.05),
               SizedBox(width: screenWidth * 0.03),
               Expanded(
                 child: Text(
@@ -363,8 +403,7 @@ class _NavigationState extends State<Navigation> {
                   style: GoogleFonts.poppins(
                     color: isSelected ? Colors.white : const Color(0xFFCBD5E1),
                     fontSize: screenWidth * 0.038,
-                    fontWeight:
-                        isSelected ? FontWeight.w500 : FontWeight.normal,
+                    fontWeight: isSelected ? FontWeight.w500 : FontWeight.normal,
                   ),
                 ),
               ),
@@ -384,75 +423,23 @@ class _NavigationState extends State<Navigation> {
     Navigator.pop(context);
 
     if (route == 'Dashboard') {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => const DashboardScreen()),
-      );
-    }
-
-    if (route == 'GateCheck') {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-            builder: (context) => const RegularVisitorsScreen()),
-      );
-    }
-
-    if (route == 'Profile') {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => const ProfileScreen()),
-      );
-    }
-
-    if (route == 'Organization') {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => const OrganizationManagementScreen(),
-        ),
-      );
-    }
-
-    if (route == 'Roles') {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => const RolesManagementScreen()),
-      );
-    }
-
-    if (route == 'Roles & Permissions') {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => const RolePermissionsScreen()),
-      );
-    }
-
-    if (route == 'Permissions') {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => const PermissionManagementScreen(),
-        ),
-      );
-    }
-
-    if (route == 'User Roles') {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => const UserRolesManagementScreen(),
-        ),
-      );
-    }
-
-    if (route == 'Categories') {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => const CategoriesManagementScreen(),
-        ),
-      );
+      Navigator.push(context, MaterialPageRoute(builder: (context) => const DashboardScreen()));
+    } else if (route == 'GateCheck') {
+      Navigator.push(context, MaterialPageRoute(builder: (context) => const RegularVisitorsScreen()));
+    } else if (route == 'Profile') {
+      Navigator.push(context, MaterialPageRoute(builder: (context) => const ProfileScreen()));
+    } else if (route == 'Organization') {
+      Navigator.push(context, MaterialPageRoute(builder: (context) => const OrganizationManagementScreen()));
+    } else if (route == 'Roles') {
+      Navigator.push(context, MaterialPageRoute(builder: (context) => const RolesManagementScreen()));
+    } else if (route == 'Permissions') {
+      Navigator.push(context, MaterialPageRoute(builder: (context) => const PermissionManagementScreen()));
+    } else if (route == 'Roles & Permissions') {
+      Navigator.push(context, MaterialPageRoute(builder: (context) => const RolePermissionsScreen()));
+    } else if (route == 'User Roles') {
+      Navigator.push(context, MaterialPageRoute(builder: (context) => const UserRolesManagementScreen()));
+    } else if (route == 'Categories') {
+      Navigator.push(context, MaterialPageRoute(builder: (context) => const CategoriesManagementScreen()));
     }
   }
 }

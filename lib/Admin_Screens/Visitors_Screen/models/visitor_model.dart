@@ -25,6 +25,7 @@ class Visitor {
   final String? vehicleNumber;
   final int? vehicleId;
   final VehicleDetails? vehicleDetails;
+  final String? currentStage;
   final VisitorStatus status;
   final String? approvedBy;
   final DateTime? approvedAt;
@@ -64,6 +65,7 @@ class Visitor {
     this.vehicleNumber,
     this.vehicleId,
     this.vehicleDetails,
+    this.currentStage,
     required this.status,
     this.approvedBy,
     this.approvedAt,
@@ -80,105 +82,113 @@ class Visitor {
   }) : passId = passId ?? 'VP${DateTime.now().millisecondsSinceEpoch}';
 
   factory Visitor.fromJson(Map<String, dynamic> json) {
-  return Visitor(
-    id: json['id']?.toString() ?? '',
-    passId: json['pass_id']?.toString() ?? '',
-    name: json['visitor_name']?.toString() ?? '',
-    phone: json['mobile_number']?.toString() ?? '',
-    email: json['email_id']?.toString() ?? '',
-    gender: json['gender']?.toString(),
-    category: json['category_details']?['name']?.toString() ??
-        json['category_name']?.toString() ??
-        'Unknown',
-    categoryId: json['category'] is int
-        ? json['category']
-        : int.tryParse(json['category']?.toString() ?? ''),
-    categoryDetails: json['category_details'] != null
-        ? CategoryDetails.fromJson(json['category_details'])
-        : null,
-    passType: _parsePassType(json['pass_type']),
-    visitingDate: DateTime.parse(json['visiting_date'].toString()),
-    visitingTime: json['visiting_time']?.toString() ?? '',
-    recurringDays: json['recurring_days'] is int
-        ? json['recurring_days']
-        : int.tryParse(json['recurring_days']?.toString() ?? ''),
-    allowingHours: json['allowing_hours'] is int
-        ? json['allowing_hours']
-        : int.tryParse(json['allowing_hours']?.toString() ?? ''),
-    purpose: json['purpose_of_visit']?.toString() ?? '',
-    whomToMeet: json['whom_to_meet']?.toString() ?? '',
-    comingFrom: json['coming_from']?.toString() ?? '',
-    companyDetails: json['company_details']?.toString(),
-    belongingsTools: json['belongings_tools']?.toString(),
-    securityNotes: json['security_notes']?.toString(),
-    vehicleId: json['vehicle'] is int
-        ? json['vehicle']
-        : int.tryParse(json['vehicle']?.toString() ?? ''),
-    vehicleDetails: json['vehicle_details'] != null
-        ? VehicleDetails.fromJson(json['vehicle_details'])
-        : null,
-    status: _parseStatus(json['status']),
-    approvedBy: json['approved_by']?.toString(),
-    approvedAt: json['approved_at'] != null
-        ? DateTime.tryParse(json['approved_at'].toString())
-        : null,
-    entryTime: json['entry_time'] != null
-        ? DateTime.tryParse(json['entry_time'].toString())
-        : null,
-    exitTime: json['exit_time'] != null
-        ? DateTime.tryParse(json['exit_time'].toString())
-        : null,
-    isInside: json['is_inside'] ?? false,
-    isCheckedOut: json['exit_time'] != null,
-    qrCodeUrl: json['qr_code_url']?.toString(),
-    canEnter: json['can_enter'] ?? false,
-    company: json['company']?.toString(),
-    createdAt: json['created_at'] != null
-        ? DateTime.tryParse(json['created_at'].toString())
-        : null,
-    updatedAt: json['updated_at'] != null
-        ? DateTime.tryParse(json['updated_at'].toString())
-        : null,
-    logs: json['logs'],
-  );
-}
-
+    return Visitor(
+      id: json['id']?.toString() ?? '',
+      passId: json['pass_id']?.toString() ?? '',
+      name: json['visitor_name']?.toString() ?? '',
+      phone: json['mobile_number']?.toString() ?? '',
+      email: json['email_id']?.toString() ?? '',
+      gender: json['gender']?.toString(),
+      category:
+          json['category_details']?['name']?.toString() ??
+          json['category_name']?.toString() ??
+          'Unknown',
+      categoryId: json['category'] is int
+          ? json['category']
+          : int.tryParse(json['category']?.toString() ?? ''),
+      categoryDetails: json['category_details'] != null
+          ? CategoryDetails.fromJson(json['category_details'])
+          : null,
+      passType: _parsePassType(json['pass_type']),
+      visitingDate: DateTime.parse(json['visiting_date'].toString()),
+      visitingTime: json['visiting_time']?.toString() ?? '',
+      recurringDays: json['recurring_days'] is int
+          ? json['recurring_days']
+          : int.tryParse(json['recurring_days']?.toString() ?? ''),
+      allowingHours: json['allowing_hours'] is int
+          ? json['allowing_hours']
+          : int.tryParse(json['allowing_hours']?.toString() ?? ''),
+      purpose: json['purpose_of_visit']?.toString() ?? '',
+      whomToMeet: json['whom_to_meet']?.toString() ?? '',
+      comingFrom: json['coming_from']?.toString() ?? '',
+      companyDetails: json['company_details']?.toString(),
+      belongingsTools: json['belongings_tools']?.toString(),
+      securityNotes: json['security_notes']?.toString(),
+      vehicleId: json['vehicle'] is int
+          ? json['vehicle']
+          : int.tryParse(json['vehicle']?.toString() ?? ''),
+      vehicleDetails: json['vehicle_details'] != null
+          ? VehicleDetails.fromJson(json['vehicle_details'])
+          : null,
+      status: _parseStatus(json['status']),
+      currentStage: json['current_stage']?.toString(),
+      approvedBy: json['approved_by']?.toString(),
+      approvedAt: json['approved_at'] != null
+          ? DateTime.tryParse(json['approved_at'].toString())
+          : null,
+      entryTime: json['entry_time'] != null
+          ? DateTime.tryParse(json['entry_time'].toString())
+          : null,
+      exitTime: json['exit_time'] != null
+          ? DateTime.tryParse(json['exit_time'].toString())
+          : null,
+      isInside: json['is_inside'] ?? false,
+      isCheckedOut: json['exit_time'] != null,
+      qrCodeUrl: json['qr_code_url']?.toString(),
+      canEnter: json['can_enter'] ?? false,
+      company: json['company']?.toString(),
+      createdAt: json['created_at'] != null
+          ? DateTime.tryParse(json['created_at'].toString())
+          : null,
+      updatedAt: json['updated_at'] != null
+          ? DateTime.tryParse(json['updated_at'].toString())
+          : null,
+      logs: json['logs'],
+    );
+  }
 
   Map<String, dynamic> toJson() {
     return {
       'visitor_name': name,
       'mobile_number': phone,
       'email_id': email,
-      if (gender != null) 'gender': gender == 'Male' ? 'M' : gender == 'Female' ? 'F' : 'O',
-      'visiting_date': '${visitingDate.year}-${visitingDate.month.toString().padLeft(2, '0')}-${visitingDate.day.toString().padLeft(2, '0')}',
-      'visiting_time': visitingTime.length == 5 ? '$visitingTime:00' : visitingTime,
+      if (gender != null)
+        'gender': gender == 'Male'
+            ? 'M'
+            : gender == 'Female'
+            ? 'F'
+            : 'O',
+      'visiting_date':
+          '${visitingDate.year}-${visitingDate.month.toString().padLeft(2, '0')}-${visitingDate.day.toString().padLeft(2, '0')}',
+      'visiting_time': visitingTime.length == 5
+          ? '$visitingTime:00'
+          : visitingTime,
       if (recurringDays != null) 'recurring_days': recurringDays,
       if (allowingHours != null) 'allowing_hours': allowingHours,
       if (categoryId != null) 'category': categoryId,
       'whom_to_meet': whomToMeet,
       'coming_from': comingFrom,
       if (companyDetails != null) 'company_details': companyDetails,
-      if (belongingsTools != null && belongingsTools!.isNotEmpty) 
+      if (belongingsTools != null && belongingsTools!.isNotEmpty)
         'belongings_tools': belongingsTools,
       'purpose_of_visit': purpose,
       if (vehicleId != null) 'vehicle': vehicleId,
-      if (securityNotes != null && securityNotes!.isNotEmpty) 
+      if (securityNotes != null && securityNotes!.isNotEmpty)
         'security_notes': securityNotes,
     };
   }
 
   static String _parsePassType(dynamic passType) {
-  if (passType == null) return 'ONE_TIME';
-  final type = passType.toString().toUpperCase();
+    if (passType == null) return 'ONE_TIME';
+    final type = passType.toString().toUpperCase();
 
-  if (type == 'ONE_TIME' || type == 'RECURRING' || type == 'PERMANENT') {
-    return type;
+    if (type == 'ONE_TIME' || type == 'RECURRING' || type == 'PERMANENT') {
+      return type;
+    }
+
+    // fallback to ONE_TIME if backend sends unexpected values
+    return 'ONE_TIME';
   }
-
-  // fallback to ONE_TIME if backend sends unexpected values
-  return 'ONE_TIME';
-}
-
 
   static VisitorStatus _parseStatus(dynamic status) {
     if (status == null) return VisitorStatus.pending;
@@ -225,6 +235,7 @@ class Visitor {
     DateTime? exitTime,
     bool? isInside,
     bool? isCheckedOut,
+    String? currentStage,
     String? qrCodeUrl,
     bool? canEnter,
     String? company,
@@ -254,6 +265,7 @@ class Visitor {
       vehicleNumber: vehicleNumber ?? this.vehicleNumber,
       vehicleId: vehicleId ?? this.vehicleId,
       vehicleDetails: vehicleDetails ?? this.vehicleDetails,
+      currentStage: currentStage ?? this.currentStage,
       status: status ?? this.status,
       approvedBy: approvedBy ?? this.approvedBy,
       approvedAt: approvedAt ?? this.approvedAt,
@@ -344,11 +356,20 @@ enum VisitorStatus {
   }
 }
 
-
 extension VisitorHelpers on Visitor {
-  bool get isPast => visitingDate.isBefore(
+  /// Display stage: prefers currentStage if available, otherwise uses status enum
+  String get displayStage {
+    if (currentStage != null && currentStage!.isNotEmpty) {
+      return currentStage!; // e.g., "CHECKED_IN", "CHECKED_OUT", "APPROVED", "PENDING"
+    }
+    return status.displayName; // Fallback to enum (e.g., "Approved", "Pending")
+  }
+
+  bool get isPast =>
+      visitingDate.isBefore(
         DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day),
-      );
+      ) &&
+      entryTime == null;
 
   bool get isCheckedIn => entryTime != null && exitTime == null;
 }
